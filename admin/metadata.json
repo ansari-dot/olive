@@ -1,0 +1,6 @@
+{
+  "name": "Zaitoon Pakistan",
+  "description": "Zaitoon Pakistan — Authentic cold-pressed olive oils, raw Himalayan honey, and natural botanical pantry essentials across Pakistan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

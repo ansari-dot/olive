@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Production build outputs
+dist/
+*/dist/
+build/
+*/build/
+
+# Local MongoDB data directory & database files
+backend/data/
+data/
+*.wt
+diagnostic.data/
+journal/
+
+# Uploaded media (preserve directory via .gitkeep)
+uploads/*
+!uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Environment secret files (preserve .example templates)
+.env
+.env.*
+!.env.example
+!*/.env.example
+!*/.env.production
+
+# Logs & debugging
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
