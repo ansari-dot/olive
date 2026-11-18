@@ -3,6 +3,7 @@ import compression from "compression";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import path from "path";
+import fs from "fs";
 
 import { env } from "./config/env.js";
 import { connectDB, syncAllIndexes } from "./config/db.js";
@@ -68,6 +69,12 @@ app.use(cookieParser());
 
 // Static uploads serving
 app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+
+// Static assets serving (storefront images fallback)
+const assetsDir = path.resolve(process.cwd(), "../frontend/public/assets");
+if (fs.existsSync(assetsDir)) {
+  app.use("/assets", express.static(assetsDir));
+}
 
 app.use("/api", globalLimiter);
 

@@ -25,15 +25,19 @@ export const getMediaBaseUrl = (): string => {
   return getApiBaseUrl().replace(/\/api$/, '');
 };
 
+export const DEFAULT_IMAGE_PLACEHOLDER =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='96' viewBox='0 0 80 96' fill='none'><rect width='80' height='96' fill='%23FAF8F5'/><path d='M40 26c-11 15-18 27-18 38 0 10 8 18 18 18s18-8 18-18c0-11-7-23-18-38z' fill='%23224D26' fill-opacity='0.18'/><circle cx='40' cy='62' r='6' fill='%23224D26' fill-opacity='0.3'/><path d='M40 26c-2-8 3-14 8-16-1 5 1 11-8 16z' fill='%23224D26' fill-opacity='0.35'/></svg>";
+
 export const resolveAssetUrl = (url?: string): string => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-    return url;
+  if (!url || typeof url !== 'string' || !url.trim()) return DEFAULT_IMAGE_PLACEHOLDER;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+    return trimmed;
   }
-  if (url.startsWith('/uploads')) {
-    return `${getMediaBaseUrl()}${url}`;
+  if (trimmed.startsWith('/uploads') || trimmed.startsWith('/assets')) {
+    return `${getMediaBaseUrl()}${trimmed}`;
   }
-  return url;
+  return `${getMediaBaseUrl()}/${trimmed.replace(/^\/+/, '')}`;
 };
 
 export const resolveMediaUrl = resolveAssetUrl;

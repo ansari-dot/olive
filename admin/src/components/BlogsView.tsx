@@ -9,6 +9,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import {
+  DEFAULT_IMAGE_PLACEHOLDER,
   createAdminBlog,
   deleteAdminBlog,
   fetchAdminBlogs,
@@ -261,7 +262,14 @@ export const BlogsView: React.FC = () => {
                           src={resolveAssetUrl(post.image)}
                           alt={post.alt || post.title}
                           referrerPolicy="no-referrer"
-                          className="w-14 h-10 object-cover bg-[#FAF3F0] shrink-0"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (target.src !== DEFAULT_IMAGE_PLACEHOLDER) {
+                              target.onerror = null;
+                              target.src = DEFAULT_IMAGE_PLACEHOLDER;
+                            }
+                          }}
+                          className="w-14 h-10 object-cover bg-[#FAF3F0] shrink-0 border border-[#E2E8F0]"
                         />
                       ) : (
                         <div className="w-14 h-10 bg-[#F1F5F9] flex items-center justify-center shrink-0">

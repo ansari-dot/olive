@@ -9,6 +9,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import {
+  DEFAULT_IMAGE_PLACEHOLDER,
   cancelAdminOrder,
   fetchAdminOrderDetail,
   fetchAdminOrders,
@@ -527,7 +528,14 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                               src={resolveAssetUrl(item.image)}
                               alt={item.name}
                               referrerPolicy="no-referrer"
-                              className="w-10 h-10 object-cover bg-[#FAF3F0] shrink-0"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                if (target.src !== DEFAULT_IMAGE_PLACEHOLDER) {
+                                  target.onerror = null;
+                                  target.src = DEFAULT_IMAGE_PLACEHOLDER;
+                                }
+                              }}
+                              className="w-10 h-10 object-cover bg-[#FAF3F0] shrink-0 border border-[#E2E8F0]"
                             />
                           )}
                           <div className="min-w-0">

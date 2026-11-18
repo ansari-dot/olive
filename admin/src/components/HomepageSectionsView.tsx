@@ -22,6 +22,7 @@ import {
   fetchAdminSections,
   updateAdminSectionLayout,
   resolveMediaUrl,
+  DEFAULT_IMAGE_PLACEHOLDER,
 } from '../services/adminApi';
 import { formatPKR } from '../utils/formatters';
 
@@ -348,6 +349,13 @@ export const HomepageSectionsView: React.FC = () => {
                     <img
                       src={resolveMediaUrl(product.image)}
                       alt={product.name}
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (target.src !== DEFAULT_IMAGE_PLACEHOLDER) {
+                          target.onerror = null;
+                          target.src = DEFAULT_IMAGE_PLACEHOLDER;
+                        }
+                      }}
                       className="w-12 h-12 object-cover border border-[#EAEAEA] bg-[#FAF8F5] shrink-0"
                     />
                     <div>
@@ -448,6 +456,13 @@ export const HomepageSectionsView: React.FC = () => {
                       <img
                         src={resolveMediaUrl(product.image)}
                         alt={product.name}
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (target.src !== DEFAULT_IMAGE_PLACEHOLDER) {
+                            target.onerror = null;
+                            target.src = DEFAULT_IMAGE_PLACEHOLDER;
+                          }
+                        }}
                         className="w-9 h-9 object-cover border border-[#EAEAEA] bg-[#FAF8F5] shrink-0"
                       />
                       <div className="min-w-0">

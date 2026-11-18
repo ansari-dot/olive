@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Search, Trash2, Upload, X, Edit2 } from 'lucide-react';
 import {
+  DEFAULT_IMAGE_PLACEHOLDER,
   createAdminProduct,
   deleteAdminProduct,
   fetchAdminProducts,
@@ -300,7 +301,14 @@ export const ProductsView: React.FC = () => {
                         src={resolveAssetUrl(prod.image)}
                         alt={prod.name}
                         referrerPolicy="no-referrer"
-                        className="w-10 h-12 object-cover bg-[#FAF3F0] shrink-0"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (target.src !== DEFAULT_IMAGE_PLACEHOLDER) {
+                            target.onerror = null;
+                            target.src = DEFAULT_IMAGE_PLACEHOLDER;
+                          }
+                        }}
+                        className="w-10 h-12 object-cover bg-[#FAF3F0] shrink-0 border border-[#E2E8F0]"
                       />
                       <div className="min-w-0">
                         <p className="font-medium text-[#0F172A] truncate max-w-[220px]">
@@ -615,6 +623,23 @@ export const ProductsView: React.FC = () => {
                     className="flex-1 min-w-[200px] border border-[#CBD5E1] bg-white px-3 py-2 font-mono-data text-[12px]"
                   />
                 </div>
+                {form.image && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <img
+                      src={resolveAssetUrl(form.image)}
+                      alt="Preview"
+                      className="w-10 h-12 object-cover border border-[#CBD5E1] bg-white shrink-0"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (target.src !== DEFAULT_IMAGE_PLACEHOLDER) {
+                          target.onerror = null;
+                          target.src = DEFAULT_IMAGE_PLACEHOLDER;
+                        }
+                      }}
+                    />
+                    <span className="text-[11px] text-[#64748B] truncate max-w-sm">Image Preview</span>
+                  </div>
+                )}
               </div>
 
               <div>
