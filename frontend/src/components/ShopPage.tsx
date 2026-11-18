@@ -499,14 +499,14 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
             {/* Loading Skeleton */}
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7 lg:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 lg:gap-6">
                 {Array.from({ length: 6 }).map((_, idx) => (
                   <div key={idx} className="animate-pulse flex flex-col">
-                    <div className="aspect-[3/3.55] w-full bg-[#F3EFEA]" />
-                    <div className="mt-4 space-y-2">
-                      <div className="h-4 bg-[#EFEBE5] w-3/4 mx-auto" />
-                      <div className="h-3 bg-[#EFEBE5] w-1/3 mx-auto" />
-                      <div className="h-4 bg-[#EFEBE5] w-1/4 mx-auto" />
+                    <div className="aspect-[4/4.3] w-full bg-[#F3EFEA]" />
+                    <div className="mt-3 space-y-1.5">
+                      <div className="h-3.5 bg-[#EFEBE5] w-3/4 mx-auto" />
+                      <div className="h-2.5 bg-[#EFEBE5] w-1/3 mx-auto" />
+                      <div className="h-3.5 bg-[#EFEBE5] w-1/4 mx-auto" />
                     </div>
                   </div>
                 ))}
@@ -525,19 +525,19 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7 lg:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 lg:gap-6">
                 {productsList.map((product) => {
                   const isBroken = brokenImages[product.id];
                   return (
-                    <article key={product.id} className="group flex flex-col">
-                      <div className="relative aspect-[3/3.55] w-full bg-[#FAF3F0] overflow-hidden">
+                    <article key={product.id} className="group flex flex-col bg-white border border-transparent hover:border-[#EAEAEA] p-2 transition-all">
+                      <div className="relative aspect-[4/4.3] w-full bg-[#FAF3F0] overflow-hidden">
                         {/* Corner Tag: New (olive) or Sale (terracotta) */}
                         {product.isSale ? (
-                          <span className="absolute top-0 left-0 z-10 bg-[#C46B3B] text-white text-[11.5px] font-medium leading-none px-3 py-1.5">
+                          <span className="absolute top-0 left-0 z-10 bg-[#C46B3B] text-white text-[10.5px] font-medium leading-none px-2 py-1">
                             Sale
                           </span>
                         ) : product.isNew ? (
-                          <span className="absolute top-0 left-0 z-10 bg-[#7E8F5B] text-white text-[11.5px] font-medium leading-none px-3 py-1.5">
+                          <span className="absolute top-0 left-0 z-10 bg-[#7E8F5B] text-white text-[10.5px] font-medium leading-none px-2 py-1">
                             New
                           </span>
                         ) : null}
@@ -551,14 +551,14 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                                 ? `Remove ${product.name} from wishlist`
                                 : `Save ${product.name} to wishlist`
                             }
-                            className={`absolute top-2.5 right-2.5 z-10 w-8 h-8 bg-white/90 hover:bg-white flex items-center justify-center transition-all cursor-pointer ${
+                            className={`absolute top-2 right-2 z-10 w-7 h-7 bg-white/90 hover:bg-white flex items-center justify-center transition-all cursor-pointer ${
                               wishlistIds.includes(product.id)
                                 ? 'text-[#C46B3B] opacity-100'
                                 : 'text-[#444444] hover:text-[#C46B3B] opacity-85 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100'
                             }`}
                           >
                             <Heart
-                              className={`w-4 h-4 ${
+                              className={`w-3.5 h-3.5 ${
                                 wishlistIds.includes(product.id) ? 'fill-current' : ''
                               }`}
                             />
@@ -584,25 +584,25 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                             />
                           </button>
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center p-6 text-center text-[#15472B]">
-                            <span className="font-serif-brand text-lg">{product.name}</span>
+                          <div className="w-full h-full flex items-center justify-center p-4 text-center text-[#15472B]">
+                            <span className="font-serif-brand text-base">{product.name}</span>
                           </div>
                         )}
 
                         {/* Hover / Focus Add to Bag */}
-                        <div className="absolute inset-x-0 bottom-0 p-3 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-200 z-10">
+                        <div className="absolute inset-x-0 bottom-0 p-2.5 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-200 z-10">
                           <button
                             type="button"
                             onClick={() => onAddToCart(product)}
-                            className="w-full py-2.5 bg-[#1C1C1C]/90 hover:bg-[#15472B] text-white text-[11.5px] uppercase tracking-[0.09em] font-medium transition-colors cursor-pointer"
+                            className="w-full py-2 bg-[#1C1C1C]/90 hover:bg-[#15472B] text-white text-[11px] uppercase tracking-[0.08em] font-medium transition-colors cursor-pointer"
                           >
                             Add to Bag
                           </button>
                         </div>
                       </div>
 
-                      <div className="mt-4 text-center">
-                        <h3 className="text-[16.5px] font-normal text-[#1E1E1E] leading-snug">
+                      <div className="mt-3 text-center">
+                        <h3 className="text-[14px] font-normal text-[#1E1E1E] leading-snug line-clamp-1">
                           <button
                             type="button"
                             onClick={() =>
@@ -614,22 +614,22 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                           </button>
                         </h3>
 
-                        <div className="mt-1.5">
+                        <div className="mt-1">
                           <StarRating rating={product.rating} />
                         </div>
 
-                        <div className="mt-1.5 flex items-center justify-center gap-2 text-[13.5px] tabular-nums">
+                        <div className="mt-1 flex items-center justify-center gap-2 text-[12.5px] tabular-nums">
                           {product.originalPrice ? (
                             <>
-                              <span className="text-[#777777] line-through">
+                              <span className="text-[#777777] line-through text-[11.5px]">
                                 {formatPKR(product.originalPrice)}
                               </span>
-                              <span className="text-[#C46B3B]">
+                              <span className="text-[#C46B3B] font-medium">
                                 {formatPKR(product.price)}
                               </span>
                             </>
                           ) : (
-                            <span className="text-[#555555]">{formatPKR(product.price)}</span>
+                            <span className="text-[#555555] font-medium">{formatPKR(product.price)}</span>
                           )}
                         </div>
                       </div>
