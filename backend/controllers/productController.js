@@ -79,3 +79,17 @@ export const deleteProduct = asyncHandler(async (req, res) => {
   const result = await productService.deleteProduct(req.params.id);
   res.json(result);
 });
+
+// Admin: GET /api/admin/sections
+export const getAdminSections = asyncHandler(async (_req, res) => {
+  const result = await productService.getAdminSections();
+  res.json(result);
+});
+
+// Admin: PATCH /api/admin/sections/:sectionKey
+export const updateAdminSectionLayout = asyncHandler(async (req, res) => {
+  const { sectionKey } = req.params;
+  const { items } = req.body;
+  const result = await productService.updateAdminSectionLayout(sectionKey, items);
+  res.json(result);
+});

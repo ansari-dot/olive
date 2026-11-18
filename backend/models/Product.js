@@ -119,7 +119,14 @@ const productSchema = new mongoose.Schema(
     },
     sections: {
       type: [String],
+      enum: ["featured-grid", "best-sellers", "unique", "shop"],
       default: ["shop"],
+    },
+    sectionOrder: {
+      "featured-grid": { type: Number, default: 0 },
+      "best-sellers": { type: Number, default: 0 },
+      unique: { type: Number, default: 0 },
+      shop: { type: Number, default: 0 },
     },
     extractionMethod: {
       type: String,
@@ -147,6 +154,7 @@ productSchema.virtual("inStock").get(function () {
 productSchema.index({ brand: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ sections: 1 });
+productSchema.index({ sections: 1, isActive: 1 });
 productSchema.index({ price: 1 });
 productSchema.index({ popularity: -1 });
 productSchema.index({ rating: -1 });

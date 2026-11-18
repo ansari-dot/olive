@@ -148,6 +148,40 @@ async function run() {
       headers: authHeaders,
     });
     report("DELETE /api/admin/products/:id status 200", resDel.status === 200);
+
+    // Merchandising Sections
+    const resSections = await fetch(`${BASE_URL}/admin/sections`, { headers: authHeaders });
+    const dataSections = await resSections.json();
+    report("GET /api/admin/sections returns 4 storefront sections", !!dataSections.sections?.["featured-grid"] && !!dataSections.sections?.["best-sellers"]);
+
+    // Test reordering featured-grid
+    const currentGrid = dataSections.sections["featured-grid"];
+    if (currentGrid.length >= 2) {
+      const swapped = [
+        { productId: currentGrid[1]._id, order: 1 },
+        { productId: currentGrid[0]._id, order: 2 },
+      ];
+      const resPatchSec = await fetch(`${BASE_URL}/admin/sections/featured-grid`, {
+        method: "PATCH",
+        headers: authHeaders,
+        body: JSON.stringify({ items: swapped }),
+      });
+      const dataPatchSec = await resPatchSec.json();
+      report("PATCH /api/admin/sections/:key updates layout and items", resPatchSec.status === 200 && dataPatchSec.items?.length === 2);
+
+      // Verify public API returns updated order
+      const resPubHome = await fetch(`${BASE_URL}/products?section=featured-grid&limit=2`);
+      const dataPubHome = await resPubHome.json();
+      report("Public GET /api/products?section=featured-grid matches admin sort order", dataPubHome.products[0]._id === currentGrid[1]._id);
+
+      // Restore back
+      const restored = currentGrid.map((p, idx) => ({ productId: p._id, order: idx + 1 }));
+      await fetch(`${BASE_URL}/admin/sections/featured-grid`, {
+        method: "PATCH",
+        headers: authHeaders,
+        body: JSON.stringify({ items: restored }),
+      });
+    }
   }
 
   // 6. Image Upload

@@ -79,7 +79,10 @@ function buildProductFilter(query, isPublic = true) {
   return filter;
 }
 
-function resolveProductSort(sort) {
+function resolveProductSort(sort, section) {
+  if (!sort && section) {
+    return { [`sectionOrder.${section}`]: 1, popularity: -1, createdAt: -1 };
+  }
   switch (sort) {
     case "price-asc":
       return { price: 1 };
@@ -92,7 +95,9 @@ function resolveProductSort(sort) {
     case "newest":
       return { createdAt: -1 };
     default:
-      return { popularity: -1, createdAt: -1 };
+      return section
+        ? { [`sectionOrder.${section}`]: 1, popularity: -1, createdAt: -1 }
+        : { popularity: -1, createdAt: -1 };
   }
 }
 
@@ -139,7 +144,7 @@ export async function decrementStockAtomic(items = []) {
 
 export async function listProducts(query = {}, isPublic = true) {
   const filter = buildProductFilter(query, isPublic);
-  const sort = resolveProductSort(query.sort);
+  const sort = resolveProductSort(query.sort, query.section);
 
   const defaultLimit = isPublic ? 20 : 100;
   const page = Math.max(1, parseInt(query.page, 10) || 1);
@@ -318,6 +323,7 @@ const ALLOWED_PRODUCT_FIELDS = [
   "galleryImages",
   "tag",
   "sections",
+  "sectionOrder",
   "harvestYear",
   "shelfLife",
   "ingredients",
@@ -403,5 +409,109 @@ export async function deleteProduct(id) {
     throw ApiError.notFound("Product not found");
   }
   invalidateCache("/api/products");
+  invalidateCache("/api/home");
   return { success: true, message: "Product deleted successfully" };
+}
+
+const ALLOWED_SECTION_KEYS = new Set([
+  "featured-grid",
+  "best-sellers",
+  "unique",
+  "shop",
+]);
+
+export async function getAdminSections() {
+  const allProducts = await Product.find().sort({ name: 1 }).lean();
+
+  const sections = {
+    "featured-grid": allProducts
+      .filter((p) => p.sections?.includes("featured-grid"))
+      .sort(
+        (a, b) =>
+          (a.sectionOrder?.["featured-grid"] ?? 0) -
+          (b.sectionOrder?.["featured-grid"] ?? 0)
+      ),
+    "best-sellers": allProducts
+      .filter((p) => p.sections?.includes("best-sellers"))
+      .sort(
+        (a, b) =>
+          (a.sectionOrder?.["best-sellers"] ?? 0) -
+          (b.sectionOrder?.["best-sellers"] ?? 0)
+      ),
+    unique: allProducts
+      .filter((p) => p.sections?.includes("unique"))
+      .sort(
+        (a, b) =>
+          (a.sectionOrder?.["unique"] ?? 0) -
+          (b.sectionOrder?.["unique"] ?? 0)
+      ),
+    shop: allProducts
+      .filter((p) => p.sections?.includes("shop"))
+      .sort(
+        (a, b) =>
+          (a.sectionOrder?.["shop"] ?? 0) -
+          (b.sectionOrder?.["shop"] ?? 0)
+      ),
+  };
+
+  return {
+    success: true,
+    sections,
+    products: allProducts,
+  };
+}
+
+export async function updateAdminSectionLayout(sectionKey, items = []) {
+  if (!ALLOWED_SECTION_KEYS.has(sectionKey)) {
+    throw ApiError.badRequest(
+      `Invalid section key "${sectionKey}". Must be one of: ${Array.from(ALLOWED_SECTION_KEYS).join(", ")}`
+    );
+  }
+
+  if (!Array.isArray(items)) {
+    throw ApiError.badRequest("Items must be an array of { productId, order }");
+  }
+
+  const validSelectedIds = [];
+  for (const item of items) {
+    const rawId = item.productId || item._id || item.id;
+    if (!rawId || !mongoose.isValidObjectId(rawId)) {
+      throw ApiError.badRequest(`Invalid MongoDB product ID: "${rawId}"`);
+    }
+    const orderNum = Math.max(0, parseInt(item.order, 10) || 0);
+    const objId = new mongoose.Types.ObjectId(String(rawId));
+    validSelectedIds.push(objId);
+
+    await Product.findByIdAndUpdate(objId, {
+      $addToSet: { sections: sectionKey },
+      $set: { [`sectionOrder.${sectionKey}`]: orderNum },
+    });
+  }
+
+  // Atomically remove this sectionKey from any product not in items
+  await Product.updateMany(
+    {
+      _id: { $nin: validSelectedIds },
+      sections: sectionKey,
+    },
+    {
+      $pull: { sections: sectionKey },
+      $set: { [`sectionOrder.${sectionKey}`]: 0 },
+    }
+  );
+
+  invalidateCache("/api/products");
+  invalidateCache("/api/home");
+
+  const updatedProducts = await Product.find({
+    sections: sectionKey,
+  })
+    .sort({ [`sectionOrder.${sectionKey}`]: 1, popularity: -1, createdAt: -1 })
+    .lean();
+
+  return {
+    success: true,
+    sectionKey,
+    items: updatedProducts,
+  };
 }

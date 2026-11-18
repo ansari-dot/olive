@@ -110,19 +110,19 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
-    fetchProducts({ section: 'featured-grid', limit: 4 })
+    fetchProducts({ section: 'featured-grid', limit: 12 })
       .then((res) => {
         if (isMounted) setFeaturedGrid(res.products);
       })
       .catch((err) => console.error('Failed to load featured grid products:', err));
 
-    fetchProducts({ section: 'best-sellers', limit: 3 })
+    fetchProducts({ section: 'best-sellers', limit: 12 })
       .then((res) => {
         if (isMounted) setBestSellers(res.products);
       })
       .catch((err) => console.error('Failed to load best seller products:', err));
 
-    fetchProducts({ section: 'unique', limit: 4 })
+    fetchProducts({ section: 'unique', limit: 12 })
       .then((res) => {
         if (isMounted) setUniqueProducts(res.products);
       })
@@ -134,7 +134,7 @@ export const HomePage: React.FC = () => {
       })
       .catch((err) => console.error('Failed to load blogs:', err));
 
-    fetchProducts({ limit: 40 })
+    fetchProducts({ limit: 60 })
       .then((res) => {
         if (isMounted) setAllProducts(res.products);
       })

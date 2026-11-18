@@ -7,6 +7,7 @@ import CompareSection from "../models/CompareSection.js";
 import Testimonial from "../models/Testimonial.js";
 import Category from "../models/Category.js";
 import BestSellersSection from "../models/BestSellersSection.js";
+import Product from "../models/Product.js";
 import {
   findProductMapByIds,
   pickProductsFromMap,
@@ -44,6 +45,26 @@ export async function getHomeData() {
   ]);
 
   const deal = await getDealSectionWithStock();
+
+  // Query dynamic merchandising sections
+  const [featuredGrid, dynamicBestSellers, uniqueProducts, shopProducts] = await Promise.all([
+    Product.find({ isActive: true, sections: "featured-grid" })
+      .sort({ "sectionOrder.featured-grid": 1, popularity: -1, createdAt: -1 })
+      .limit(12)
+      .lean(),
+    Product.find({ isActive: true, sections: "best-sellers" })
+      .sort({ "sectionOrder.best-sellers": 1, popularity: -1, createdAt: -1 })
+      .limit(12)
+      .lean(),
+    Product.find({ isActive: true, sections: "unique" })
+      .sort({ "sectionOrder.unique": 1, popularity: -1, createdAt: -1 })
+      .limit(12)
+      .lean(),
+    Product.find({ isActive: true, sections: "shop" })
+      .sort({ "sectionOrder.shop": 1, popularity: -1, createdAt: -1 })
+      .limit(40)
+      .lean(),
+  ]);
 
   const sections = Array.isArray(categorySections) ? categorySections : [];
 
@@ -87,7 +108,10 @@ export async function getHomeData() {
     popular: popular || null,
     popularProducts,
     bestSellers: bestSellers || null,
-    bestSellersProducts,
+    bestSellersProducts: dynamicBestSellers.length > 0 ? dynamicBestSellers : bestSellersProducts,
+    featuredGrid,
+    uniqueProducts,
+    shopProducts,
     deal: deal || null,
     compare: compare || null,
     compareProducts,

@@ -5,6 +5,7 @@ import type {
   AdminOrder,
   AdminProduct,
   AdminReview,
+  AdminSectionsResponse,
   AdminUser,
   DashboardStats,
   InquiryStatus,
@@ -34,6 +35,8 @@ export const resolveAssetUrl = (url?: string): string => {
   }
   return url;
 };
+
+export const resolveMediaUrl = resolveAssetUrl;
 
 export const getStoredToken = (): string | null => {
   try {
@@ -160,11 +163,13 @@ export async function fetchAdminProducts(params?: {
   search?: string;
   category?: string;
   brand?: string;
+  section?: string;
 }): Promise<AdminProduct[]> {
   const qs = new URLSearchParams();
   if (params?.search) qs.set('search', params.search);
   if (params?.category && params.category !== 'All') qs.set('category', params.category);
   if (params?.brand && params.brand !== 'All') qs.set('brand', params.brand);
+  if (params?.section && params.section !== 'All') qs.set('section', params.section);
   const query = qs.toString() ? `?${qs.toString()}` : '';
   const res = await request<unknown>(`/admin/products${query}`);
   return unwrapList<AdminProduct>(res, ['products']);
@@ -222,6 +227,25 @@ export async function uploadAdminImage(file: File): Promise<string> {
     '';
   if (!url) throw new Error('Upload completed without returning an image URL');
   return url;
+}
+
+// Homepage Sections Merchandising
+export async function fetchAdminSections(): Promise<AdminSectionsResponse> {
+  return await request<AdminSectionsResponse>('/admin/sections');
+}
+
+export async function updateAdminSectionLayout(
+  sectionKey: string,
+  items: Array<{ productId: string; order: number }>
+): Promise<{ success: boolean; sectionKey: string; items: AdminProduct[] }> {
+  const safeKey = encodeURIComponent(sectionKey.trim());
+  return await request<{ success: boolean; sectionKey: string; items: AdminProduct[] }>(
+    `/admin/sections/${safeKey}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ items }),
+    }
+  );
 }
 
 // Coupons

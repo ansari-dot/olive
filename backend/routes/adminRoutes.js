@@ -44,6 +44,10 @@ router.put("/products/:id", productController.updateProduct);
 router.patch("/products/:id/stock", productController.updateStock);
 router.delete("/products/:id", productController.deleteProduct);
 
+// Merchandising Sections
+router.get("/sections", productController.getAdminSections);
+router.patch("/sections/:sectionKey", productController.updateAdminSectionLayout);
+
 // Upload endpoint
 router.post(
   "/upload",

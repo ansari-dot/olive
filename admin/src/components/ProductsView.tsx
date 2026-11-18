@@ -50,6 +50,7 @@ export const ProductsView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('All');
+  const [sectionFilter, setSectionFilter] = useState('All');
 
   // Stock quick edit
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
@@ -69,6 +70,7 @@ export const ProductsView: React.FC = () => {
       const list = await fetchAdminProducts({
         search: search.trim() || undefined,
         brand: brandFilter !== 'All' ? brandFilter : undefined,
+        section: sectionFilter !== 'All' ? sectionFilter : undefined,
       });
       setProducts(list);
       const nextDrafts: Record<string, string> = {};
@@ -86,7 +88,7 @@ export const ProductsView: React.FC = () => {
   useEffect(() => {
     void loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandFilter]);
+  }, [brandFilter, sectionFilter]);
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -249,6 +251,18 @@ export const ProductsView: React.FC = () => {
             </option>
           ))}
         </select>
+
+        <select
+          value={sectionFilter}
+          onChange={(e) => setSectionFilter(e.target.value)}
+          className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px]"
+        >
+          <option value="All">All Storefront Sections</option>
+          <option value="featured-grid">Featured Grid</option>
+          <option value="best-sellers">Best Sellers</option>
+          <option value="unique">Unique Products</option>
+          <option value="shop">Main Shop</option>
+        </select>
       </div>
 
       {error && (
@@ -306,9 +320,35 @@ export const ProductsView: React.FC = () => {
                     </p>
                   </td>
                   <td className="py-3 px-4 text-[12px] text-[#475569]">
-                    {(prod.sections ?? []).join(', ') || 'shop'}
+                    <div className="flex flex-wrap gap-1 max-w-[180px]">
+                      {(prod.sections ?? []).map((sec) => {
+                        let color = 'bg-[#F1F5F9] text-[#475569]';
+                        let label = sec;
+                        if (sec === 'featured-grid') {
+                          color = 'bg-[#DCFCE7] text-[#166534] border border-[#86EFAC]';
+                          label = 'Grid';
+                        } else if (sec === 'best-sellers') {
+                          color = 'bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]';
+                          label = 'Best Seller';
+                        } else if (sec === 'unique') {
+                          color = 'bg-[#E0E7FF] text-[#3730A3] border border-[#C7D2FE]';
+                          label = 'Unique';
+                        } else if (sec === 'shop') {
+                          color = 'bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0]';
+                          label = 'Shop';
+                        }
+                        return (
+                          <span
+                            key={sec}
+                            className={`px-1.5 py-0.5 text-[10px] font-semibold rounded-xs tracking-tight ${color}`}
+                          >
+                            {label}
+                          </span>
+                        );
+                      })}
+                    </div>
                     {!prod.isActive && (
-                      <span className="block text-[11px] text-[#DC2626] font-medium">
+                      <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] bg-[#FEE2E2] text-[#DC2626] font-semibold uppercase">
                         Inactive
                       </span>
                     )}

@@ -270,6 +270,34 @@ export async function fetchProducts(
   };
 }
 
+export interface HomeSectionsData {
+  featuredGrid: Product[];
+  bestSellers: Product[];
+  uniqueProducts: Product[];
+  shopProducts: Product[];
+}
+
+/**
+ * GET /api/home (returns aggregated section products)
+ */
+export async function fetchHomeSections(): Promise<HomeSectionsData> {
+  const res = await fetch(`${API_BASE_URL}/home`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch home sections (${res.status})`);
+  }
+  const data = await res.json();
+  return {
+    featuredGrid: Array.isArray(data.featuredGrid) ? data.featuredGrid.map(normalizeProduct) : [],
+    bestSellers: Array.isArray(data.bestSellersProducts)
+      ? data.bestSellersProducts.map(normalizeProduct)
+      : Array.isArray(data.bestSellers)
+      ? data.bestSellers.map(normalizeProduct)
+      : [],
+    uniqueProducts: Array.isArray(data.uniqueProducts) ? data.uniqueProducts.map(normalizeProduct) : [],
+    shopProducts: Array.isArray(data.shopProducts) ? data.shopProducts.map(normalizeProduct) : [],
+  };
+}
+
 /**
  * GET /api/products/filters
  */

@@ -39,6 +39,7 @@ export interface AdminProduct {
   galleryImages: string[];
   tag?: string;
   sections: string[];
+  sectionOrder?: Record<string, number>;
   extractionMethod: string;
   acidityLevel: string;
   inStock?: boolean;
@@ -210,4 +211,22 @@ export interface DashboardStats {
   unreadInquiriesCount: number;
   activeCouponsCount: number;
   newsletterSubscribersCount: number;
+}
+
+export type HomepageSectionKey = 'featured-grid' | 'best-sellers' | 'unique' | 'shop';
+
+export interface SectionOrderItem {
+  productId: string;
+  order: number;
+}
+
+export interface AdminSectionsResponse {
+  success: boolean;
+  sections: {
+    'featured-grid': AdminProduct[];
+    'best-sellers': AdminProduct[];
+    unique: AdminProduct[];
+    shop: AdminProduct[];
+  };
+  products: AdminProduct[];
 }
