@@ -45,7 +45,8 @@ export const FromOurBlogSection: React.FC<FromOurBlogSectionProps> = ({
         </div>
 
         {/* 3-Column Editorial Article Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-7 lg:gap-8">
+        {posts && posts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-7 lg:gap-8">
           {posts.map((post) => {
             const isBroken = brokenImages[post.id];
             return (
@@ -109,6 +110,12 @@ export const FromOurBlogSection: React.FC<FromOurBlogSectionProps> = ({
             );
           })}
         </div>
+      ) : (
+        <div className="w-full py-12 text-center border border-dashed border-[#E5E7EB] bg-[#FAF8F5] rounded-xs">
+          <p className="text-[14px] font-semibold text-[#4B5563]">No stories yet published</p>
+          <p className="text-[12px] text-[#9CA3AF] mt-1">Journal stories from our groves will be posted soon.</p>
+        </div>
+      )}
 
         {onViewAllBlogs && (
           <div className="mt-11 text-center">

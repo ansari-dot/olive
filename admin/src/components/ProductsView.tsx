@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Plus, Search, Trash2, Upload, X, Edit2 } from 'lucide-react';
 import {
   DEFAULT_IMAGE_PLACEHOLDER,
   createAdminProduct,
   deleteAdminProduct,
+  fetchAdminCategories,
+  fetchAdminOrigins,
   fetchAdminProducts,
   resolveAssetUrl,
   updateAdminProduct,
@@ -14,6 +16,10 @@ import type { AdminProduct, BrandName } from '../types/admin';
 import { formatPKR } from '../utils/formatters';
 
 const BRAND_OPTIONS: BrandName[] = [
+  'Pak Veda',
+  'Pak Veda Reserve',
+  'Pak Veda Organics',
+  'Pak Veda Botanicals',
   'Zaitoon Reserve',
   'Chakwal Press',
   'Himalayan Sidr',
@@ -22,12 +28,21 @@ const BRAND_OPTIONS: BrandName[] = [
 
 const SECTION_OPTIONS = ['featured-grid', 'best-sellers', 'unique', 'shop'];
 
+interface AdminCategoryOption {
+  name: string;
+  slug: string;
+  categoryNumber?: number;
+  department?: string;
+  subcategories?: { name: string; slug?: string }[];
+}
+
 const EMPTY_FORM: Partial<AdminProduct> = {
   name: '',
   slug: '',
   sku: '',
-  brand: 'Zaitoon Reserve',
-  category: 'Olive Oil',
+  brand: 'Pak Veda',
+  category: 'Olive Products',
+  subcategory: '',
   flavour: '',
   origin: 'Potohar',
   price: 2200,
@@ -36,8 +51,9 @@ const EMPTY_FORM: Partial<AdminProduct> = {
   size: '500 ml Dark Glass',
   description: '',
   image: '',
+  galleryImages: [],
   tag: '',
-  sections: ['shop'],
+  sections: ['shop', 'featured-grid'],
   extractionMethod: 'First Cold-Press (< 27°C), Unfiltered',
   acidityLevel: '< 0.3% Free Fatty Acidity',
   isSale: false,
@@ -47,10 +63,15 @@ const EMPTY_FORM: Partial<AdminProduct> = {
 
 export const ProductsView: React.FC = () => {
   const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [categoriesList, setCategoriesList] = useState<AdminCategoryOption[]>([]);
+  const [originsList, setOriginsList] = useState<Array<{ name: string; region?: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [subcategoryFilter, setSubcategoryFilter] = useState('All');
+  const [originFilter, setOriginFilter] = useState('All');
   const [sectionFilter, setSectionFilter] = useState('All');
 
   // Stock quick edit
@@ -62,7 +83,27 @@ export const ProductsView: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<AdminProduct>>(EMPTY_FORM);
   const [uploading, setUploading] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [newGalleryUrl, setNewGalleryUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const refreshTaxonomies = () => {
+    fetchAdminCategories()
+      .then((cats) => {
+        if (Array.isArray(cats)) setCategoriesList(cats);
+      })
+      .catch((err) => console.error('Failed to load categories:', err));
+
+    fetchAdminOrigins()
+      .then((origs) => {
+        if (Array.isArray(origs)) setOriginsList(origs);
+      })
+      .catch((err) => console.error('Failed to load origins:', err));
+  };
+
+  useEffect(() => {
+    refreshTaxonomies();
+  }, []);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -71,6 +112,8 @@ export const ProductsView: React.FC = () => {
       const list = await fetchAdminProducts({
         search: search.trim() || undefined,
         brand: brandFilter !== 'All' ? brandFilter : undefined,
+        category: categoryFilter !== 'All' ? categoryFilter : undefined,
+        subcategory: subcategoryFilter !== 'All' ? subcategoryFilter : undefined,
         section: sectionFilter !== 'All' ? sectionFilter : undefined,
       });
       setProducts(list);
@@ -89,20 +132,27 @@ export const ProductsView: React.FC = () => {
   useEffect(() => {
     void loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandFilter, sectionFilter]);
+  }, [brandFilter, categoryFilter, subcategoryFilter, sectionFilter]);
 
   const openCreateModal = () => {
+    refreshTaxonomies();
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setNewGalleryUrl('');
     setModalOpen(true);
   };
 
   const openEditModal = (prod: AdminProduct) => {
+    refreshTaxonomies();
     setEditingId(prod._id);
     setForm({
       ...prod,
-      sections: prod.sections?.length ? prod.sections : ['shop'],
+      sections: prod.sections?.length ? prod.sections : ['shop', 'featured-grid'],
+      galleryImages: prod.galleryImages?.length ? prod.galleryImages : [],
+      extractionMethod: prod.extractionMethod || 'First Cold-Press (< 27°C), Unfiltered',
+      acidityLevel: prod.acidityLevel || '< 0.3% Free Fatty Acidity',
     });
+    setNewGalleryUrl('');
     setModalOpen(true);
   };
 
@@ -121,6 +171,41 @@ export const ProductsView: React.FC = () => {
     }
   };
 
+  const handleUploadGalleryFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingGallery(true);
+    setError(null);
+    try {
+      const url = await uploadAdminImage(file);
+      setForm((prev) => ({
+        ...prev,
+        galleryImages: [...(prev.galleryImages || []), url],
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gallery image upload failed.');
+    } finally {
+      setUploadingGallery(false);
+    }
+  };
+
+  const handleAddGalleryUrl = () => {
+    const trimmed = newGalleryUrl.trim();
+    if (!trimmed) return;
+    setForm((prev) => ({
+      ...prev,
+      galleryImages: [...(prev.galleryImages || []), trimmed],
+    }));
+    setNewGalleryUrl('');
+  };
+
+  const handleRemoveGalleryImage = (indexToRemove: number) => {
+    setForm((prev) => ({
+      ...prev,
+      galleryImages: (prev.galleryImages || []).filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name?.trim() || !form.image?.trim()) return;
@@ -134,12 +219,27 @@ export const ProductsView: React.FC = () => {
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/(^-|-$)/g, '');
       const payload: Partial<AdminProduct> = {
-        ...form,
+        name: form.name?.trim(),
         slug: generatedSlug,
         sku: form.sku?.trim().toUpperCase() || `ZP-${Date.now().toString().slice(-4)}`,
+        brand: form.brand || 'Pak Veda',
+        category: form.category || 'Olive Products',
+        subcategory: form.subcategory?.trim() || '',
+        origin: form.origin || 'Potohar',
+        size: form.size || '500 ml Dark Glass',
         price: Number(form.price || 0),
         originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
         stock: Number(form.stock ?? 0),
+        extractionMethod: form.extractionMethod?.trim() || 'First Cold-Press (< 27°C), Unfiltered',
+        acidityLevel: form.acidityLevel?.trim() || '< 0.3% Free Fatty Acidity',
+        flavour: form.flavour?.trim() || undefined,
+        description: form.description?.trim() || '',
+        image: form.image?.trim() || '',
+        galleryImages: (form.galleryImages || []).filter((img) => typeof img === 'string' && img.trim().length > 0),
+        sections: form.sections?.length ? form.sections : ['shop', 'featured-grid'],
+        isActive: form.isActive !== undefined ? Boolean(form.isActive) : true,
+        isSale: Boolean(form.isSale),
+        isNew: Boolean(form.isNew),
       };
 
       if (editingId) {
@@ -192,6 +292,11 @@ export const ProductsView: React.FC = () => {
     });
   };
 
+  const displayedProducts = useMemo(() => {
+    if (originFilter === 'All') return products;
+    return products.filter((p) => p.origin === originFilter);
+  }, [products, originFilter]);
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -200,7 +305,7 @@ export const ProductsView: React.FC = () => {
             Products &amp; Harvest Inventory
           </h2>
           <p className="text-[13px] text-[#64748B] font-mono-data">
-            {products.length} catalog items
+            {displayedProducts.length} catalog items
           </p>
         </div>
         <button
@@ -240,30 +345,78 @@ export const ProductsView: React.FC = () => {
           </button>
         </form>
 
-        <select
-          value={brandFilter}
-          onChange={(e) => setBrandFilter(e.target.value)}
-          className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px]"
-        >
-          <option value="All">All Orchard Brands</option>
-          {BRAND_OPTIONS.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setSubcategoryFilter('All');
+            }}
+            className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px] max-w-[200px]"
+          >
+            <option value="All">All Categories (28)</option>
+            {categoriesList.map((c) => (
+              <option key={c.slug || c.name} value={c.name}>
+                {c.categoryNumber ? `${c.categoryNumber}. ` : ''}{c.name}
+              </option>
+            ))}
+          </select>
 
-        <select
-          value={sectionFilter}
-          onChange={(e) => setSectionFilter(e.target.value)}
-          className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px]"
-        >
-          <option value="All">All Storefront Sections</option>
-          <option value="featured-grid">Featured Grid</option>
-          <option value="best-sellers">Best Sellers</option>
-          <option value="unique">Unique Products</option>
-          <option value="shop">Main Shop</option>
-        </select>
+          {categoryFilter !== 'All' && (
+            <select
+              value={subcategoryFilter}
+              onChange={(e) => setSubcategoryFilter(e.target.value)}
+              className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px] max-w-[200px]"
+            >
+              <option value="All">All Subcategories</option>
+              {categoriesList
+                .find((c) => c.name === categoryFilter)
+                ?.subcategories?.map((sc) => (
+                  <option key={sc.slug || sc.name} value={sc.name}>
+                    {sc.name}
+                  </option>
+                ))}
+            </select>
+          )}
+
+          <select
+            value={brandFilter}
+            onChange={(e) => setBrandFilter(e.target.value)}
+            className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px]"
+          >
+            <option value="All">All Brands</option>
+            {BRAND_OPTIONS.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={sectionFilter}
+            onChange={(e) => setSectionFilter(e.target.value)}
+            className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px]"
+          >
+            <option value="All">All Storefront Sections</option>
+            <option value="featured-grid">Featured Grid</option>
+            <option value="best-sellers">Best Sellers</option>
+            <option value="unique">Unique Products</option>
+            <option value="shop">Main Shop</option>
+          </select>
+
+          <select
+            value={originFilter}
+            onChange={(e) => setOriginFilter(e.target.value)}
+            className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px]"
+          >
+            <option value="All">All Origins</option>
+            {originsList.map((o) => (
+              <option key={o.name} value={o.name}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {error && (
@@ -293,7 +446,7 @@ export const ProductsView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F1F5F9]">
-              {products.map((prod) => (
+              {displayedProducts.map((prod) => (
                 <tr key={prod._id} className="hover:bg-[#F8FAFC]">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
@@ -321,11 +474,16 @@ export const ProductsView: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    <p className="text-[#0F172A]">{prod.brand}</p>
+                    <p className="text-[#0F172A] font-medium">{prod.brand}</p>
                     <p className="text-[11.5px] text-[#64748B]">
                       {prod.category}
                       {prod.origin ? ` · ${prod.origin}` : ''}
                     </p>
+                    {prod.subcategory && (
+                      <span className="inline-block mt-1 text-[10.5px] px-1.5 py-0.5 bg-[#F1F5F9] text-[#1E293B] rounded border border-[#E2E8F0] font-mono-data max-w-[200px] truncate" title={prod.subcategory}>
+                        {prod.subcategory}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-[12px] text-[#475569]">
                     <div className="flex flex-wrap gap-1 max-w-[180px]">
@@ -424,298 +582,508 @@ export const ProductsView: React.FC = () => {
 
       {/* Create / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-[700px] max-h-[90vh] bg-white border border-[#E2E8F0] flex flex-col">
-            <div className="px-6 py-4 border-b border-[#E2E8F0] flex items-center justify-between">
-              <h3 className="text-[17px] font-semibold text-[#0F172A]">
-                {editingId ? 'Edit Harvest Product' : 'Add New Harvest Product'}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-[820px] max-h-[92vh] bg-white border border-[#E2E8F0] shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-[#F8FAFC]">
+              <div>
+                <h3 className="text-[17px] font-semibold text-[#0F172A]">
+                  {editingId ? 'Edit Product' : 'Add New Product'}
+                </h3>
+                <p className="text-[12px] text-[#64748B]">
+                  Manage product specifications, pricing, inventory, and storefront merchandising
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="p-1 text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+                className="p-1.5 text-[#64748B] hover:text-[#0F172A] hover:bg-[#E2E8F0] transition-colors cursor-pointer rounded"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="flex-1 overflow-y-auto p-6 space-y-4 text-[13px]">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Product Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.name ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                    className="w-full border border-[#CBD5E1] px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    SKU
-                  </label>
-                  <input
-                    type="text"
-                    value={form.sku ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))}
-                    placeholder="e.g. ZP-EVOO-500"
-                    className="w-full border border-[#CBD5E1] px-3 py-2 font-mono-data uppercase"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Brand
-                  </label>
-                  <select
-                    value={form.brand ?? 'Zaitoon Reserve'}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, brand: e.target.value as BrandName }))
-                    }
-                    className="w-full border border-[#CBD5E1] bg-white px-3 py-2"
-                  >
-                    {BRAND_OPTIONS.map((b) => (
-                      <option key={b} value={b}>
-                        {b}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Category
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.category ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-                    placeholder="Bottled, Cooking, Raw Honey..."
-                    className="w-full border border-[#CBD5E1] px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Pack Size
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.size ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, size: e.target.value }))}
-                    placeholder="500 ml Dark Glass"
-                    className="w-full border border-[#CBD5E1] px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Price (PKR)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    value={form.price ?? 0}
-                    onChange={(e) => setForm((p) => ({ ...p, price: Number(e.target.value) }))}
-                    className="w-full border border-[#CBD5E1] px-3 py-2 font-mono-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Original Price
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.originalPrice ?? ''}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        originalPrice: e.target.value ? Number(e.target.value) : undefined,
-                      }))
-                    }
-                    className="w-full border border-[#CBD5E1] px-3 py-2 font-mono-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Stock
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={form.stock ?? 0}
-                    onChange={(e) => setForm((p) => ({ ...p, stock: Number(e.target.value) }))}
-                    className="w-full border border-[#CBD5E1] px-3 py-2 font-mono-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Origin
-                  </label>
-                  <input
-                    type="text"
-                    value={form.origin ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, origin: e.target.value }))}
-                    placeholder="Potohar / Swat"
-                    className="w-full border border-[#CBD5E1] px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Flavour (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={form.flavour ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, flavour: e.target.value }))}
-                    placeholder="Basil, Pepper, Cardamom, Ginger"
-                    className="w-full border border-[#CBD5E1] px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Acidity Level
-                  </label>
-                  <input
-                    type="text"
-                    value={form.acidityLevel ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, acidityLevel: e.target.value }))}
-                    className="w-full border border-[#CBD5E1] px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              {/* Image Upload + URL */}
-              <div className="border border-[#E2E8F0] p-3.5 bg-[#F8FAFC] space-y-2.5">
-                <label className="block text-[11px] uppercase font-semibold text-[#475569]">
-                  Product Studio Image (Upload or URL)
-                </label>
-                <div className="flex flex-wrap items-center gap-3">
-                  <label className="inline-flex items-center gap-2 border border-[#0F172A] bg-white px-3.5 py-2 text-[12px] font-medium cursor-pointer">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
+            {/* Modal Body */}
+            <form onSubmit={handleSaveProduct} className="flex-1 overflow-y-auto px-6 py-5 space-y-6 text-[13px]">
+              {/* Section 1: Basic Information */}
+              <div className="space-y-4">
+                <h4 className="text-[12px] font-bold uppercase tracking-wider text-[#15472B] border-b border-[#E2E8F0] pb-1.5">
+                  1. Basic Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2 space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Product Name <span className="text-red-500">*</span>
+                    </label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => void handleUploadFile(e)}
-                      className="hidden"
+                      type="text"
+                      required
+                      placeholder="e.g. Extra Virgin Olive Oil Reserve"
+                      value={form.name || ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
                     />
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.image ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, image: e.target.value }))}
-                    placeholder="/uploads/bottle.jpg or https://..."
-                    className="flex-1 min-w-[200px] border border-[#CBD5E1] bg-white px-3 py-2 font-mono-data text-[12px]"
-                  />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      SKU Code
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. ZP-500-EVOO"
+                      value={form.sku || ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, sku: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] font-mono focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
                 </div>
-                {form.image && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <img
-                      src={resolveAssetUrl(form.image)}
-                      alt="Preview"
-                      className="w-10 h-12 object-cover border border-[#CBD5E1] bg-white shrink-0"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (target.src !== DEFAULT_IMAGE_PLACEHOLDER) {
-                          target.onerror = null;
-                          target.src = DEFAULT_IMAGE_PLACEHOLDER;
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Brand */}
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Brand
+                    </label>
+                    <select
+                      value={form.brand || 'Pak Veda'}
+                      onChange={(e) => setForm((prev) => ({ ...prev, brand: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] bg-white focus:outline-none focus:border-[#15472B]"
+                    >
+                      {BRAND_OPTIONS.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Category */}
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Category <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={form.category || 'Olive Products'}
+                      onChange={(e) => {
+                        const newCat = e.target.value;
+                        setForm((prev) => ({
+                          ...prev,
+                          category: newCat,
+                          subcategory: '',
+                        }));
+                      }}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] bg-white focus:outline-none focus:border-[#15472B]"
+                    >
+                      {categoriesList.length > 0 ? (
+                        categoriesList.map((cat) => (
+                          <option key={cat.slug || cat.name} value={cat.name}>
+                            {cat.name}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="Olive Products">Olive Products</option>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Subcategory */}
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Subcategory
+                    </label>
+                    {(() => {
+                      const matchedCat = categoriesList.find((c) => c.name === form.category);
+                      const subcats = matchedCat?.subcategories || [];
+                      if (subcats.length > 0) {
+                        return (
+                          <select
+                            value={form.subcategory || ''}
+                            onChange={(e) => setForm((prev) => ({ ...prev, subcategory: e.target.value }))}
+                            className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] bg-white focus:outline-none focus:border-[#15472B]"
+                          >
+                            <option value="">-- None / General --</option>
+                            {subcats.map((sub) => (
+                              <option key={sub.name} value={sub.name}>
+                                {sub.name}
+                              </option>
+                            ))}
+                          </select>
+                        );
+                      }
+                      return (
+                        <input
+                          type="text"
+                          placeholder="e.g. Cold Pressed"
+                          value={form.subcategory || ''}
+                          onChange={(e) => setForm((prev) => ({ ...prev, subcategory: e.target.value }))}
+                          className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                        />
+                      );
+                    })()}
+                  </div>
+
+                  {/* Origin */}
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Origin / Terroir
+                    </label>
+                    <select
+                      value={form.origin || 'Potohar'}
+                      onChange={(e) => setForm((prev) => ({ ...prev, origin: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] bg-white focus:outline-none focus:border-[#15472B]"
+                    >
+                      {originsList.length > 0 ? (
+                        originsList.map((org) => (
+                          <option key={org.name} value={org.name}>
+                            {org.name} {org.region ? `(${org.region})` : ''}
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="Potohar">Potohar</option>
+                          <option value="Chakwal">Chakwal</option>
+                          <option value="Balochistan">Balochistan</option>
+                          <option value="Swat Valley">Swat Valley</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Pricing & Packaging */}
+              <div className="space-y-4">
+                <h4 className="text-[12px] font-bold uppercase tracking-wider text-[#15472B] border-b border-[#E2E8F0] pb-1.5">
+                  2. Pricing &amp; Packaging
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Price (PKR) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      step={50}
+                      value={form.price ?? ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, price: Number(e.target.value) }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Original Price (PKR)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={50}
+                      placeholder="Optional strike price"
+                      value={form.originalPrice ?? ''}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          originalPrice: e.target.value ? Number(e.target.value) : undefined,
+                        }))
+                      }
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Size / Packaging <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 500 ml Dark Glass"
+                      value={form.size || ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, size: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Stock Inventory <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={form.stock ?? ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, stock: Number(e.target.value) }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Quality & Extraction Specs */}
+              <div className="space-y-4">
+                <h4 className="text-[12px] font-bold uppercase tracking-wider text-[#15472B] border-b border-[#E2E8F0] pb-1.5">
+                  3. Quality &amp; Extraction Specs
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Extraction Method
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. First Cold-Press (< 27°C), Unfiltered"
+                      value={form.extractionMethod || ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, extractionMethod: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Acidity Level
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. < 0.3% Free Fatty Acidity"
+                      value={form.acidityLevel || ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, acidityLevel: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Flavour Notes
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Green Olive, Artichoke, Fresh Herb"
+                      value={form.flavour || ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, flavour: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Imagery */}
+              <div className="space-y-4">
+                <h4 className="text-[12px] font-bold uppercase tracking-wider text-[#15472B] border-b border-[#E2E8F0] pb-1.5">
+                  4. Product Images
+                </h4>
+
+                {/* Primary Image */}
+                <div className="bg-[#F8FAFC] border border-[#E2E8F0] p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Primary Image <span className="text-red-500">*</span>
+                    </label>
+                    <label className="inline-flex items-center gap-1.5 bg-white border border-[#CBD5E1] hover:bg-[#F1F5F9] px-3 py-1.5 text-[12px] font-medium text-[#15472B] cursor-pointer shadow-xs">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{uploading ? 'Uploading...' : 'Upload Image File'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleUploadFile}
+                        disabled={uploading}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex gap-4 items-center">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Paste image URL (e.g. /images/products/evoo.jpg or https://...)"
+                      value={form.image || ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, image: e.target.value }))}
+                      className="flex-1 border border-[#CBD5E1] px-3 py-2 text-[13px] bg-white focus:outline-none focus:border-[#15472B]"
+                    />
+                    <div className="w-14 h-14 border border-[#E2E8F0] bg-white shrink-0 overflow-hidden flex items-center justify-center">
+                      <img
+                        src={resolveAssetUrl(form.image)}
+                        alt="Primary Preview"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = DEFAULT_IMAGE_PLACEHOLDER;
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Gallery Images */}
+                <div className="bg-[#F8FAFC] border border-[#E2E8F0] p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <label className="block text-[12px] font-semibold text-[#334155]">
+                        Gallery Images ({(form.galleryImages || []).length})
+                      </label>
+                      <p className="text-[11px] text-[#64748B]">Additional angles and detail shots for the product page</p>
+                    </div>
+                    <label className="inline-flex items-center gap-1.5 bg-white border border-[#CBD5E1] hover:bg-[#F1F5F9] px-3 py-1.5 text-[12px] font-medium text-[#15472B] cursor-pointer shadow-xs">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{uploadingGallery ? 'Uploading...' : 'Upload to Gallery'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleUploadGalleryFile}
+                        disabled={uploadingGallery}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Paste additional image URL..."
+                      value={newGalleryUrl}
+                      onChange={(e) => setNewGalleryUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddGalleryUrl();
                         }
                       }}
+                      className="flex-1 border border-[#CBD5E1] px-3 py-2 text-[13px] bg-white focus:outline-none focus:border-[#15472B]"
                     />
-                    <span className="text-[11px] text-[#64748B] truncate max-w-sm">Image Preview</span>
+                    <button
+                      type="button"
+                      onClick={handleAddGalleryUrl}
+                      className="bg-[#15472B] hover:bg-[#0F3620] text-white px-3 py-2 text-[12px] font-medium cursor-pointer"
+                    >
+                      Add URL
+                    </button>
                   </div>
-                )}
-              </div>
 
-              <div>
-                <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                  Description
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={form.description ?? ''}
-                  onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                  className="w-full border border-[#CBD5E1] px-3 py-2"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-[11px] uppercase font-semibold text-[#475569]">
-                  Storefront Sections
-                </p>
-                <div className="flex flex-wrap gap-4">
-                  {SECTION_OPTIONS.map((sec) => (
-                    <label key={sec} className="inline-flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={(form.sections ?? []).includes(sec)}
-                        onChange={() => toggleSection(sec)}
-                        className="accent-[#15472B]"
-                      />
-                      <span>{sec}</span>
-                    </label>
-                  ))}
+                  {(form.galleryImages || []).length > 0 && (
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 pt-2">
+                      {(form.galleryImages || []).map((imgUrl, idx) => (
+                        <div key={idx} className="relative group border border-[#CBD5E1] bg-white aspect-square overflow-hidden">
+                          <img
+                            src={resolveAssetUrl(imgUrl)}
+                            alt={`Gallery thumbnail ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = DEFAULT_IMAGE_PLACEHOLDER;
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveGalleryImage(idx)}
+                            className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white p-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            title="Remove image"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-5 pt-1">
-                <label className="inline-flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(form.isActive)}
-                    onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-                    className="accent-[#15472B]"
+              {/* Section 5: Description & Merchandising */}
+              <div className="space-y-4">
+                <h4 className="text-[12px] font-bold uppercase tracking-wider text-[#15472B] border-b border-[#E2E8F0] pb-1.5">
+                  5. Description &amp; Merchandising
+                </h4>
+
+                <div className="space-y-1">
+                  <label className="block text-[12px] font-semibold text-[#334155]">
+                    Product Editorial Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Describe the aroma, tasting profile, harvest origin, and culinary uses..."
+                    value={form.description || ''}
+                    onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                    className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
                   />
-                  <span>Active on Storefront</span>
-                </label>
-                <label className="inline-flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(form.isSale)}
-                    onChange={(e) => setForm((p) => ({ ...p, isSale: e.target.checked }))}
-                    className="accent-[#15472B]"
-                  />
-                  <span>On Sale</span>
-                </label>
-                <label className="inline-flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(form.isNew)}
-                    onChange={(e) => setForm((p) => ({ ...p, isNew: e.target.checked }))}
-                    className="accent-[#15472B]"
-                  />
-                  <span>New Harvest</span>
-                </label>
+                </div>
+
+                {/* Sections Placement */}
+                <div className="space-y-1.5">
+                  <label className="block text-[12px] font-semibold text-[#334155]">
+                    Storefront Section Visibility
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    {SECTION_OPTIONS.map((sec) => {
+                      const checked = (form.sections || []).includes(sec);
+                      return (
+                        <label
+                          key={sec}
+                          className={`flex items-center gap-2 p-2.5 border cursor-pointer select-none text-[12px] transition-colors ${
+                            checked
+                              ? 'border-[#15472B] bg-[#15472B]/5 font-semibold text-[#15472B]'
+                              : 'border-[#CBD5E1] bg-white text-[#475569]'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleSection(sec)}
+                            className="accent-[#15472B]"
+                          />
+                          <span className="capitalize">{sec.replace('-', ' ')}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Flags / Visibility */}
+                <div className="pt-2 flex flex-wrap gap-6 border-t border-[#E2E8F0]">
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-[13px] font-medium text-[#0F172A]">
+                    <input
+                      type="checkbox"
+                      checked={form.isActive ?? true}
+                      onChange={(e) => setForm((prev) => ({ ...prev, isActive: e.target.checked }))}
+                      className="accent-[#15472B] w-4 h-4"
+                    />
+                    <span>Active (Visible on Storefront)</span>
+                  </label>
+
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-[13px] font-medium text-[#0F172A]">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.isSale)}
+                      onChange={(e) => setForm((prev) => ({ ...prev, isSale: e.target.checked }))}
+                      className="accent-[#15472B] w-4 h-4"
+                    />
+                    <span>Mark as On Sale</span>
+                  </label>
+
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-[13px] font-medium text-[#0F172A]">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.isNew)}
+                      onChange={(e) => setForm((prev) => ({ ...prev, isNew: e.target.checked }))}
+                      className="accent-[#15472B] w-4 h-4"
+                    />
+                    <span>Mark as New Harvest</span>
+                  </label>
+                </div>
               </div>
 
-              <div className="pt-4 border-t border-[#E2E8F0] flex justify-end gap-3">
+              {/* Modal Footer */}
+              <div className="pt-4 border-t border-[#E2E8F0] flex items-center justify-end gap-3 sticky bottom-0 bg-white py-3">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="border border-[#CBD5E1] px-4 py-2 text-[12px] font-medium cursor-pointer"
+                  className="border border-[#CBD5E1] hover:bg-[#F1F5F9] px-4 py-2 text-[12px] font-medium text-[#334155] cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-[#15472B] hover:bg-[#0F3620] text-white px-5 py-2 text-[12px] font-semibold uppercase tracking-[0.07em] cursor-pointer"
+                  className="bg-[#15472B] hover:bg-[#0F3620] disabled:bg-[#94A3B8] text-white px-6 py-2 text-[12px] font-semibold uppercase tracking-[0.07em] cursor-pointer shadow-sm transition-colors"
                 >
                   {submitting ? 'Saving...' : editingId ? 'Save Changes' : 'Create Product'}
                 </button>

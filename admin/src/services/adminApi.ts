@@ -166,17 +166,79 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
 export async function fetchAdminProducts(params?: {
   search?: string;
   category?: string;
+  subcategory?: string;
   brand?: string;
   section?: string;
 }): Promise<AdminProduct[]> {
   const qs = new URLSearchParams();
   if (params?.search) qs.set('search', params.search);
   if (params?.category && params.category !== 'All') qs.set('category', params.category);
+  if (params?.subcategory && params.subcategory !== 'All') qs.set('subcategory', params.subcategory);
   if (params?.brand && params.brand !== 'All') qs.set('brand', params.brand);
   if (params?.section && params.section !== 'All') qs.set('section', params.section);
   const query = qs.toString() ? `?${qs.toString()}` : '';
   const res = await request<unknown>(`/admin/products${query}`);
   return unwrapList<AdminProduct>(res, ['products']);
+}
+
+export async function fetchAdminCategories(): Promise<any[]> {
+  try {
+    const res = await request<unknown>('/categories');
+    return Array.isArray(res) ? res : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function createAdminCategory(payload: any): Promise<any> {
+  return request<any>('/categories', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminCategory(id: string, payload: any): Promise<any> {
+  return request<any>(`/categories/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAdminCategory(id: string): Promise<void> {
+  await request<any>(`/categories/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function fetchAdminOrigins(): Promise<any[]> {
+  try {
+    const res: any = await request<unknown>('/origins');
+    return res?.origins || res?.data || (Array.isArray(res) ? res : []);
+  } catch {
+    return [];
+  }
+}
+
+export async function createAdminOrigin(payload: any): Promise<any> {
+  const res: any = await request<any>('/origins', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return res?.origin || res?.data || res;
+}
+
+export async function updateAdminOrigin(id: string, payload: any): Promise<any> {
+  const res: any = await request<any>(`/origins/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+  return res?.origin || res?.data || res;
+}
+
+export async function deleteAdminOrigin(id: string): Promise<void> {
+  await request<any>(`/origins/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function createAdminProduct(

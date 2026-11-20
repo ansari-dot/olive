@@ -4,6 +4,7 @@ import {
   Truck,
   Package,
   LayoutGrid,
+  Layers,
   TicketPercent,
   BookOpen,
   Star,
@@ -23,6 +24,7 @@ import { LoginView } from './components/LoginView';
 import { DashboardView } from './components/DashboardView';
 import { OrdersView } from './components/OrdersView';
 import { ProductsView } from './components/ProductsView';
+import { CategoriesView } from './components/CategoriesView';
 import { HomepageSectionsView } from './components/HomepageSectionsView';
 import { CouponsView } from './components/CouponsView';
 import { BlogsView } from './components/BlogsView';
@@ -34,6 +36,7 @@ type AdminTab =
   | 'dashboard'
   | 'orders'
   | 'products'
+  | 'categories'
   | 'sections'
   | 'coupons'
   | 'blogs'
@@ -51,6 +54,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'orders', label: 'Orders & Dispatch', icon: Truck },
   { id: 'products', label: 'Products & Stock', icon: Package },
+  { id: 'categories', label: 'Categories & Origins', icon: Layers },
   { id: 'sections', label: 'Homepage Sections', icon: LayoutGrid },
   { id: 'coupons', label: 'Harvest Coupons', icon: TicketPercent },
   { id: 'blogs', label: 'Orchard Journal', icon: BookOpen },
@@ -242,6 +246,7 @@ export const App: React.FC = () => {
             />
           )}
           {activeTab === 'products' && <ProductsView />}
+          {activeTab === 'categories' && <CategoriesView />}
           {activeTab === 'sections' && <HomepageSectionsView />}
           {activeTab === 'coupons' && <CouponsView />}
           {activeTab === 'blogs' && <BlogsView />}

@@ -27,12 +27,13 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenAccount,
 }) => {
   const shopLinks = [
-    { label: 'Bottled Olive Oils', category: 'Bottled' },
-    { label: 'Cooking & Kitchen Tins', category: 'Cooking' },
-    { label: 'Cured Table Olives', category: 'Oily' },
-    { label: 'Raw Sidr Honey', category: 'Raw Honey' },
-    { label: 'Botanical Infusions', category: 'Botanical Infusions' },
-    { label: 'Gift Editions', category: 'Gift Card' },
+    { label: 'Ground & Whole Spices', category: 'Ground Spices' },
+    { label: 'Artisanal Olive Oils', category: 'Olive Products' },
+    { label: 'Mushrooms & Concentrates', category: 'Mushrooms and Mushroom Products' },
+    { label: 'Himalayan Shilajit & Extracts', category: 'Extracts and Concentrates' },
+    { label: 'Raw Mountain Sidr Honey', category: 'Natural Sweeteners' },
+    { label: 'Botanical Teas & Coffees', category: 'Tea and Herbal Infusions' },
+    { label: 'Superfoods & Supplements', category: 'Superfoods and Functional Ingredients' },
   ];
 
   return (
@@ -41,7 +42,13 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-12">
           {/* Brand Column */}
           <div className="lg:col-span-4 space-y-5">
-            <ZaitoonLogo variant="dark" onClick={onNavigateHome} />
+            <div onClick={onNavigateHome} className="cursor-pointer select-none inline-block group">
+              <img
+                src="/assets/images/pak_veda_logo_white.svg"
+                alt="Pak Veda"
+                className="h-11 w-auto object-contain transition-transform group-hover:scale-102"
+              />
+            </div>
             <p className="text-[13.5px] leading-[1.75] text-[#C6D2C5] max-w-[36ch]">
               Single-origin cold-pressed extra virgin olive oils, wild Himalayan Sidr honey, and sun-dried olive leaf botanicals harvested across Pakistan’s Potohar and Swat valleys.
             </p>

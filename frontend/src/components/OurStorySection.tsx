@@ -53,19 +53,16 @@ export const OurStorySection: React.FC = () => {
           <div className="lg:col-span-7">
             <div className="space-y-5 text-[14.5px] sm:text-[15px] leading-[1.72] text-[#666666]">
               <p>
-                Founded with a commitment to pure, unrefined nourishment, Zaitoon Pakistan brings
-                together small-batch olive oil producers, mountain apiaries, and botanical growers
-                across Pakistan. From the sun-drenched limestone slopes of Chakwal and the Potohar
-                olive belt to the wild valleys of Swat and Karak, every harvest is selected at peak
-                ripeness and cold-pressed below 27°C within hours of picking.
+                Founded with a commitment to pure, unrefined nourishment, Pak Veda brings
+                together master small-batch spice millers, cold-pressed olive growers, mountain apiaries,
+                and high-altitude botanical foragers across Pakistan. From the sun-drenched limestone slopes
+                of Chakwal and the Potohar olive belt to the pristine glaciers of Skardu and the spice bazaars
+                of Lahore, every harvest is sourced at peak potency.
               </p>
               <p>
-                Unlike mass-refined commercial blends, our extra virgin olive oils, raw unfiltered
-                Sidr honeys, and sun-dried olive leaf infusions remain completely free of chemical
-                solvents, artificial preservatives, and heat pasteurization. By partnering directly
-                with local farming families and testing every batch for natural acidity and
-                polyphenol integrity, we deliver honest, farm-direct purity straight to households
-                across Pakistan.
+                Spanning 28 master product categories—from cold-milled ground spices and single-cultivar
+                extra virgin olive oils to wild Himalayan Shilajit, Lion's Mane mushroom concentrates, and raw
+                Sidr honey—every batch remains 100% unadulterated, unrefined, and lab-tested for absolute purity.
               </p>
             </div>
 

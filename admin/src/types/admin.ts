@@ -9,10 +9,15 @@ export interface AdminUser {
 }
 
 export type BrandName =
+  | 'Pak Veda'
+  | 'Pak Veda Reserve'
+  | 'Pak Veda Organics'
+  | 'Pak Veda Botanicals'
   | 'Zaitoon Reserve'
   | 'Chakwal Press'
   | 'Himalayan Sidr'
-  | 'Verdant Grove';
+  | 'Verdant Grove'
+  | string;
 
 export interface AdminProduct {
   _id: string;
@@ -21,6 +26,7 @@ export interface AdminProduct {
   name: string;
   brand: BrandName;
   category: string;
+  subcategory?: string;
   flavour?: string;
   origin?: string;
   price: number;
@@ -40,8 +46,8 @@ export interface AdminProduct {
   tag?: string;
   sections: string[];
   sectionOrder?: Record<string, number>;
-  extractionMethod: string;
-  acidityLevel: string;
+  extractionMethod?: string;
+  acidityLevel?: string;
   inStock?: boolean;
 }
 

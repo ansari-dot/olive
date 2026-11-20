@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Review from "../models/Review.js";
+import Origin from "../models/Origin.js";
 import { invalidateCache } from "../middlewares/cache.js";
 import { escapeRegex } from "../utils/security.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -16,6 +17,15 @@ function buildProductFilter(query, isPublic = true) {
   // Category filter
   if (query.category && query.category !== "All" && query.category !== "all") {
     filter.category = query.category;
+  }
+
+  // Subcategory filter
+  if (
+    query.subcategory &&
+    query.subcategory !== "All" &&
+    query.subcategory !== "all"
+  ) {
+    filter.subcategory = query.subcategory;
   }
 
   // Brand filter
@@ -68,6 +78,7 @@ function buildProductFilter(query, isPublic = true) {
       { description: regex },
       { brand: regex },
       { category: regex },
+      { subcategory: regex },
       { flavour: regex },
       { origin: regex },
       { tag: regex },
@@ -166,12 +177,14 @@ export async function listProducts(query = {}, isPublic = true) {
 }
 
 export async function getProductNavigation() {
-  const [categories, brands] = await Promise.all([
+  const [categories, subcategories, brands] = await Promise.all([
     Product.distinct("category", { isActive: true }),
+    Product.distinct("subcategory", { isActive: true }),
     Product.distinct("brand", { isActive: true }),
   ]);
   return {
     categories: categories.sort(),
+    subcategories: subcategories.filter(Boolean).sort(),
     brands: brands.sort(),
   };
 }
@@ -179,9 +192,27 @@ export async function getProductNavigation() {
 export async function getProductFilters() {
   const activeFilter = { isActive: true };
 
-  const [categories, brands, flavoursAgg, originsAgg, priceAgg] =
+  const [categories, subcategoriesAgg, brands, flavoursAgg, originsAgg, priceAgg, definedOrigins] =
     await Promise.all([
       Product.distinct("category", activeFilter),
+      Product.aggregate([
+        { $match: { isActive: true, subcategory: { $exists: true, $ne: "" } } },
+        {
+          $group: {
+            _id: { category: "$category", subcategory: "$subcategory" },
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            category: "$_id.category",
+            subcategory: "$_id.subcategory",
+            count: 1,
+            _id: 0,
+          },
+        },
+        { $sort: { category: 1, subcategory: 1 } },
+      ]),
       Product.distinct("brand", activeFilter),
       Product.aggregate([
         { $match: { isActive: true, flavour: { $ne: null } } },
@@ -205,10 +236,19 @@ export async function getProductFilters() {
           },
         },
       ]),
+      Origin.find({ isActive: true }).sort({ name: 1 }).lean(),
     ]);
+
+  const existingOriginNames = new Set(originsAgg.map((o) => o.name));
+  for (const d of definedOrigins || []) {
+    if (!existingOriginNames.has(d.name)) {
+      originsAgg.push({ name: d.name, count: 0 });
+    }
+  }
 
   return {
     categories: categories.sort(),
+    subcategories: subcategoriesAgg,
     brands: brands.sort(),
     flavours: flavoursAgg,
     origins: originsAgg,
@@ -312,6 +352,7 @@ const ALLOWED_PRODUCT_FIELDS = [
   "name",
   "brand",
   "category",
+  "subcategory",
   "flavour",
   "origin",
   "price",
@@ -324,13 +365,8 @@ const ALLOWED_PRODUCT_FIELDS = [
   "tag",
   "sections",
   "sectionOrder",
-  "harvestYear",
-  "shelfLife",
-  "ingredients",
-  "certifications",
   "extractionMethod",
   "acidityLevel",
-  "pairingNotes",
   "isSale",
   "isNew",
   "isActive",

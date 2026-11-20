@@ -24,17 +24,16 @@ const productSchema = new mongoose.Schema(
     brand: {
       type: String,
       required: [true, "Product brand is required"],
-      enum: [
-        "Zaitoon Reserve",
-        "Chakwal Press",
-        "Himalayan Sidr",
-        "Verdant Grove",
-      ],
       trim: true,
     },
     category: {
       type: String,
       required: [true, "Product category is required"],
+      trim: true,
+    },
+    subcategory: {
+      type: String,
+      default: "",
       trim: true,
     },
     flavour: {
@@ -153,14 +152,17 @@ productSchema.virtual("inStock").get(function () {
 
 productSchema.index({ brand: 1 });
 productSchema.index({ category: 1 });
+productSchema.index({ subcategory: 1 });
+productSchema.index({ category: 1, subcategory: 1 });
 productSchema.index({ sections: 1 });
 productSchema.index({ sections: 1, isActive: 1 });
 productSchema.index({ price: 1 });
 productSchema.index({ popularity: -1 });
 productSchema.index({ rating: -1 });
 productSchema.index({ isActive: 1 });
-productSchema.index({ name: "text", description: "text", category: "text" });
+productSchema.index({ name: "text", description: "text", category: "text", subcategory: "text" });
 
 const Product = mongoose.models.Product || mongoose.model("Product", productSchema);
 
+export { Product };
 export default Product;

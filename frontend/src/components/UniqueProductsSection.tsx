@@ -54,7 +54,8 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = ({
         </div>
 
         {/* 4-Column Curated Unique Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-7">
+        {products && products.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-7">
           {products.map((product, index) => {
             const isBroken = brokenImages[product.id];
 
@@ -165,6 +166,12 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = ({
             );
           })}
         </div>
+      ) : (
+        <div className="w-full py-16 text-center border border-dashed border-[#D1D5DB] bg-[#FAF8F5] rounded-xs">
+          <p className="text-[15px] font-bold text-[#1F2937]">No products yet added</p>
+          <p className="text-[12.5px] text-[#6B7280] mt-1">Special small-batch editions and rare creations will be announced soon.</p>
+        </div>
+      )}
       </div>
     </section>
   );

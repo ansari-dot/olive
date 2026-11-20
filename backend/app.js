@@ -46,6 +46,7 @@ import instagramRoutes from "./routes/instagramRoutes.js";
 import payfastRoutes from "./routes/payfastRoutes.js";
 import consultationRoutes from "./routes/consultationRoutes.js";
 import aboutTeamRoutes from "./routes/aboutTeamRoutes.js";
+import originRoutes from "./routes/originRoutes.js";
 
 const app = express();
 
@@ -108,6 +109,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/categories", cache(300), categoryRoutes);
+app.use("/api/origins", originRoutes);
 app.use("/api/testimonials", cache(300), testimonialRoutes);
 app.use("/api/home-collection", cache(120), homeCollectionRoutes);
 app.use("/api/compare-section", cache(120), compareSectionRoutes);

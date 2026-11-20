@@ -6,7 +6,8 @@
     "scripts": {
         "start": "node index.js",
         "dev": "nodemon index.js",
-        "seed": "node seeds/seedZaitoon.js",
+        "seed": "node seeds/seedPakVeda.js",
+        "seed:zaitoon": "node seeds/seedZaitoon.js",
         "create-admin": "node scripts/createAdmin.js",
         "security:audit": "node scripts/security-audit.js"
     },

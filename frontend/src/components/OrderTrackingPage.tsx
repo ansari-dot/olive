@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Check, Package, Search, Truck, Loader2 } from 'lucide-react';
-import { trackOrder, TrackOrderResponse } from '../services/api';
+import {
+  Package,
+  Search,
+  Truck,
+  Loader2,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  ShieldCheck,
+  MessageSquare,
+  ArrowRight,
+} from 'lucide-react';
+import { trackOrder } from '../services/api';
 
 export interface TrackedOrderRecord {
   id: string;
@@ -39,22 +50,26 @@ const DISPATCH_STEPS = [
   {
     step: 1,
     title: 'Order Confirmed',
-    detail: 'Harvest batch verified at our Chakwal Road Orchard Hub, Islamabad.',
+    detail: 'Harvest batch verified at our Islamabad Hub.',
+    icon: CheckCircle2,
   },
   {
     step: 2,
     title: 'Cold-Packed & Sealed',
-    detail: 'Dark-glass bottles cushioned in protective insulated sleeves.',
+    detail: 'Protected in UV-insulated packaging sleeves.',
+    icon: Package,
   },
   {
     step: 3,
-    title: 'In Transit via TCS Express',
-    detail: 'Linehaul parcel travelling to your destination city dispatch hub.',
+    title: 'In Transit (TCS Express)',
+    detail: 'Dispatched to destination regional hub.',
+    icon: Truck,
   },
   {
     step: 4,
     title: 'Out for Delivery',
-    detail: 'Rider en route for doorstep handover and Cash on Delivery collection.',
+    detail: 'Courier en route for doorstep COD handover.',
+    icon: MapPin,
   },
 ] as const;
 
@@ -63,7 +78,6 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
   initialOrderId = '',
   onNavigateHome,
   onNavigateShop,
-  onNavigateShipping,
   onNavigateContact,
 }) => {
   const [queryId, setQueryId] = useState(initialOrderId);
@@ -89,8 +103,13 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
         city: data.city || 'Pakistan',
         paymentLabel: `${count} ${count === 1 ? 'item' : 'items'} · ${data.paymentMethod}`,
         totalLabel: formatPKR(data.total),
-        courierCode: data.courierTrackingCode || `TCS-${data.orderReference.replace(/[^0-9]/g, '') || '4821'}`,
-        etaText: data.etaText || data.estimatedDelivery || 'Estimated delivery in 2–3 working days',
+        courierCode:
+          data.courierTrackingCode ||
+          `TCS-${data.orderReference.replace(/[^0-9]/g, '') || '4821'}`,
+        etaText:
+          data.etaText ||
+          data.estimatedDelivery ||
+          'Estimated delivery in 2–3 working days',
         currentStep: Math.min(Math.max(step, 1), 4) as 1 | 2 | 3 | 4,
         statusSummary: data.statusSummary || data.orderStatus,
       });
@@ -119,303 +138,247 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
     e.preventDefault();
     const cleaned = queryId.trim().toUpperCase();
     if (!cleaned) {
-      setValidationNotice('Please enter an order reference number such as ZP-1042.');
+      setValidationNotice('Please enter a valid order reference (e.g. ZP-2026-XXXX)');
       return;
     }
     performTracking(cleaned);
   };
 
-  const handleSelectQuickOrder = (orderId: string) => {
-    setQueryId(orderId);
-    performTracking(orderId);
-  };
-
   return (
-    <main className="w-full bg-white py-10 sm:py-12 lg:py-14">
-      <div className="max-w-[1220px] mx-auto px-6 sm:px-10 lg:px-14">
-        {/* Top Breadcrumb: Home / Order Tracking */}
-        <nav
-          aria-label="Breadcrumb"
-          className="mb-8 text-[12.5px] text-[#777777] flex flex-wrap items-center gap-1.5"
-        >
+    <main className="w-full bg-white text-[#333333] font-sans antialiased">
+      {/* =========================================================================
+          1. BREADCRUMBS ROW (Exact format: Home > Order Tracking with divider)
+          ========================================================================= */}
+      <div className="w-full border-b border-[#EEEEEE] bg-white">
+        <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center text-[12.5px] text-[#777777]">
           <button
             type="button"
             onClick={onNavigateHome}
-            className="hover:text-[#181818] transition-colors cursor-pointer"
+            className="hover:text-[#15472B] transition-colors cursor-pointer"
           >
             Home
           </button>
-          <span aria-hidden="true">/</span>
-          <span className="text-[#444444]">Order Tracking</span>
-        </nav>
+          <span className="mx-2 text-[#CCCCCC] select-none" aria-hidden="true">
+            &gt;
+          </span>
+          <span className="text-[#15472B] font-semibold tracking-wide">
+            Order Tracking
+          </span>
+        </div>
+      </div>
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 mb-10 border-b border-[#EAEAEA]">
-          <div>
-            <p className="text-[11.5px] uppercase tracking-[0.12em] text-[#C46B3B] font-semibold mb-1.5">
-              TCS Express &amp; COD Dispatch
-            </p>
-            <h1 className="text-[30px] sm:text-[36px] font-normal text-[#181818] leading-tight">
-              Track Your Order
-            </h1>
-            <p className="mt-1.5 text-[14px] text-[#666666] max-w-[58ch]">
-              Enter your Zaitoon Pakistan reference number to follow cold-packed parcels from our Islamabad orchard hub to your doorstep.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onNavigateShop}
-            className="self-start sm:self-auto border border-[#181818] bg-white hover:bg-[#181818] hover:text-white px-5 py-2.5 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[#181818] transition-colors cursor-pointer whitespace-nowrap shrink-0"
-          >
-            CONTINUE SHOPPING
-          </button>
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Page Title & Heading */}
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <h1 className="text-[26px] sm:text-[34px] font-extrabold uppercase tracking-tight text-[#1F1F1F]">
+            Track Your Order
+          </h1>
+          <p className="mt-2 text-[13.5px] text-[#666666] leading-relaxed">
+            Enter your order reference code below to view live dispatch verification, courier movement, and estimated arrival.
+          </p>
         </div>
 
-        {/* Lookup & Quick Select Panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
-          {/* Left Column: Search Form & Recent References */}
-          <section className="lg:col-span-5 space-y-6">
-            <div className="bg-[#FAF3F0] p-7 sm:p-8 space-y-5">
-              <div className="flex items-center gap-3 pb-3 border-b border-[#E6DDD2]">
-                <Package className="w-5 h-5 text-[#15472B] shrink-0" />
-                <h2 className="text-[19px] font-normal text-[#181818]">
-                  Find Dispatch Status
-                </h2>
-              </div>
-
-              <form onSubmit={handleLookup} className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="track-order-id"
-                    className="block text-[11.5px] uppercase tracking-[0.07em] text-[#444444] mb-1.5"
-                  >
-                    Order Reference Number
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="track-order-id"
-                      type="text"
-                      value={queryId}
-                      onChange={(e) => setQueryId(e.target.value)}
-                      placeholder="e.g. ZP-1042"
-                      className="w-full bg-white border border-[#D4D4D4] pl-3.5 pr-10 py-3 text-[14px] uppercase text-[#181818] focus:outline-none focus:border-[#181818]"
-                    />
-                    <Search className="w-4 h-4 text-[#777777] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                </div>
-
-                {validationNotice && (
-                  <p className="text-[12.5px] text-[#C46B3B]">{validationNotice}</p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 bg-[#0B0B0B] hover:bg-[#15472B] disabled:bg-[#888888] text-white text-[12px] font-semibold uppercase tracking-[0.09em] transition-colors cursor-pointer flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>TRACKING SHIPMENT...</span>
-                    </>
-                  ) : (
-                    <span>TRACK SHIPMENT</span>
-                  )}
-                </button>
-              </form>
-
-              {/* Session Orders */}
-              {placedOrders.length > 0 && (
-                <div className="pt-4 border-t border-[#E6DDD2] space-y-2.5">
-                  <p className="text-[11px] uppercase tracking-[0.08em] text-[#666666]">
-                    Your Recent Session Orders
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {placedOrders.map((ord) => (
-                      <button
-                        key={ord.id}
-                        type="button"
-                        onClick={() => handleSelectQuickOrder(ord.id)}
-                        className={`px-3 py-1.5 border text-[12.5px] tabular-nums transition-colors cursor-pointer ${
-                          tracked?.orderId === ord.id
-                            ? 'border-[#15472B] bg-[#15472B] text-white'
-                            : 'border-[#D4D4D4] bg-white text-[#181818] hover:border-[#181818]'
-                        }`}
-                      >
-                        {ord.id} · {ord.city}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+        {/* Lookup Search Form Box */}
+        <div className="max-w-2xl mx-auto bg-[#FAF8F5] border border-[#EBE7DF] p-6 sm:p-8 mb-12 shadow-sm">
+          <form onSubmit={handleLookup} className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={queryId}
+                onChange={(e) => setQueryId(e.target.value)}
+                placeholder="Enter Order Reference (e.g. ZP-2026-4821)"
+                className="w-full h-[46px] bg-white border border-[#D5D0C5] px-4 text-[13.5px] text-[#222222] uppercase tracking-wider placeholder-[#999999] focus:outline-none focus:border-[#15472B]"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="h-[46px] px-8 bg-[#15472B] hover:bg-[#0D2F1C] disabled:bg-[#888888] text-white text-[12px] font-bold uppercase tracking-[0.1em] shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Tracking...</span>
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4" />
+                  <span>Track Order</span>
+                </>
               )}
+            </button>
+          </form>
 
-              {/* Quick Sample References */}
-              <div className="pt-4 border-t border-[#E6DDD2] space-y-2.5">
-                <p className="text-[11px] uppercase tracking-[0.08em] text-[#666666]">
-                  Sample Dispatch References
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {['ZP-1042', 'ZP-1088'].map((sampleId) => (
-                    <button
-                      key={sampleId}
-                      type="button"
-                      onClick={() => handleSelectQuickOrder(sampleId)}
-                      className={`px-3 py-1.5 border text-[12px] tabular-nums transition-colors cursor-pointer ${
-                        tracked?.orderId === sampleId
-                          ? 'border-[#181818] bg-[#181818] text-white'
-                          : 'border-[#D4D4D4] bg-white text-[#444444] hover:border-[#181818]'
-                      }`}
-                    >
-                      {sampleId}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Delivery Support Box */}
-            <div className="border border-[#EAEAEA] p-6 space-y-3 text-[13.5px] text-[#555555]">
-              <h3 className="text-[16px] font-normal text-[#181818]">
-                Need assistance with delivery?
-              </h3>
-              <p className="leading-relaxed">
-                Parcels are sealed with tamper-evident cork wraps. If a glass bottle arrives damaged in transit, we replace it free of charge within 7 days.
-              </p>
-              <div className="pt-1 flex flex-wrap gap-5 text-[12px] font-semibold uppercase tracking-[0.08em]">
+          {/* Recent Orders Quick Buttons */}
+          {placedOrders.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-[#E2DED6] flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-[#777777] font-medium">Recent Orders:</span>
+              {placedOrders.slice(0, 3).map((rec) => (
                 <button
+                  key={rec.id}
                   type="button"
-                  onClick={onNavigateShipping}
-                  className="text-[#181818] hover:text-[#C46B3B] transition-colors cursor-pointer"
+                  onClick={() => {
+                    setQueryId(rec.id);
+                    performTracking(rec.id);
+                  }}
+                  className="bg-white hover:bg-[#15472B] hover:text-white border border-[#D5D0C5] text-[#1F1F1F] px-2.5 py-1 font-semibold tracking-wider transition-colors cursor-pointer"
                 >
-                  Shipping &amp; Returns &rarr;
+                  {rec.id}
                 </button>
-                <button
-                  type="button"
-                  onClick={onNavigateContact}
-                  className="text-[#181818] hover:text-[#C46B3B] transition-colors cursor-pointer"
-                >
-                  Contact Support &rarr;
-                </button>
-              </div>
+              ))}
             </div>
-          </section>
+          )}
 
-          {/* Right Column: Tracking Results & Timeline */}
-          <section className="lg:col-span-7">
-            {tracked ? (
-              <div className="border border-[#EAEAEA] bg-white p-7 sm:p-9 space-y-8">
-                {/* Summary Header */}
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-[#EFEFEF]">
-                  <div>
-                    <p className="text-[11.5px] uppercase tracking-[0.1em] text-[#C46B3B] font-semibold tabular-nums">
-                      Reference {tracked.orderId} · {tracked.courierCode}
-                    </p>
-                    <h2 className="mt-1.5 text-[22px] sm:text-[25px] font-normal text-[#181818]">
-                      {tracked.statusSummary}
-                    </h2>
-                    <p className="mt-1 text-[13.5px] text-[#15472B] font-medium">
-                      {tracked.etaText}
-                    </p>
-                  </div>
-                  <div className="w-11 h-11 bg-[#FAF3F0] text-[#15472B] flex items-center justify-center shrink-0">
-                    <Truck className="w-5 h-5" />
-                  </div>
-                </div>
-
-                {/* Shipment Metadata Strip */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 bg-[#FAF9F6] p-5 text-[13.5px]">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.08em] text-[#777777]">
-                      Recipient
-                    </p>
-                    <p className="mt-1 text-[#181818] font-medium">{tracked.recipient}</p>
-                    <p className="text-[#666666]">{tracked.city}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.08em] text-[#777777]">
-                      Origin Hub
-                    </p>
-                    <p className="mt-1 text-[#181818] font-medium">Islamabad Orchard Hub</p>
-                    <p className="text-[#666666]">Potohar Cold Storage</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.08em] text-[#777777]">
-                      Parcel &amp; Total
-                    </p>
-                    <p className="mt-1 text-[#181818] font-medium tabular-nums">
-                      {tracked.totalLabel}
-                    </p>
-                    <p className="text-[#666666] tabular-nums">{tracked.paymentLabel}</p>
-                  </div>
-                </div>
-
-                {/* 4-Step Dispatch Timeline */}
-                <div>
-                  <h3 className="text-[16px] font-normal text-[#181818] mb-5">
-                    Courier Journey
-                  </h3>
-                  <ol className="space-y-5">
-                    {DISPATCH_STEPS.map((item) => {
-                      const isDone = item.step < tracked.currentStep;
-                      const isCurrent = item.step === tracked.currentStep;
-                      const isActiveOrDone = isDone || isCurrent;
-                      return (
-                        <li
-                          key={item.step}
-                          className="flex items-start gap-4 pb-5 border-b border-[#F2EFEA] last:border-b-0 last:pb-0"
-                        >
-                          <div
-                            className={`w-8 h-8 flex items-center justify-center shrink-0 text-[12px] font-semibold tabular-nums border ${
-                              isCurrent
-                                ? 'bg-[#15472B] border-[#15472B] text-white'
-                                : isDone
-                                ? 'bg-[#FAF3F0] border-[#C46B3B] text-[#C46B3B]'
-                                : 'bg-white border-[#DEDEDE] text-[#999999]'
-                            }`}
-                          >
-                            {isDone ? <Check className="w-4 h-4" /> : `0${item.step}`}
-                          </div>
-                          <div>
-                            <p
-                              className={`text-[15px] ${
-                                isActiveOrDone
-                                  ? 'text-[#181818] font-medium'
-                                  : 'text-[#888888]'
-                              }`}
-                            >
-                              {item.title}
-                              {isCurrent && (
-                                <span className="ml-2 text-[11.5px] uppercase tracking-[0.08em] text-[#C46B3B] font-semibold">
-                                  · Current Stage
-                                </span>
-                              )}
-                            </p>
-                            <p className="mt-1 text-[13px] text-[#666666] leading-relaxed">
-                              {item.detail}
-                            </p>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
-              </div>
-            ) : (
-              <div className="border border-[#EAEAEA] bg-[#FAF9F6] py-16 px-8 text-center space-y-4">
-                <div className="w-12 h-12 mx-auto bg-[#FAF3F0] text-[#15472B] flex items-center justify-center">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <h2 className="text-[22px] font-normal text-[#181818]">
-                  Enter your order reference to begin
-                </h2>
-                <p className="text-[14px] text-[#555555] max-w-[46ch] mx-auto leading-relaxed">
-                  You will find your <span className="tabular-nums font-medium text-[#181818]">ZP-XXXX</span> confirmation code on your checkout receipt or SMS dispatch alert.
-                </p>
-              </div>
-            )}
-          </section>
+          {validationNotice && (
+            <div className="mt-4 p-3 bg-[#FDF2F2] border border-[#F8B4B4] text-[#9B1C1C] text-[12.5px]">
+              {validationNotice}
+            </div>
+          )}
         </div>
+
+        {/* Live Tracking Result */}
+        {tracked ? (
+          <div className="max-w-4xl mx-auto space-y-8">
+            {/* Tracking Status Header Banner */}
+            <div className="bg-[#FAF8F5] border border-[#EBE7DF] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#C46B3B]">
+                  Live Dispatch Status
+                </span>
+                <h2 className="text-[18px] sm:text-[20px] font-bold text-[#1F1F1F] mt-0.5">
+                  Order #{tracked.orderId}
+                </h2>
+                <p className="text-[12.5px] text-[#666666] mt-0.5">
+                  Deliver to {tracked.recipient} · {tracked.city}
+                </p>
+              </div>
+
+              <div className="sm:text-right">
+                <span className="inline-block bg-[#15472B]/10 text-[#15472B] text-[11px] font-bold uppercase tracking-wider px-3 py-1 mb-1">
+                  {tracked.statusSummary}
+                </span>
+                <p className="text-[12.5px] text-[#555555] font-medium">
+                  {tracked.etaText}
+                </p>
+              </div>
+            </div>
+
+            {/* 4-Step Progress Stepper */}
+            <div className="border border-[#EEEEEE] p-6 sm:p-8 bg-white shadow-sm">
+              <h3 className="text-[13px] font-extrabold uppercase tracking-wider text-[#1F1F1F] mb-6">
+                Delivery Progress
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 sm:gap-4 relative">
+                {DISPATCH_STEPS.map((s, idx) => {
+                  const isCompleted = tracked.currentStep >= s.step;
+                  const isCurrent = tracked.currentStep === s.step;
+                  const Icon = s.icon;
+
+                  return (
+                    <div key={s.step} className="flex sm:flex-col items-start sm:items-center sm:text-center gap-4 sm:gap-2 relative">
+                      {/* Step Circle */}
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
+                          isCompleted
+                            ? 'bg-[#15472B] border-[#15472B] text-white'
+                            : 'bg-white border-[#DDDDDD] text-[#999999]'
+                        } ${isCurrent ? 'ring-4 ring-[#15472B]/20' : ''}`}
+                      >
+                        <Icon className="w-5 h-5" />
+                      </div>
+
+                      {/* Step Labels */}
+                      <div className="sm:mt-2">
+                        <h4
+                          className={`text-[13px] font-bold ${
+                            isCompleted ? 'text-[#1F1F1F]' : 'text-[#888888]'
+                          }`}
+                        >
+                          {s.title}
+                        </h4>
+                        <p className="text-[11px] text-[#777777] mt-0.5 leading-snug">
+                          {s.detail}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Order Details & Courier Info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="bg-[#FAF8F5] border border-[#EBE7DF] p-6 space-y-3 text-[13px]">
+                <h4 className="text-[12px] font-extrabold uppercase tracking-wider text-[#1F1F1F] pb-2 border-b border-[#E2DED6]">
+                  Consignment &amp; Courier Details
+                </h4>
+                <div className="flex justify-between">
+                  <span className="text-[#666666]">Courier Partner:</span>
+                  <span className="font-semibold text-[#1F1F1F]">TCS Express Pakistan</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#666666]">Tracking Number:</span>
+                  <span className="font-mono font-bold text-[#15472B]">{tracked.courierCode}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#666666]">Origin Dispatch:</span>
+                  <span className="font-semibold text-[#1F1F1F]">Islamabad Central Hub</span>
+                </div>
+              </div>
+
+              <div className="bg-[#FAF8F5] border border-[#EBE7DF] p-6 space-y-3 text-[13px]">
+                <h4 className="text-[12px] font-extrabold uppercase tracking-wider text-[#1F1F1F] pb-2 border-b border-[#E2DED6]">
+                  Payment &amp; Package Summary
+                </h4>
+                <div className="flex justify-between">
+                  <span className="text-[#666666]">Payment Status:</span>
+                  <span className="font-semibold text-[#1F1F1F]">{tracked.paymentLabel}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#666666]">Total Amount:</span>
+                  <span className="font-bold text-[#15472B]">{tracked.totalLabel}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#666666]">Security Seal:</span>
+                  <span className="font-semibold text-[#15472B]">Tamper-Proof Wax Seal</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Support Callout */}
+            <div className="p-5 border border-[#EEEEEE] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white text-xs text-[#666666]">
+              <span>Need help with this delivery? Our customer desk is active Monday–Saturday 9am–9pm.</span>
+              <button
+                type="button"
+                onClick={onNavigateContact}
+                className="text-[#15472B] font-bold uppercase tracking-wider hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Contact Dispatch Desk &rarr;</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Default Empty State / Information Guide */
+          <div className="max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6 text-center text-xs text-[#666666]">
+            <div className="p-5 border border-[#EEEEEE] bg-[#FAF8F5]">
+              <ShieldCheck className="w-6 h-6 mx-auto mb-2 text-[#15472B]" />
+              <h3 className="font-bold text-[#1F1F1F] text-[13px] mb-1">Cold-Chain Verification</h3>
+              <p>Every lot is temperature-monitored from pressing through delivery.</p>
+            </div>
+            <div className="p-5 border border-[#EEEEEE] bg-[#FAF8F5]">
+              <Truck className="w-6 h-6 mx-auto mb-2 text-[#15472B]" />
+              <h3 className="font-bold text-[#1F1F1F] text-[13px] mb-1">TCS Express Network</h3>
+              <p>Fast doorstep transit across all 150+ major cities in Pakistan.</p>
+            </div>
+            <div className="p-5 border border-[#EEEEEE] bg-[#FAF8F5]">
+              <Clock className="w-6 h-6 mx-auto mb-2 text-[#15472B]" />
+              <h3 className="font-bold text-[#1F1F1F] text-[13px] mb-1">Cash on Delivery</h3>
+              <p>Inspect your wax-sealed bottle before paying the courier rider.</p>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

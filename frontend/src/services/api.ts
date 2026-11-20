@@ -36,6 +36,7 @@ export function normalizeProduct(raw: any): Product {
     name: raw.name || '',
     brand: raw.brand || '',
     category: raw.category || '',
+    subcategory: raw.subcategory || undefined,
     flavour: raw.flavour || undefined,
     origin: raw.origin || undefined,
     price: Number(raw.price) || 0,
@@ -84,6 +85,7 @@ export function normalizeBlogPost(raw: any): BlogPost {
 export interface FetchProductsParams {
   section?: string;
   category?: string;
+  subcategory?: string;
   brand?: string;
   flavour?: string;
   origin?: string;
@@ -104,6 +106,7 @@ export interface ProductsResponse {
 
 export interface ProductFiltersResponse {
   categories: string[];
+  subcategories?: { category: string; subcategory: string; count: number }[];
   brands: string[];
   flavours: { name: string; count: number }[];
   origins: { name: string; count: number }[];
@@ -499,4 +502,39 @@ export async function subscribeNewsletter(
     throw new Error(data.message || 'Failed to subscribe');
   }
   return data;
+}
+
+export interface SubcategoryItem {
+  name: string;
+  slug?: string;
+  serialNumber?: string;
+  count?: number;
+  description?: string;
+}
+
+export interface CategoryItem {
+  _id: string;
+  categoryNumber?: number;
+  name: string;
+  slug?: string;
+  department?: string;
+  description?: string;
+  count: number;
+  img?: string;
+  icon?: string;
+  subcategories: SubcategoryItem[];
+}
+
+/**
+ * GET /api/categories
+ */
+export async function fetchCategories(): Promise<CategoryItem[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/categories`);
+    const data = await res.json();
+    if (!res.ok) return [];
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
 }

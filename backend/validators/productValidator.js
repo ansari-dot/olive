@@ -49,6 +49,15 @@ export const productListQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(1000).optional(),
   category: z.string().optional(),
+  subcategory: z.string().optional(),
+  brand: z.string().optional(),
+  flavour: z.string().optional(),
+  origin: z.string().optional(),
+  section: z.string().optional(),
+  sort: z.string().optional(),
+  minPrice: z.coerce.number().optional(),
+  maxPrice: z.coerce.number().optional(),
+  isActive: z.union([z.string(), z.boolean()]).optional(),
 });
 
 export const productIdParamSchema = z.object({ id: objectIdSchema });

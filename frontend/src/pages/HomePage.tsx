@@ -3,10 +3,14 @@ import { X, Plus, Minus, Trash2, Check, Loader2 } from 'lucide-react';
 import { Navbar, NavSection } from '../components/Navbar';
 import { HeroSection } from '../components/HeroSection';
 import { OurStorySection } from '../components/OurStorySection';
+import { CategoriesSection } from '../components/CategoriesSection';
 import { FeaturedProductsSection } from '../components/FeaturedProductsSection';
 import { FromOurBlogSection } from '../components/FromOurBlogSection';
 import { UniqueProductsSection } from '../components/UniqueProductsSection';
+import { HeritageBannerSection } from '../components/HeritageBannerSection';
+import { PromoBannerSection } from '../components/PromoBannerSection';
 import { TestimonialsSection } from '../components/TestimonialsSection';
+import { PartnerLogosStrip } from '../components/PartnerLogosStrip';
 import { NewsletterSection } from '../components/NewsletterSection';
 import { Footer } from '../components/Footer';
 import { ShopPage } from '../components/ShopPage';
@@ -30,6 +34,8 @@ import {
   fetchProducts,
   fetchBlogs,
   createOrder,
+  fetchCategories,
+  CategoryItem,
 } from '../services/api';
 
 interface CartItem {
@@ -66,6 +72,7 @@ export const HomePage: React.FC = () => {
   >('home');
   const [selectedBrand, setSelectedBrand] = useState<string>('All Brands');
   const [shopInitialCategory, setShopInitialCategory] = useState<string>('All');
+  const [shopInitialSubcategory, setShopInitialSubcategory] = useState<string>('All');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
 
@@ -75,6 +82,7 @@ export const HomePage: React.FC = () => {
   const [uniqueProducts, setUniqueProducts] = useState<Product[]>([]);
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [catalogCategories, setCatalogCategories] = useState<CategoryItem[]>([]);
 
   // Search overlay state
   const [searchOpen, setSearchOpen] = useState(false);
@@ -140,6 +148,12 @@ export const HomePage: React.FC = () => {
       })
       .catch((err) => console.error('Failed to load products catalogue:', err));
 
+    fetchCategories()
+      .then((cats) => {
+        if (isMounted) setCatalogCategories(cats);
+      })
+      .catch((err) => console.error('Failed to load categories catalogue:', err));
+
     return () => {
       isMounted = false;
     };
@@ -194,6 +208,7 @@ export const HomePage: React.FC = () => {
     setActiveNav(nav);
     if (nav === 'SHOP') {
       setShopInitialCategory('All');
+      setShopInitialSubcategory('All');
       setSelectedBrand('All Brands');
       setCurrentView('shop');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -238,8 +253,13 @@ export const HomePage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleNavigateShopCategory = (category?: string, brand?: string) => {
+  const handleNavigateShopCategory = (
+    category?: string,
+    subcategory?: string,
+    brand?: string
+  ) => {
     setShopInitialCategory(category ?? 'All');
+    setShopInitialSubcategory(subcategory ?? 'All');
     setSelectedBrand(brand ?? 'All Brands');
     setActiveNav('SHOP');
     setCurrentView('shop');
@@ -392,7 +412,9 @@ export const HomePage: React.FC = () => {
         cartCount={totalItems}
         wishlistCount={wishlist.length}
         orderCount={placedOrders.length}
+        featuredProducts={featuredGrid}
         onSelectNav={handleSelectNav}
+        onNavigateCategory={(cat, sub) => handleNavigateShopCategory(cat, sub)}
         onOpenSearch={() => setSearchOpen((prev) => !prev)}
         onOpenOrderTracking={() => handleOpenTrackOrder(placedOrders[0]?.id ?? '')}
         onOpenWishlist={() => {
@@ -405,6 +427,17 @@ export const HomePage: React.FC = () => {
           setCartOpen(false);
           setSearchOpen(false);
           setCurrentView('cart');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenShipping={() => {
+          setCurrentView('shipping');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onSelectProduct={handleOpenProductDetail}
+        onSearchSubmit={(q, cat) => {
+          setShopInitialCategory(cat && cat !== 'All Collection' ? cat : 'All');
+          setShopInitialSubcategory('All');
+          setCurrentView('shop');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
@@ -499,153 +532,7 @@ export const HomePage: React.FC = () => {
         </div>
       )}
 
-      {currentView === 'shop' ? (
-        <ShopPage
-          key={`${shopInitialCategory}-${selectedBrand}`}
-          wishlistIds={wishlistIds}
-          onToggleWishlist={handleToggleWishlist}
-          selectedBrand={selectedBrand}
-          initialCategory={shopInitialCategory}
-          onClearBrand={() => setSelectedBrand('All Brands')}
-          onAddToCart={handleAddToCart}
-          onSelectProduct={handleOpenProductDetail}
-          onNavigateHome={() => handleSelectNav('HOME')}
-        />
-      ) : currentView === 'about' ? (
-        <AboutUsPage
-          brands={BRANDS}
-          onNavigateHome={() => handleSelectNav('HOME')}
-          onNavigateShop={(brandName) => handleNavigateShopCategory('All', brandName ?? 'All Brands')}
-          onNavigateContact={() => handleSelectNav('CONTACT US')}
-        />
-      ) : currentView === 'blogs' ? (
-        <BlogsPage
-          posts={blogs}
-          onSelectPost={handleOpenBlogDetail}
-          onNavigateHome={() => handleSelectNav('HOME')}
-          onNavigateShop={() => handleSelectNav('SHOP')}
-        />
-      ) : currentView === 'blog-detail' && selectedPost ? (
-        <BlogDetailPage
-          key={selectedPost.id}
-          post={selectedPost}
-          relatedPosts={blogs.filter((p) => p.id !== selectedPost.id)}
-          featuredProducts={featuredGrid}
-          onSelectPost={handleOpenBlogDetail}
-          onSelectProduct={handleOpenProductDetail}
-          onAddToCart={handleAddToCart}
-          onNavigateHome={() => handleSelectNav('HOME')}
-          onNavigateBlogs={() => handleSelectNav('BLOGS')}
-          onNavigateShop={() => handleSelectNav('SHOP')}
-        />
-      ) : currentView === 'contact' ? (
-        <ContactUsPage
-          onNavigateHome={() => handleSelectNav('HOME')}
-          onNavigateShop={() => handleSelectNav('SHOP')}
-        />
-      ) : currentView === 'wishlist' ? (
-        <WishlistPage
-          items={wishlist}
-          recommendedProducts={featuredGrid}
-          onToggleWishlist={handleToggleWishlist}
-          onClearWishlist={() => setWishlist([])}
-          onMoveAllToCart={handleMoveAllWishlistToCart}
-          onAddToCart={handleAddToCart}
-          onSelectProduct={handleOpenProductDetail}
-          onNavigateHome={() => handleSelectNav('HOME')}
-          onNavigateShop={() => handleSelectNav('SHOP')}
-        />
-      ) : currentView === 'order-tracking' ? (
-        <OrderTrackingPage
-          placedOrders={placedOrders}
-          initialOrderId={trackingInitialOrderId}
-          onNavigateHome={() => handleSelectNav('HOME')}
-          onNavigateShop={() => handleSelectNav('SHOP')}
-          onNavigateShipping={() => {
-            setCurrentView('shipping');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          onNavigateContact={() => handleSelectNav('CONTACT US')}
-        />
-      ) : currentView === 'cart' ? (
-        <CartPage
-          items={cart}
-          recommendedProducts={featuredGrid}
-          subtotal={subtotal}
-          shippingFee={shippingFee}
-          orderTotal={orderTotal}
-          onUpdateQty={handleUpdateQty}
-          onRemoveItem={handleRemoveItem}
-          onAddToCart={handleAddToCart}
-          onSelectProduct={handleOpenProductDetail}
-          onProceedToCheckout={() => {
-            setCurrentView('checkout');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          onNavigateHome={() => handleSelectNav('HOME')}
-          onNavigateShop={() => handleSelectNav('SHOP')}
-        />
-      ) : currentView === 'checkout' ? (
-        <CheckoutPage
-          items={cart}
-          subtotal={subtotal}
-          shippingFee={shippingFee}
-          onPlaceOrder={({ name, phone, city, address, paymentMethod, finalTotal, orderReference }) => {
-            const code = orderReference || `ZP-${Math.floor(1000 + Math.random() * 9000)}`;
-            const newOrder: PlacedOrder = {
-              id: code,
-              customerName: name,
-              city,
-              total: finalTotal,
-              itemCount: totalItems,
-              status: `${paymentMethod} — Preparing Cold-Packed Parcel at Islamabad Hub`,
-            };
-            setPlacedOrders((prev) => [newOrder, ...prev]);
-            setCustomerName(name);
-            setCustomerPhone(phone);
-            setCustomerCity(city);
-            setCustomerAddress(address);
-            setConfirmedOrderId(code);
-            setCart([]);
-            return code;
-          }}
-          onTrackOrder={handleOpenTrackOrder}
-          onNavigateHome={() => handleSelectNav('HOME')}
-          onNavigateCart={() => {
-            setCurrentView('cart');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          onNavigateShop={() => handleSelectNav('SHOP')}
-        />
-      ) : currentView === 'shipping' ? (
-        <ShippingPolicyPage
-          onNavigateHome={() => handleSelectNav('HOME')}
-          onNavigateShop={() => handleSelectNav('SHOP')}
-          onNavigateContact={() => handleSelectNav('CONTACT US')}
-        />
-      ) : currentView === 'product' && selectedProduct ? (
-        <ProductDetailPage
-          key={selectedProduct.id}
-          product={selectedProduct}
-          galleryImages={
-            selectedProduct.galleryImages && selectedProduct.galleryImages.length > 0
-              ? selectedProduct.galleryImages
-              : [selectedProduct.image, ...featuredGrid.map((p) => p.image)]
-          }
-          relatedProducts={
-            allProducts.length > 0
-              ? allProducts.filter((p) => p.id !== selectedProduct.id).slice(0, 4)
-              : featuredGrid.filter((p) => p.id !== selectedProduct.id)
-          }
-          onAddToCart={handleAddToCart}
-          onBuyNow={handleBuyNow}
-          isWishlisted={wishlistIds.includes(selectedProduct.id)}
-          onToggleWishlist={handleToggleWishlist}
-          onSelectProduct={handleOpenProductDetail}
-          onNavigateHome={() => handleSelectNav('HOME')}
-          onNavigateShop={handleNavigateShopCategory}
-        />
-      ) : (
+      {currentView === 'home' ? (
         <>
           {/* Hero Banner Carousel */}
           <HeroSection
@@ -658,62 +545,230 @@ export const HomePage: React.FC = () => {
           {/* 1. Our Story — Brand Heritage (White) */}
           <OurStorySection />
 
-          {/* 2. Featured Products — 4-Column Studio Grid (White + #FAF3F0 Studio Cards) */}
+          {/* Top Categories Showcase (Exact Card Design Matching Reference) */}
+          <CategoriesSection
+            categories={catalogCategories}
+            onSelectCategory={(catName) => handleNavigateShopCategory(catName)}
+            onViewAll={() => handleNavigateShopCategory('All')}
+          />
+
+          {/* 2. Featured Grid — Hand-Harvested Pantry Products (Light Sand) */}
           <FeaturedProductsSection
-            sectionId="featured-grid"
-            heading="Featured Products"
-            subtitle="Hand-selected cold-pressed harvests and estate table olives crafted in small batches."
-            columns={4}
-            cardBgClass="bg-[#FAF3F0]"
-            sectionBgClass="bg-white border-t border-[#F0EDE8]"
+            title="Featured Pantry Selections"
+            subtitle="Cold-pressed single varietal extra virgins, raw forest honeys, whole aromatic spices and wild-harvested botanicals."
             products={featuredGrid}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-            onAddToCart={handleAddToCart}
             onSelectProduct={handleOpenProductDetail}
-            viewAllLabel="VIEW ALL PRODUCTS"
-            onViewAll={() => handleSelectNav('SHOP')}
+            onAddToCart={handleAddToCart}
+            onToggleWishlist={handleToggleWishlist}
+            wishlistIds={wishlistIds}
+            onViewAll={() => handleNavigateShopCategory('All')}
           />
 
-          {/* 3. Best Sellers — 3-Column Studio Trio (Warm Cream #FAF4ED + White Cards) */}
-          <FeaturedProductsSection
-            sectionId="featured-products"
-            heading="Best Sellers"
-            subtitle="Most-ordered cold-pressed olive oils and single-estate bottles across Pakistan."
-            columns={3}
-            cardBgClass="bg-white"
-            sectionBgClass="bg-[#FAF4ED]"
-            products={bestSellers}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-            onAddToCart={handleAddToCart}
-            onSelectProduct={handleOpenProductDetail}
-            viewAllLabel="SHOP ALL OLIVE OILS"
-            onViewAll={() => handleSelectNav('SHOP')}
+          {/* Artisanal Heritage Banner (Same to Same Banner Format with Shop Now Button Only) */}
+          <HeritageBannerSection
+            title="ORGANIC & COLD-PRESSED HARVESTS"
+            onShopNow={() => handleNavigateShopCategory('All')}
           />
 
-          {/* 4. Unique & Rare Orchard Creations (White + #F7F3EE Cards) */}
+          {/* 3. Unique Products — Artisanal Highlights (Rich Olive Tint) */}
           <UniqueProductsSection
             products={uniqueProducts}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-            onAddToCart={handleAddToCart}
             onSelectProduct={handleOpenProductDetail}
+            onAddToCart={handleAddToCart}
+            onToggleWishlist={handleToggleWishlist}
+            wishlistIds={wishlistIds}
+            onViewAll={() => handleNavigateShopCategory('All')}
           />
 
-          {/* 5. Customer Testimonials — Verified Social Proof (Warm Cream #FAF4ED + White Cards) */}
+          {/* Promotional Harvest Banner (Exact Reference Match: Coral Background, Tilted Bottle, Yellow Badge, Outlined Button, Right Bottles) */}
+          <PromoBannerSection
+            title="LATEST & SPECIAL BRANDS"
+            subtitle="Cold-Pressed Potohar Extra Virgin Olive Oils & Wild Karakoram Botanicals"
+            onShopNow={() => handleNavigateShopCategory('All')}
+          />
+
+          {/* 4. Best Sellers — Orchard Favorites (White) */}
+          <FeaturedProductsSection
+            title="Orchard & Pantry Best Sellers"
+            subtitle="Our most loved cold-pressed oils, wild sidr honeys, and handcrafted seasonal infusions."
+            products={bestSellers}
+            onSelectProduct={handleOpenProductDetail}
+            onAddToCart={handleAddToCart}
+            onToggleWishlist={handleToggleWishlist}
+            wishlistIds={wishlistIds}
+            onViewAll={() => handleNavigateShopCategory('All')}
+          />
+
+          {/* 5. Customer Testimonials (Warm Sand) */}
           <TestimonialsSection />
 
-          {/* 6. From Our Blog — Journal & Orchard Guides (White) */}
+          {/* 6. From Our Blog — Orchard Journal (White) */}
           <FromOurBlogSection
             posts={blogs}
             onSelectPost={handleOpenBlogDetail}
             onViewAllBlogs={() => handleSelectNav('BLOGS')}
           />
 
-          {/* 7. Harvest Letter / Newsletter Signup (Soft Cream #F7F3EE) */}
+          {/* 7. Partner Brands & Certified Estates Logo Strip */}
+          <PartnerLogosStrip
+            onSelectBrand={(brand) => handleNavigateShopCategory('All', brand)}
+            className="py-10 sm:py-14"
+          />
+
+          {/* 8. Newsletter — Stay in the Grove (Dark Forest Green) */}
           <NewsletterSection />
         </>
+      ) : (
+        <div className="pt-6 sm:pt-8">
+          {currentView === 'shop' ? (
+            <ShopPage
+              key={`${shopInitialCategory}-${shopInitialSubcategory}-${selectedBrand}`}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
+              selectedBrand={selectedBrand}
+              initialCategory={shopInitialCategory}
+              initialSubcategory={shopInitialSubcategory}
+              onClearBrand={() => setSelectedBrand('All Brands')}
+              onAddToCart={handleAddToCart}
+              onSelectProduct={handleOpenProductDetail}
+              onNavigateHome={() => handleSelectNav('HOME')}
+            />
+          ) : currentView === 'about' ? (
+            <AboutUsPage
+              brands={BRANDS}
+              onNavigateHome={() => handleSelectNav('HOME')}
+              onNavigateShop={(brandName) => handleNavigateShopCategory('All', brandName ?? 'All Brands')}
+              onNavigateContact={() => handleSelectNav('CONTACT US')}
+            />
+          ) : currentView === 'blogs' ? (
+            <BlogsPage
+              posts={blogs}
+              onSelectPost={handleOpenBlogDetail}
+              onNavigateHome={() => handleSelectNav('HOME')}
+              onNavigateShop={() => handleSelectNav('SHOP')}
+            />
+          ) : currentView === 'blog-detail' && selectedPost ? (
+            <BlogDetailPage
+              key={selectedPost.id}
+              post={selectedPost}
+              relatedPosts={blogs.filter((p) => p.id !== selectedPost.id)}
+              featuredProducts={featuredGrid}
+              onSelectPost={handleOpenBlogDetail}
+              onSelectProduct={handleOpenProductDetail}
+              onAddToCart={handleAddToCart}
+              onNavigateHome={() => handleSelectNav('HOME')}
+              onNavigateBlogs={() => handleSelectNav('BLOGS')}
+              onNavigateShop={() => handleSelectNav('SHOP')}
+            />
+          ) : currentView === 'contact' ? (
+            <ContactUsPage
+              onNavigateHome={() => handleSelectNav('HOME')}
+              onNavigateShop={() => handleSelectNav('SHOP')}
+            />
+          ) : currentView === 'wishlist' ? (
+            <WishlistPage
+              items={wishlist}
+              recommendedProducts={featuredGrid}
+              onToggleWishlist={handleToggleWishlist}
+              onClearWishlist={() => setWishlist([])}
+              onMoveAllToCart={handleMoveAllWishlistToCart}
+              onAddToCart={handleAddToCart}
+              onSelectProduct={handleOpenProductDetail}
+              onNavigateHome={() => handleSelectNav('HOME')}
+              onNavigateShop={() => handleSelectNav('SHOP')}
+            />
+          ) : currentView === 'order-tracking' ? (
+            <OrderTrackingPage
+              placedOrders={placedOrders}
+              initialOrderId={trackingInitialOrderId}
+              onNavigateHome={() => handleSelectNav('HOME')}
+              onNavigateShop={() => handleSelectNav('SHOP')}
+              onNavigateShipping={() => {
+                setCurrentView('shipping');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onNavigateContact={() => handleSelectNav('CONTACT US')}
+            />
+          ) : currentView === 'cart' ? (
+            <CartPage
+              items={cart}
+              recommendedProducts={featuredGrid}
+              subtotal={subtotal}
+              shippingFee={shippingFee}
+              orderTotal={orderTotal}
+              onUpdateQty={handleUpdateQty}
+              onRemoveItem={handleRemoveItem}
+              onAddToCart={handleAddToCart}
+              onSelectProduct={handleOpenProductDetail}
+              onProceedToCheckout={() => {
+                setCurrentView('checkout');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onNavigateHome={() => handleSelectNav('HOME')}
+              onNavigateShop={() => handleSelectNav('SHOP')}
+            />
+          ) : currentView === 'checkout' ? (
+            <CheckoutPage
+              items={cart}
+              subtotal={subtotal}
+              shippingFee={shippingFee}
+              onPlaceOrder={({ name, phone, city, address, paymentMethod, finalTotal, orderReference }) => {
+                const code = orderReference || `ZP-${Math.floor(1000 + Math.random() * 9000)}`;
+                const newOrder: PlacedOrder = {
+                  id: code,
+                  customerName: name,
+                  city,
+                  total: finalTotal,
+                  itemCount: totalItems,
+                  status: `${paymentMethod} — Preparing Cold-Packed Parcel at Islamabad Hub`,
+                };
+                setPlacedOrders((prev) => [newOrder, ...prev]);
+                setCustomerName(name);
+                setCustomerPhone(phone);
+                setCustomerCity(city);
+                setCustomerAddress(address);
+                setConfirmedOrderId(code);
+                setCart([]);
+                return code;
+              }}
+              onTrackOrder={handleOpenTrackOrder}
+              onNavigateHome={() => handleSelectNav('HOME')}
+              onNavigateCart={() => {
+                setCurrentView('cart');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onNavigateShop={() => handleSelectNav('SHOP')}
+            />
+          ) : currentView === 'shipping' ? (
+            <ShippingPolicyPage
+              onNavigateHome={() => handleSelectNav('HOME')}
+              onNavigateShop={() => handleSelectNav('SHOP')}
+              onNavigateContact={() => handleSelectNav('CONTACT US')}
+            />
+          ) : currentView === 'product' && selectedProduct ? (
+            <ProductDetailPage
+              key={selectedProduct.id}
+              product={selectedProduct}
+              galleryImages={
+                selectedProduct.galleryImages && selectedProduct.galleryImages.length > 0
+                  ? selectedProduct.galleryImages
+                  : [selectedProduct.image, ...featuredGrid.map((p) => p.image)]
+              }
+              relatedProducts={
+                allProducts.length > 0
+                  ? allProducts.filter((p) => p.id !== selectedProduct.id).slice(0, 4)
+                  : featuredGrid.filter((p) => p.id !== selectedProduct.id)
+              }
+              onAddToCart={handleAddToCart}
+              onBuyNow={handleBuyNow}
+              isWishlisted={wishlistIds.includes(selectedProduct.id)}
+              onToggleWishlist={handleToggleWishlist}
+              onSelectProduct={handleOpenProductDetail}
+              onNavigateHome={() => handleSelectNav('HOME')}
+              onNavigateShop={handleNavigateShopCategory}
+            />
+          ) : null}
+        </div>
       )}
 
       {/* Site Footer */}

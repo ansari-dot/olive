@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
-import { Heart } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ShoppingBag, Heart, Eye } from 'lucide-react';
 import { Product } from '../data/storeData';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
-interface FeaturedProductsSectionProps {
+export interface FeaturedProductsSectionProps {
   products: Product[];
   wishlistIds?: string[];
   onToggleWishlist?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onSelectProduct?: (product: Product) => void;
   sectionId?: string;
+  title?: string;
   heading?: string;
   subtitle?: string;
   columns?: 3 | 4;
@@ -19,35 +20,49 @@ interface FeaturedProductsSectionProps {
   onViewAll?: () => void;
 }
 
-const formatPKR = (amount: number) => `Rs. ${amount.toLocaleString('en-PK')}`;
+const TABS = [
+  { id: 'ALL', label: 'ALL' },
+  { id: 'SPICES', label: 'SPICES & HERBS', match: ['Ground Spices', 'Whole Spices', 'Herbs and Botanicals', 'Seasonings and Spice Blends'] },
+  { id: 'OILS', label: 'OILS & OLIVES', match: ['Olive Products', 'Edible and Specialty Oils', 'Herbal and Botanical Oils'] },
+  { id: 'MUSHROOMS', label: 'MUSHROOMS & SHILAJIT', match: ['Mushrooms and Mushroom Products', 'Extracts and Concentrates'] },
+  { id: 'TEA_HONEY', label: 'TEA & HONEY', match: ['Tea and Herbal Infusions', 'Natural Sweeteners', 'Coffee', 'Dried Fruits', 'Nuts'] },
+];
 
-const StarRating: React.FC<{ rating?: number }> = ({ rating = 4 }) => {
-  return (
-    <div
-      className="flex items-center justify-center gap-0.5"
-      aria-label={`Rated ${rating} out of 5 stars`}
-    >
-      {[1, 2, 3, 4, 5].map((star) => {
-        const filled = star <= rating;
-        return (
-          <svg
-            key={star}
-            viewBox="0 0 16 16"
-            className="w-[13px] h-[13px] text-[#C46B3B]"
-            fill={filled ? 'currentColor' : 'none'}
-            aria-hidden="true"
-          >
-            <path
-              d="M8 1.4L9.95 5.35L14.3 5.98L11.15 9.05L11.89 13.38L8 11.33L4.11 13.38L4.85 9.05L1.7 5.98L6.05 5.35L8 1.4Z"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinejoin="round"
-            />
-          </svg>
-        );
-      })}
-    </div>
-  );
+/**
+ * Returns clean transparent background product cutout image, or the actual uploaded product image
+ */
+export const getCleanImage = (imgUrl?: string, category?: string) => {
+  if (imgUrl && typeof imgUrl === 'string' && imgUrl.trim()) {
+    return imgUrl;
+  }
+
+  // Fallback to high quality transparent studio cutouts by category if no image is provided
+  if (category) {
+    const catLower = category.toLowerCase();
+    if (catLower.includes('spice') || catLower.includes('herb') || catLower.includes('powder')) {
+      return '/assets/images/nobg/shop_card_olive_jar_1794770042025_nobg.png';
+    }
+    if (catLower.includes('honey') || catLower.includes('sweetener')) {
+      return '/assets/images/nobg/unique_sidr_honeycomb_jar_1794820496427_nobg.png';
+    }
+    if (catLower.includes('olive') && !catLower.includes('oil')) {
+      return '/assets/images/nobg/featured_card_green_olives_1794769570392_nobg.png';
+    }
+    if (catLower.includes('tea') || catLower.includes('coffee') || catLower.includes('beverage')) {
+      return '/assets/images/nobg/card_oil_decanter_3_1794769257286_nobg.png';
+    }
+    if (catLower.includes('extract') || catLower.includes('shilajit') || catLower.includes('saffron')) {
+      return '/assets/images/nobg/unique_saffron_olive_elixir_1794820496501_nobg.png';
+    }
+    if (catLower.includes('essential') || catLower.includes('botanical oil')) {
+      return '/assets/images/nobg/shop_card_amber_bottle_1794770042120_nobg.png';
+    }
+    if (catLower.includes('nut') || catLower.includes('snack') || catLower.includes('fruit')) {
+      return '/assets/images/nobg/shop_card_black_olives_1794770041630_nobg.png';
+    }
+  }
+
+  return '/assets/images/nobg/featured_card_teardrop_oil_1794769568371_nobg.png';
 };
 
 export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = ({
@@ -56,158 +71,279 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = (
   onToggleWishlist,
   onAddToCart,
   onSelectProduct,
-  sectionId = 'featured-products',
+  sectionId = 'top-products',
+  title,
   heading,
   subtitle,
-  columns = 3,
-  cardBgClass = 'bg-[#FAF3F0]',
+  columns = 4,
   sectionBgClass = 'bg-white',
-  viewAllLabel,
+  viewAllLabel = 'VIEW ALL PRODUCTS',
   onViewAll,
 }) => {
+  const [activeTab, setActiveTab] = useState('ALL');
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+
   const { ref: revealRef, isVisible } = useScrollReveal<HTMLDivElement>({
-    threshold: 0.14,
-    rootMargin: '0px 0px -48px 0px',
+    threshold: 0.1,
+    rootMargin: '0px 0px -40px 0px',
   });
 
-  const gridColsClass =
-    columns === 4
-      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-7'
-      : 'grid-cols-1 md:grid-cols-3 gap-7 lg:gap-8';
+  // Filter products by selected department tab
+  const filteredProducts = useMemo(() => {
+    if (activeTab === 'ALL') return products.slice(0, 8);
+    const selected = TABS.find((t) => t.id === activeTab);
+    if (!selected || !selected.match) return products.slice(0, 8);
+    const matched = products.filter((p) =>
+      selected.match!.some(
+        (m) =>
+          p.category?.toLowerCase() === m.toLowerCase() ||
+          p.department?.toLowerCase().includes(m.toLowerCase())
+      )
+    );
+    return matched.slice(0, 8);
+  }, [products, activeTab]);
+
+  const mainTitle = (title || heading || 'TOP PRODUCTS').toUpperCase();
 
   return (
     <section
       id={sectionId}
-      aria-label={heading ?? 'Featured Olive Oils'}
-      className={`w-full ${sectionBgClass} py-16 sm:py-20 lg:py-24 overflow-hidden`}
+      aria-label={mainTitle}
+      className={`w-full ${sectionBgClass} py-14 sm:py-16 lg:py-20 overflow-hidden`}
     >
-      <div ref={revealRef} className="max-w-[1220px] mx-auto px-6 sm:px-10 lg:px-14">
-        {heading && (
-          <div
-            className={`text-center max-w-[640px] mx-auto mb-12 lg:mb-14 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-            }`}
-          >
-            <h2 className="text-[32px] sm:text-[38px] lg:text-[42px] font-normal tracking-[-0.01em] text-[#111111] leading-tight">
-              {heading}
+      <div ref={revealRef} className="max-w-[1400px] xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+        {/* =========================================================================
+            SECTION HEADER + CATEGORY FILTER TABS (Exact Layout in reference image)
+            ========================================================================= */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-[#F0EDE8]">
+          {/* Left: TOP PRODUCTS Title */}
+          <div>
+            <h2 className="text-[24px] sm:text-[28px] lg:text-[32px] font-black uppercase tracking-tight text-[#111111] leading-none">
+              {mainTitle}
             </h2>
             {subtitle && (
-              <p className="mt-2.5 text-[14.5px] sm:text-[15px] text-[#6E6A66] font-normal leading-relaxed">
+              <p className="mt-2 text-[13px] text-[#6E6A66] font-normal">
                 {subtitle}
               </p>
             )}
           </div>
-        )}
 
-        <div className={`grid ${gridColsClass}`}>
-          {products.map((product, index) => {
+          {/* Right: Category Tabs (ALL in Red box, others plain uppercase) */}
+          <div className="flex items-center flex-wrap gap-2.5 sm:gap-4 select-none">
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`cursor-pointer transition-all ${
+                    isActive
+                      ? 'bg-[#E52E2E] text-white px-3.5 py-1 text-[11px] sm:text-[11.5px] font-bold uppercase tracking-wider rounded-2xs shadow-xs'
+                      : 'text-[#444444] hover:text-[#E52E2E] text-[11px] sm:text-[11.5px] font-bold uppercase tracking-wider px-1.5 py-1'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* =========================================================================
+            4-COLUMN PRODUCT GRID MATCHING REFERENCE SCREENSHOT
+            ========================================================================= */}
+        {filteredProducts.length > 0 ? (
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-6 lg:gap-7 transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+            }`}
+          >
+            {filteredProducts.map((product, index) => {
             const isBroken = brokenImages[product.id];
+            const isWishlisted = wishlistIds.includes(product.id);
+
+            // Compute discount percentage if originalPrice exists
+            const hasDiscount =
+              product.originalPrice && product.originalPrice > product.price;
+            const discountPercent = hasDiscount
+              ? Math.round(
+                  ((product.originalPrice! - product.price) /
+                    product.originalPrice!) *
+                    100
+                )
+              : product.isSale
+              ? 20
+              : null;
+
             return (
               <article
                 key={product.id}
-                style={{
-                  transitionDelay: isVisible ? `${index * 110}ms` : '0ms',
-                }}
-                className={`group flex flex-col transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
-                  isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-                }`}
+                className="group bg-white border border-[#EDEDED] hover:border-[#15472B]/30 hover:shadow-lg transition-all duration-200 flex flex-col justify-between overflow-hidden"
               >
-                {/* Warm Studio Card Frame */}
-                <div
-                  className={`relative aspect-[3/3.75] w-full ${cardBgClass} overflow-hidden`}
-                >
-                  {product.isSale && (
-                    <span className="absolute top-0 left-0 z-10 bg-[#C46B3B] text-white text-[12px] font-medium leading-none px-3.5 py-2 tracking-[0.02em]">
-                      Sale
-                    </span>
-                  )}
+                {/* Top Half: Studio Photo Area (Clean White Background with Transparent Product Cutout) */}
+                <div className="relative aspect-square w-full bg-white flex items-center justify-center p-5 overflow-hidden select-none">
+                  {/* Top-Left Badges: Discount Pill + Optional Secondary Pill */}
+                  <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1">
+                    {discountPercent && (
+                      <span className="border border-[#E52E2E] bg-white text-[#E52E2E] text-[10.5px] font-bold px-1.5 py-0.5 leading-none tracking-tight">
+                        -{discountPercent}%
+                      </span>
+                    )}
+                    {product.isOrganic && (
+                      <span className="border border-[#0284C7] bg-white text-[#0284C7] text-[9.5px] font-semibold px-1.5 py-0.5 leading-none uppercase tracking-tight">
+                        Pre_order
+                      </span>
+                    )}
+                  </div>
 
-                  {onToggleWishlist && (
+                  {/* Top-Right Floating Action Buttons Column (Visible on Hover) */}
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-all duration-200 z-10 translate-x-2 group-hover:translate-x-0">
+                    {/* 1. Quick Add to Cart Button */}
                     <button
                       type="button"
-                      onClick={() => onToggleWishlist(product)}
-                      aria-label={
-                        wishlistIds.includes(product.id)
-                          ? `Remove ${product.name} from wishlist`
-                          : `Save ${product.name} to wishlist`
-                      }
-                      className={`absolute top-2.5 right-2.5 z-10 w-8 h-8 bg-white/90 hover:bg-white flex items-center justify-center transition-all cursor-pointer ${
-                        wishlistIds.includes(product.id)
-                          ? 'text-[#C46B3B] opacity-100'
-                          : 'text-[#444444] hover:text-[#C46B3B] opacity-85 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100'
-                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToCart(product);
+                      }}
+                      aria-label={`Add ${product.name} to cart`}
+                      title="Add to Cart"
+                      className="w-8 h-8 rounded-full bg-white shadow-sm border border-[#E5E5E5] flex items-center justify-center text-[#4B5563] hover:text-white hover:bg-[#E52E2E] hover:border-[#E52E2E] transition-all cursor-pointer"
                     >
-                      <Heart
-                        className={`w-4 h-4 ${
-                          wishlistIds.includes(product.id) ? 'fill-current' : ''
-                        }`}
-                      />
+                      <ShoppingBag className="w-3.5 h-3.5 stroke-[2]" />
                     </button>
-                  )}
 
+                    {/* 2. Wishlist Button */}
+                    {onToggleWishlist && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleWishlist(product);
+                        }}
+                        aria-label={
+                          isWishlisted
+                            ? `Remove ${product.name} from wishlist`
+                            : `Add ${product.name} to wishlist`
+                        }
+                        title="Wishlist"
+                        className={`w-8 h-8 rounded-full bg-white shadow-sm border border-[#E5E5E5] flex items-center justify-center transition-all cursor-pointer ${
+                          isWishlisted
+                            ? 'text-[#E52E2E] border-[#E52E2E] bg-[#FFF5F5]'
+                            : 'text-[#4B5563] hover:text-white hover:bg-[#E52E2E] hover:border-[#E52E2E]'
+                        }`}
+                      >
+                        <Heart
+                          className={`w-3.5 h-3.5 stroke-[2] ${
+                            isWishlisted ? 'fill-current' : ''
+                          }`}
+                        />
+                      </button>
+                    )}
+
+                    {/* 3. Quick View / Product Detail Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onSelectProduct) onSelectProduct(product);
+                        else onAddToCart(product);
+                      }}
+                      aria-label={`Quick view ${product.name}`}
+                      title="Quick View"
+                      className="w-8 h-8 rounded-full bg-white shadow-sm border border-[#E5E5E5] flex items-center justify-center text-[#4B5563] hover:text-white hover:bg-[#15472B] hover:border-[#15472B] transition-all cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5 stroke-[2]" />
+                    </button>
+                  </div>
+
+                  {/* Centered Product Photograph */}
                   {!isBroken ? (
                     <button
                       type="button"
-                      onClick={() => (onSelectProduct ? onSelectProduct(product) : onAddToCart(product))}
-                      className="w-full h-full block cursor-pointer"
+                      onClick={() =>
+                        onSelectProduct
+                          ? onSelectProduct(product)
+                          : onAddToCart(product)
+                      }
+                      className="w-full h-full flex items-center justify-center cursor-pointer"
                     >
                       <img
-                        src={product.image}
+                        src={getCleanImage(product.image, product.category)}
                         alt={product.name}
                         referrerPolicy="no-referrer"
                         onError={() =>
-                          setBrokenImages((prev) => ({ ...prev, [product.id]: true }))
+                          setBrokenImages((prev) => ({
+                            ...prev,
+                            [product.id]: true,
+                          }))
                         }
-                        className="w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                        className="w-full h-full object-contain p-2 drop-shadow-[0_8px_16px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out group-hover:scale-105"
                       />
                     </button>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center p-6 text-center text-[#15472B]">
-                      <span className="font-serif-brand text-lg">{product.name}</span>
+                    <div className="w-full h-full flex items-center justify-center p-4 text-center text-[#15472B]">
+                      <span className="font-serif-brand text-sm font-semibold">
+                        {product.name}
+                      </span>
                     </div>
                   )}
-
-                  {/* Subtle Quick-Add Action on Hover/Focus */}
-                  <div className="absolute inset-x-0 bottom-0 p-3 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all duration-200 z-10">
-                    <button
-                      type="button"
-                      onClick={() => onAddToCart(product)}
-                      className="w-full py-2.5 bg-[#1C1C1C]/90 hover:bg-[#15472B] text-white text-[11.5px] uppercase tracking-[0.09em] font-medium transition-colors cursor-pointer"
-                    >
-                      Add to Bag
-                    </button>
-                  </div>
                 </div>
 
-                {/* Centered Title, Star Rating & Price */}
-                <div className="mt-4 text-center">
-                  <h3 className="text-[16.5px] sm:text-[17.5px] font-normal text-[#1E1E1E] leading-snug">
-                    <button
-                      type="button"
-                      onClick={() => (onSelectProduct ? onSelectProduct(product) : onAddToCart(product))}
-                      className="hover:text-[#15472B] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15472B]"
+                {/* Bottom Half: Details Area (Left-Aligned as in Screenshot) */}
+                <div className="p-4 pt-3.5 bg-white flex flex-col justify-between flex-1 text-left">
+                  <div>
+                    {/* Star Rating (Left-Aligned, Gold Stars) */}
+                    <div
+                      className="flex items-center gap-0.5 mb-1.5 text-[#FBBF24]"
+                      aria-label={`Rated ${product.rating || 5} out of 5 stars`}
                     >
-                      {product.name}
-                    </button>
-                  </h3>
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <svg
+                          key={s}
+                          viewBox="0 0 16 16"
+                          className={`w-3.5 h-3.5 ${
+                            s <= (product.rating || 5)
+                              ? 'text-[#FBBF24] fill-[#FBBF24]'
+                              : 'text-[#D1D5DB]'
+                          }`}
+                        >
+                          <path d="M8 1.4L9.95 5.35L14.3 5.98L11.15 9.05L11.89 13.38L8 11.33L4.11 13.38L4.85 9.05L1.7 5.98L6.05 5.35L8 1.4Z" />
+                        </svg>
+                      ))}
+                    </div>
 
-                  <div className="mt-1.5">
-                    <StarRating rating={product.rating} />
+                    {/* Product Title (Bold, Left-Aligned, Line-Clamp 1) */}
+                    <h3 className="text-[13.5px] sm:text-[14px] font-bold text-[#1F2937] group-hover:text-[#15472B] line-clamp-1 mb-1 leading-snug">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onSelectProduct
+                            ? onSelectProduct(product)
+                            : onAddToCart(product)
+                        }
+                        className="text-left hover:underline cursor-pointer"
+                      >
+                        {product.name}
+                      </button>
+                    </h3>
                   </div>
 
-                  <div className="mt-1.5 flex items-center justify-center gap-2 text-[14px] tabular-nums">
-                    {product.originalPrice ? (
+                  {/* Price Row (Strikethrough Original + Bold Red Sale Price) */}
+                  <div className="mt-1 flex items-baseline gap-2">
+                    {hasDiscount ? (
                       <>
-                        <span className="text-[#555555] line-through">
-                          {formatPKR(product.originalPrice)}
+                        <span className="text-[12.5px] text-[#9CA3AF] line-through font-medium font-mono-data">
+                          Rs. {product.originalPrice!.toLocaleString('en-PK')}
                         </span>
-                        <span className="text-[#C46B3B]">
-                          {formatPKR(product.price)}
+                        <span className="text-[14.5px] font-extrabold text-[#E52E2E] font-mono-data">
+                          Rs. {product.price.toLocaleString('en-PK')}
                         </span>
                       </>
                     ) : (
-                      <span className="text-[#555555]">{formatPKR(product.price)}</span>
+                      <span className="text-[14.5px] font-extrabold text-[#E52E2E] font-mono-data">
+                        Rs. {product.price.toLocaleString('en-PK')}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -215,13 +351,24 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = (
             );
           })}
         </div>
+      ) : (
+        <div className="w-full py-16 text-center border border-dashed border-[#E5E7EB] bg-[#FAF8F5] rounded-xs my-4">
+          <p className="text-[15px] font-bold text-[#1F2937]">No products yet added</p>
+          <p className="text-[12.5px] text-[#6B7280] mt-1">
+            {activeTab === 'ALL'
+              ? 'There are no products currently added in this section.'
+              : 'No products currently added for this department.'}
+          </p>
+        </div>
+      )}
 
-        {onViewAll && viewAllLabel && (
-          <div className="mt-11 text-center">
+      {/* View All Button */}
+      {filteredProducts.length > 0 && onViewAll && viewAllLabel && (
+          <div className="mt-12 text-center">
             <button
               type="button"
               onClick={onViewAll}
-              className="inline-flex items-center gap-2 border border-[#181818] bg-white hover:bg-[#181818] hover:text-white text-[#181818] text-[11.5px] font-semibold uppercase tracking-[0.09em] px-7 py-3 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 border border-[#181818] bg-white hover:bg-[#181818] hover:text-white text-[#181818] text-[11.5px] font-bold uppercase tracking-[0.1em] px-8 py-3 transition-colors cursor-pointer shadow-xs"
             >
               <span>{viewAllLabel}</span>
               <span aria-hidden="true">&rarr;</span>

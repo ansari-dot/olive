@@ -21,7 +21,7 @@ export async function listCategories({ ids } = {}) {
     );
     return categories;
   }
-  return Category.find().sort({ createdAt: -1 }).lean();
+  return Category.find().sort({ categoryNumber: 1, name: 1, createdAt: -1 }).lean();
 }
 
 export async function getCategoryById(id) {

@@ -42,11 +42,17 @@ export const DealsSection: React.FC<DealsSectionProps> = ({
   onSelectProduct,
 }) => {
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
-  const [secondsLeft, setSecondsLeft] = useState<number>(2 * 86400 + 14 * 3600 + 38 * 60 + 19);
+  const [secondsLeft, setSecondsLeft] = useState<number>(() => {
+    if (spotlightDeal?.dealEndsAt) {
+      const diff = Math.max(0, Math.floor((new Date(spotlightDeal.dealEndsAt).getTime() - Date.now()) / 1000));
+      return diff > 0 ? diff : 2 * 86400 + 14 * 3600;
+    }
+    return 2 * 86400 + 14 * 3600 + 38 * 60 + 19;
+  });
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setSecondsLeft((prev) => (prev > 1 ? prev - 1 : 2 * 86400 + 14 * 3600));
+      setSecondsLeft((prev) => (prev > 1 ? prev - 1 : 0));
     }, 1000);
     return () => window.clearInterval(timer);
   }, []);
@@ -94,7 +100,7 @@ export const DealsSection: React.FC<DealsSectionProps> = ({
         <article className="bg-[#FAF4ED] grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
           <div className="lg:col-span-6 relative bg-[#FAF3F0] aspect-[4/3] lg:aspect-auto lg:min-h-[390px] overflow-hidden group">
             <span className="absolute top-0 left-0 z-10 bg-[#C46B3B] text-white text-[12px] font-medium leading-none px-4 py-2.5 tracking-[0.03em]">
-              {spotlightDeal.tag ?? 'Sale'}
+              {spotlightDeal.dealBadge ?? spotlightDeal.tag ?? 'Sale'}
             </span>
 
             {!brokenImages[spotlightDeal.id] ? (
