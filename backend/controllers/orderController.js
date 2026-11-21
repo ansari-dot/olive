@@ -1,5 +1,7 @@
 import * as orderService from "../services/orderService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { logAdminAction } from "../services/auditService.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 // Public: POST /api/orders (Guest checkout)
 export const createOrder = asyncHandler(async (req, res) => {
@@ -61,12 +63,20 @@ export const initiateShipment = asyncHandler(async (req, res) => {
     req.body,
     req.admin
   );
-  res.json({
-    success: true,
-    message: `Shipment successfully booked with ${order.courierName}`,
-    order,
-    data: order,
+
+  logAdminAction({
+    req,
+    action: "order:shipment_created",
+    targetResource: "Order",
+    targetId: order.orderReference,
+    details: { courierName: order.courierName, trackingCode: order.courierTrackingCode },
   });
+
+  return ApiResponse.success(
+    res,
+    { order, data: order },
+    `Shipment successfully booked with ${order.courierName}`
+  );
 });
 
 // Admin: POST /api/admin/orders/:orderReference/sync-tracking
@@ -75,11 +85,7 @@ export const syncCourierStatus = asyncHandler(async (req, res) => {
     req.params.orderReference,
     req.admin
   );
-  res.json({
-    success: true,
-    message: "Courier tracking synchronized",
-    ...result,
-  });
+  return ApiResponse.success(res, result, "Courier tracking synchronized");
 });
 
 // Admin: POST /api/admin/orders/:orderReference/return
@@ -89,12 +95,20 @@ export const processReturn = asyncHandler(async (req, res) => {
     req.body,
     req.admin
   );
-  res.json({
-    success: true,
-    message: `Return action "${req.body.action}" completed`,
-    order,
-    data: order,
+
+  logAdminAction({
+    req,
+    action: `order:return_${req.body?.action || "action"}`,
+    targetResource: "Order",
+    targetId: order.orderReference,
+    details: { returnDetails: order.returnDetails },
   });
+
+  return ApiResponse.success(
+    res,
+    { order, data: order },
+    `Return action "${req.body.action}" completed`
+  );
 });
 
 // Admin: PATCH /api/admin/orders/:orderReference/status
@@ -104,12 +118,16 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     req.body,
     req.admin
   );
-  res.json({
-    success: true,
-    message: "Order status updated",
-    order,
-    data: order,
+
+  logAdminAction({
+    req,
+    action: "order:update_status",
+    targetResource: "Order",
+    targetId: order.orderReference,
+    details: { newStatus: order.orderStatus, note: req.body?.note },
   });
+
+  return ApiResponse.success(res, { order, data: order }, "Order status updated");
 });
 
 // Admin: PATCH /api/admin/orders/:orderReference/tracking
@@ -119,12 +137,7 @@ export const updateOrderTracking = asyncHandler(async (req, res) => {
     req.body,
     req.admin
   );
-  res.json({
-    success: true,
-    message: "Courier tracking updated",
-    order,
-    data: order,
-  });
+  return ApiResponse.success(res, { order, data: order }, "Courier tracking updated");
 });
 
 // Admin: PATCH /api/admin/orders/:orderReference/payment
@@ -134,12 +147,16 @@ export const updateOrderPayment = asyncHandler(async (req, res) => {
     req.body,
     req.admin
   );
-  res.json({
-    success: true,
-    message: "Payment status updated",
-    order,
-    data: order,
+
+  logAdminAction({
+    req,
+    action: "order:update_payment",
+    targetResource: "Order",
+    targetId: order.orderReference,
+    details: { paymentStatus: order.paymentStatus, ibftReference: req.body?.ibftReference },
   });
+
+  return ApiResponse.success(res, { order, data: order }, "Payment status updated");
 });
 
 // Admin: PATCH /api/admin/orders/:orderReference/cancel
@@ -149,22 +166,47 @@ export const cancelOrder = asyncHandler(async (req, res) => {
     req.body,
     req.admin
   );
-  res.json({
-    success: true,
-    message: "Order cancelled and inventory restored",
-    order,
-    data: order,
+
+  logAdminAction({
+    req,
+    action: "order:cancel",
+    targetResource: "Order",
+    targetId: order.orderReference,
+    details: { cancelReason: req.body?.cancelReason },
   });
+
+  return ApiResponse.success(
+    res,
+    { order, data: order },
+    "Order cancelled and inventory restored"
+  );
 });
 
 // Admin: DELETE /api/admin/orders/all
 export const deleteAllOrders = asyncHandler(async (req, res) => {
   const result = await orderService.deleteAllOrders();
-  res.json(result);
+
+  logAdminAction({
+    req,
+    action: "order:delete_all",
+    targetResource: "Order",
+    targetId: "ALL",
+    details: { deletedCount: result.deletedCount },
+  });
+
+  return ApiResponse.success(res, result);
 });
 
 // Admin: DELETE /api/admin/orders/:orderReference
 export const deleteOrder = asyncHandler(async (req, res) => {
   const result = await orderService.deleteOrder(req.params.orderReference);
-  res.json(result);
+
+  logAdminAction({
+    req,
+    action: "order:delete_single",
+    targetResource: "Order",
+    targetId: req.params.orderReference,
+  });
+
+  return ApiResponse.success(res, result);
 });

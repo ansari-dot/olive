@@ -1,6 +1,8 @@
 import * as authService from "../services/authService.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { env } from "../config/env.js";
+import { logAdminAction } from "../services/auditService.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 function buildCookieOptions(maxAgeMs) {
   const sameSite = env.COOKIE.SAME_SITE;
@@ -26,8 +28,15 @@ export const login = asyncHandler(async (req, res) => {
   // Set the cryptographically secure opaque session identifier strictly in an HttpOnly cookie
   res.cookie(env.COOKIE.NAME, sessionToken, buildCookieOptions(expiresInMs));
 
-  res.json({
-    success: true,
+  logAdminAction({
+    admin,
+    action: "admin:login",
+    targetResource: "AdminUser",
+    targetId: admin._id,
+    details: { email: admin.email, ipAddress: meta.ipAddress },
+  });
+
+  return ApiResponse.success(res, {
     admin,
     token: sessionToken, // Provided for headless testing compatibility
     expiresInMs,
@@ -35,7 +44,6 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const logout = asyncHandler(async (req, res) => {
-  // Extract token from cookie, Authorization header, or x-admin-token
   const cookieToken = req.cookies?.[env.COOKIE.NAME];
   const authHeader = req.headers.authorization;
   const bearerToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.substring(7).trim() : null;
@@ -44,18 +52,23 @@ export const logout = asyncHandler(async (req, res) => {
 
   if (token) {
     await authService.revokeSession(token, "User initiated logout");
+    logAdminAction({
+      req,
+      action: "admin:logout",
+      targetResource: "AdminUser",
+      targetId: req.admin?._id || req.auth?.id || "",
+    });
   }
 
   // Clear session cookie
   res.cookie(env.COOKIE.NAME, "", buildCookieOptions(0));
 
-  res.json({ success: true, message: "Logged out successfully" });
+  return ApiResponse.success(res, {}, "Logged out successfully");
 });
 
 export const me = asyncHandler(async (req, res) => {
   const admin = req.admin || req.auth;
-  res.json({
-    success: true,
+  return ApiResponse.success(res, {
     admin: {
       _id: admin._id || admin.id || admin.sub,
       id: admin._id || admin.id || admin.sub,

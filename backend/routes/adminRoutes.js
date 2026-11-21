@@ -3,6 +3,9 @@ import { verifyAdmin } from "../middlewares/verifyAdmin.js";
 import { requireRole } from "../middlewares/requireRole.js";
 import { upload } from "../middlewares/upload.js";
 import { authLimiter } from "../middlewares/rateLimit.js";
+import { getAuditLogs } from "../services/auditService.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 // Controllers
 import * as authController from "../controllers/authController.js";
@@ -132,5 +135,17 @@ router.patch("/inquiries/:id", contactInquiryController.updateInquiry);
 // Newsletter
 router.get("/newsletter/export", requireRole("super_admin"), newsletterController.exportSubscribersCSV);
 router.get("/newsletter", newsletterController.getAdminSubscribers);
+
+// ====================================================================
+// 7. Security Audit Trail (Super Admin only)
+// ====================================================================
+router.get(
+  "/audit-logs",
+  requireRole("super_admin"),
+  asyncHandler(async (req, res) => {
+    const result = await getAuditLogs(req.query);
+    return ApiResponse.success(res, result);
+  })
+);
 
 export default router;

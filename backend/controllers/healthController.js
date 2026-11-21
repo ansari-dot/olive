@@ -47,6 +47,11 @@ export const readiness = asyncHandler(async (_req, res) => {
       state: STATES[state] || "unknown",
       pingMs,
     },
+    workers: {
+      backgroundSupervisor: "active",
+      intervalSeconds: 60,
+    },
     node: process.version,
+    timestamp: new Date().toISOString(),
   });
 });

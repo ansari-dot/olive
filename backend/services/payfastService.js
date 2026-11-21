@@ -33,7 +33,9 @@ const SIGNATURE_FIELD_ORDER = [
 ];
 
 function pfEncode(value) {
-  return encodeURIComponent(String(value).trim()).replace(/%20/g, "+");
+  return encodeURIComponent(String(value).trim())
+    .replace(/%20/g, "+")
+    .replace(/%([0-9a-f]{2})/gi, (_, hex) => `%${hex.toUpperCase()}`);
 }
 
 export function buildSignatureString(data, passphrase = "", orderedKeys = null) {
@@ -42,7 +44,7 @@ export function buildSignatureString(data, passphrase = "", orderedKeys = null) 
       ? orderedKeys
       : Object.keys(data);
   const query = keys
-    .filter((k) => data[k] !== undefined && data[k] !== null && data[k] !== "")
+    .filter((k) => data[k] !== undefined && data[k] !== null && String(data[k]).trim() !== "")
     .map((key) => `${key}=${pfEncode(data[key])}`)
     .join("&");
   const trimmedPass = String(passphrase || "").trim();
@@ -72,11 +74,12 @@ export function buildPayfastPayloadForOrder(order, options = {}) {
   const firstName = nameParts[0] || "Customer";
   const lastName = nameParts.slice(1).join(" ") || "Valued";
 
+  // Clean URLs without embedded ampersands that could split HTML form POST parameters
   const rawPayload = {
     merchant_id,
     merchant_key,
-    return_url: `${clientUrl}/order-tracking?orderId=${order.orderReference}&payfast=success`,
-    cancel_url: `${clientUrl}/checkout?cancel=1&orderId=${order.orderReference}`,
+    return_url: `${clientUrl}/order-tracking/${encodeURIComponent(order.orderReference)}`,
+    cancel_url: `${clientUrl}/checkout`,
     notify_url: `${serverUrl}/api/payments/payfast/notify`,
     name_first: firstName,
     name_last: lastName,
@@ -84,18 +87,18 @@ export function buildPayfastPayloadForOrder(order, options = {}) {
     m_payment_id: order.orderReference,
     amount: Number(order.total).toFixed(2),
     item_name: `Pak Veda Order ${order.orderReference}`,
-    custom_str1: (order.customer?.phone || "").trim(),
   };
 
-  // Only include keys that have non-empty values so both signature and form fields match 1:1
+  // Only include keys that have non-empty values in exact PayFast table order
   const payload = {};
-  for (const [key, val] of Object.entries(rawPayload)) {
+  for (const key of SIGNATURE_FIELD_ORDER) {
+    const val = rawPayload[key];
     if (val !== undefined && val !== null && String(val).trim() !== "") {
       payload[key] = String(val).trim();
     }
   }
 
-  const signature = generateSignature(payload, passphrase, SIGNATURE_FIELD_ORDER);
+  const signature = generateSignature(payload, passphrase, Object.keys(payload));
 
   return {
     payment_url: env.PAYFAST.URL || "https://sandbox.payfast.co.za/eng/process",

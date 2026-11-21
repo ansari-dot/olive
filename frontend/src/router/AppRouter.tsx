@@ -55,6 +55,7 @@ export const AppRouter: React.FC = () => {
             <Route path="checkout" element={<CheckoutRoutePage />} />
             <Route path="wishlist" element={<WishlistRoutePage />} />
             <Route path="order-tracking" element={<OrderTrackingRoutePage />} />
+            <Route path="order-tracking/:orderId" element={<OrderTrackingRoutePage />} />
             <Route path="orders" element={<Navigate to="/order-tracking" replace />} />
             <Route path="shipping-policy" element={<ShippingPolicyRoutePage />} />
             <Route path="shipping" element={<Navigate to="/shipping-policy" replace />} />

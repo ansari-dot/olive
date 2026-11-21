@@ -1,16 +1,19 @@
 import React from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { OrderTrackingPage, TrackedOrderRecord } from '../components/OrderTrackingPage';
 import { useStore } from '../context/StoreContext';
 
 export const OrderTrackingRoutePage: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const { orderId: pathOrderId } = useParams<{ orderId?: string }>();
   const navigate = useNavigate();
   const { placedOrders, clearPlacedOrders } = useStore();
 
-  const initialOrderId = searchParams.get('orderId') || '';
+  const initialOrderId = pathOrderId || searchParams.get('orderId') || '';
   const isPayfastSuccess =
-    searchParams.get('payfast') === 'success' || searchParams.get('paid') === '1';
+    searchParams.get('payfast') === 'success' ||
+    searchParams.get('paid') === '1' ||
+    Boolean(pathOrderId); // Coming directly back from PayFast redirect URL
 
   const trackedRecords: TrackedOrderRecord[] = placedOrders.map((o) => ({
     id: o.id,
