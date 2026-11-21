@@ -6,7 +6,7 @@ import { useStore } from '../context/StoreContext';
 export const OrderTrackingRoutePage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { placedOrders } = useStore();
+  const { placedOrders, clearPlacedOrders } = useStore();
 
   const initialOrderId = searchParams.get('orderId') || '';
   const isPayfastSuccess =
@@ -26,6 +26,7 @@ export const OrderTrackingRoutePage: React.FC = () => {
       placedOrders={trackedRecords}
       initialOrderId={initialOrderId}
       isPayfastSuccess={isPayfastSuccess}
+      onClearRecentOrders={clearPlacedOrders}
       onNavigateHome={() => navigate('/')}
       onNavigateShop={() => navigate('/shop')}
       onNavigateShipping={() => navigate('/shipping-policy')}

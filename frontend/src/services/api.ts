@@ -743,14 +743,25 @@ export function submitPayfastRedirect(
   form.action = paymentUrl;
   form.style.display = 'none';
 
-  for (const [key, value] of Object.entries(fields)) {
-    if (value !== undefined && value !== null) {
+  // Append parameters strictly, skipping any empty entries, and place signature last
+  const keys = Object.keys(fields).filter((k) => k !== 'signature');
+  for (const key of keys) {
+    const val = fields[key];
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
       const input = document.createElement('input');
       input.type = 'hidden';
       input.name = key;
-      input.value = String(value);
+      input.value = String(val);
       form.appendChild(input);
     }
+  }
+
+  if (fields.signature) {
+    const sigInput = document.createElement('input');
+    sigInput.type = 'hidden';
+    sigInput.name = 'signature';
+    sigInput.value = fields.signature;
+    form.appendChild(sigInput);
   }
 
   document.body.appendChild(form);

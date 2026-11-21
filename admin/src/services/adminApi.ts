@@ -565,6 +565,24 @@ export async function cancelAdminOrder(
   return unwrapOne<AdminOrder>(res, ['order']);
 }
 
+export async function deleteAllAdminOrders(): Promise<{
+  success: boolean;
+  message: string;
+  deletedCount: number;
+}> {
+  const res = await request<any>('/admin/orders/all', {
+    method: 'DELETE',
+  });
+  return res;
+}
+
+export async function deleteAdminOrder(orderReference: string): Promise<any> {
+  const res = await request<any>(`/admin/orders/${encodeURIComponent(orderReference)}`, {
+    method: 'DELETE',
+  });
+  return res;
+}
+
 // Blogs
 export async function fetchAdminBlogs(): Promise<AdminBlogPost[]> {
   const res = await request<unknown>('/admin/blogs');

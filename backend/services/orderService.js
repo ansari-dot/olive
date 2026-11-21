@@ -908,3 +908,25 @@ export async function processReturn(orderReference, payload, adminUser) {
 
   throw ApiError.badRequest(`Invalid return action: ${action}`);
 }
+
+export async function deleteAllOrders() {
+  const result = await Order.deleteMany({});
+  await EmailOutbox.deleteMany({});
+  return {
+    success: true,
+    message: `All ${result.deletedCount} orders deleted successfully`,
+    deletedCount: result.deletedCount,
+  };
+}
+
+export async function deleteOrder(orderReference) {
+  const cleanRef = String(orderReference || "").trim().toUpperCase();
+  const deleted = await Order.findOneAndDelete({ orderReference: cleanRef });
+  if (!deleted) {
+    throw ApiError.notFound(`Order ${cleanRef} not found`);
+  }
+  return {
+    success: true,
+    message: `Order ${cleanRef} deleted successfully`,
+  };
+}

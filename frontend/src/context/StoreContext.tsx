@@ -48,6 +48,7 @@ interface StoreContextType {
   setSearchOverlayOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
   addPlacedOrder: (order: PlacedOrder) => void;
+  clearPlacedOrders: () => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -221,6 +222,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setPlacedOrders((prev) => [order, ...prev]);
   }, []);
 
+  const clearPlacedOrders = useCallback(() => {
+    setPlacedOrders([]);
+    try {
+      window.localStorage.removeItem(ORDERS_STORAGE_KEY);
+    } catch {}
+  }, []);
+
   const value = useMemo(
     () => ({
       cart,
@@ -247,6 +255,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setSearchOverlayOpen,
       setSearchQuery,
       addPlacedOrder,
+      clearPlacedOrders,
     }),
     [
       cart,

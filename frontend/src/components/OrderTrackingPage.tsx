@@ -27,6 +27,7 @@ interface OrderTrackingPageProps {
   placedOrders: TrackedOrderRecord[];
   initialOrderId?: string;
   isPayfastSuccess?: boolean;
+  onClearRecentOrders?: () => void;
   onNavigateHome: () => void;
   onNavigateShop: () => void;
   onNavigateShipping: () => void;
@@ -80,6 +81,7 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
   placedOrders,
   initialOrderId = '',
   isPayfastSuccess = false,
+  onClearRecentOrders,
   onNavigateHome,
   onNavigateShop,
   onNavigateContact,
@@ -241,21 +243,32 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
 
           {/* Recent Orders Quick Buttons */}
           {placedOrders.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-[#E2DED6] flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-[#777777] font-medium">Recent Orders:</span>
-              {placedOrders.slice(0, 3).map((rec) => (
+            <div className="mt-4 pt-4 border-t border-[#E2DED6] flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[#777777] font-medium">Recent Orders:</span>
+                {placedOrders.slice(0, 3).map((rec) => (
+                  <button
+                    key={rec.id}
+                    type="button"
+                    onClick={() => {
+                      setQueryId(rec.id);
+                      performTracking(rec.id);
+                    }}
+                    className="bg-white hover:bg-[#15472B] hover:text-white border border-[#D5D0C5] text-[#1F1F1F] px-2.5 py-1 font-semibold tracking-wider transition-colors cursor-pointer"
+                  >
+                    {rec.id}
+                  </button>
+                ))}
+              </div>
+              {onClearRecentOrders && (
                 <button
-                  key={rec.id}
                   type="button"
-                  onClick={() => {
-                    setQueryId(rec.id);
-                    performTracking(rec.id);
-                  }}
-                  className="bg-white hover:bg-[#15472B] hover:text-white border border-[#D5D0C5] text-[#1F1F1F] px-2.5 py-1 font-semibold tracking-wider transition-colors cursor-pointer"
+                  onClick={onClearRecentOrders}
+                  className="text-[11px] text-[#888888] hover:text-[#DC2626] transition-colors cursor-pointer underline"
                 >
-                  {rec.id}
+                  Clear History
                 </button>
-              ))}
+              )}
             </div>
           )}
 

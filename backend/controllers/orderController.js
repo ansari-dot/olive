@@ -156,3 +156,15 @@ export const cancelOrder = asyncHandler(async (req, res) => {
     data: order,
   });
 });
+
+// Admin: DELETE /api/admin/orders/all
+export const deleteAllOrders = asyncHandler(async (req, res) => {
+  const result = await orderService.deleteAllOrders();
+  res.json(result);
+});
+
+// Admin: DELETE /api/admin/orders/:orderReference
+export const deleteOrder = asyncHandler(async (req, res) => {
+  const result = await orderService.deleteOrder(req.params.orderReference);
+  res.json(result);
+});

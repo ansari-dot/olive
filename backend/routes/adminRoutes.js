@@ -106,6 +106,8 @@ router.patch("/orders/:orderReference/status", orderController.updateOrderStatus
 router.patch("/orders/:orderReference/tracking", orderController.updateOrderTracking);
 router.patch("/orders/:orderReference/payment", orderController.updateOrderPayment);
 router.patch("/orders/:orderReference/cancel", orderController.cancelOrder);
+router.delete("/orders/all", orderController.deleteAllOrders);
+router.delete("/orders/:orderReference", orderController.deleteOrder);
 
 // ====================================================================
 // 6. Blogs, Reviews, Contact Inquiries & Newsletter Management

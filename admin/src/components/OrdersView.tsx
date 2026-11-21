@@ -12,6 +12,7 @@ import {
   Package,
   ShieldCheck,
   Calendar,
+  Trash2,
 } from 'lucide-react';
 import {
   DEFAULT_IMAGE_PLACEHOLDER,
@@ -25,6 +26,8 @@ import {
   updateAdminOrderPayment,
   updateAdminOrderStatus,
   updateAdminOrderTracking,
+  deleteAllAdminOrders,
+  deleteAdminOrder,
 } from '../services/adminApi';
 import type { AdminOrder, OrderStatus, PaymentStatus } from '../types/admin';
 import {
@@ -347,6 +350,28 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
     }
   };
 
+  const handleDeleteAllOrders = async () => {
+    if (
+      !window.confirm(
+        'Are you sure you want to delete ALL orders in the system? This action is permanent and cannot be undone.'
+      )
+    ) {
+      return;
+    }
+
+    setActionBusy(true);
+    try {
+      const res = await deleteAllAdminOrders();
+      setSelectedOrder(null);
+      setActionNotice(res.message || 'All orders deleted successfully.');
+      await loadOrders(1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete orders.');
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Header & Search Bar */}
@@ -390,6 +415,16 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
             className="border border-[#CBD5E1] bg-white hover:border-[#0F172A] p-2 text-[#334155] cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteAllOrders}
+            disabled={actionBusy}
+            title="Delete All Orders"
+            className="border border-[#FCA5A5] bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#DC2626] px-3 py-2 transition cursor-pointer flex items-center gap-1.5 text-[12px] font-semibold"
+          >
+            <Trash2 className="w-4 h-4 text-[#DC2626]" />
+            <span className="hidden sm:inline">Delete All</span>
           </button>
         </form>
       </div>
