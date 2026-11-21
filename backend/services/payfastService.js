@@ -82,11 +82,11 @@ export function buildPayfastPayloadForOrder(order, options = {}) {
     notify_url: `${serverUrl}/api/payments/payfast/notify`,
     name_first: firstName,
     name_last: lastName,
-    email_address: order.customer?.email || "customer@pakveda.com",
-    cell_number: order.customer?.phone || "03001234567",
+    email_address: (order.customer?.email || "").trim() || "orders@pakveda.com",
     m_payment_id: order.orderReference,
     amount: Number(order.total).toFixed(2),
     item_name: `Pak Veda Order ${order.orderReference}`,
+    custom_str1: (order.customer?.phone || "").trim(),
   };
 
   const signature = generateSignature(payload, passphrase, SIGNATURE_FIELD_ORDER);
