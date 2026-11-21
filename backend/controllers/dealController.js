@@ -1,4 +1,4 @@
-import { asyncHandler } from "../middlewares/asyncHandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import {
   createDeal as createDealService,
   updateDeal as updateDealService,
