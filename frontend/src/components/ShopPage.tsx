@@ -509,14 +509,14 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
                   {popularProducts.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-3.5 p-2 rounded-xs hover:bg-[#FAF8F5] transition-colors group border border-transparent hover:border-[#EDEDED]"
+                      className="flex items-center gap-3.5 p-2 rounded-xs hover:bg-transparent transition-colors group border border-transparent hover:border-[#EDEDED]"
                     >
                       <button
                         type="button"
                         onClick={() =>
                           onSelectProduct ? onSelectProduct(item) : onAddToCart(item)
                         }
-                        className="w-[62px] h-[62px] bg-white border border-[#EAE5DE] rounded-2xs overflow-hidden shrink-0 cursor-pointer flex items-center justify-center p-1.5"
+                        className="w-[62px] h-[62px] bg-transparent border border-[#EAE5DE] rounded-2xs overflow-hidden shrink-0 cursor-pointer flex items-center justify-center p-1.5"
                       >
                         <img
                           src={getCleanImage(item.image, item.category)}
@@ -786,10 +786,10 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
                   return (
                     <article
                       key={product.id}
-                      className="group bg-white border border-[#EDEDED] hover:border-[#15472B]/30 hover:shadow-lg transition-all duration-200 flex flex-col justify-between overflow-hidden"
+                      className="group bg-transparent border border-[#EDEDED] hover:border-[#15472B]/30 hover:shadow-lg transition-all duration-200 flex flex-col justify-between overflow-hidden"
                     >
-                      {/* Top Half: Studio Photo Area (Clean White Background with Transparent Product Cutout) */}
-                      <div className="relative aspect-square w-full bg-white flex items-center justify-center p-5 overflow-hidden select-none">
+                      {/* Top Half: Studio Photo Area (Clean Transparent Product Card) */}
+                      <div className="relative aspect-square w-full bg-transparent flex items-center justify-center p-5 overflow-hidden select-none">
                         {/* Top-Left Badges: Discount Pill + Optional Secondary Pill */}
                         <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1">
                           {discountPercent && (
@@ -888,7 +888,7 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
                       </div>
 
                       {/* Bottom Half: Text Meta (Left Aligned, Exact Match to Reference Image) */}
-                      <div className="p-4 sm:p-5 pt-3 flex flex-col justify-between flex-1 border-t border-[#F5F5F5] bg-white">
+                      <div className="p-4 sm:p-5 pt-3 flex flex-col justify-between flex-1 border-t border-[#F5F5F5] bg-transparent">
                         <div>
                           {/* Dynamic Gold Stars Rating & Reviews Count */}
                           <div className="flex items-center gap-1.5 text-[#F59E0B]">

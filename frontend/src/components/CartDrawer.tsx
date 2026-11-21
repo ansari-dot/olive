@@ -155,7 +155,7 @@ export const CartDrawer: React.FC = () => {
                     loading="lazy"
                     decoding="async"
                     referrerPolicy="no-referrer"
-                    className="w-20 h-20 object-contain p-1 bg-[#FAF9F6] border border-[#EAEAEA] shrink-0"
+                    className="w-20 h-20 object-contain p-1 bg-transparent border border-[#EAEAEA] shrink-0"
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] uppercase tracking-[0.05em] text-[#666666]">

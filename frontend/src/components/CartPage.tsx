@@ -197,12 +197,12 @@ export const CartPage: React.FC<CartPageProps> = ({
                         <button
                           type="button"
                           onClick={() => onSelectProduct(product)}
-                          className="w-18 h-22 sm:w-20 sm:h-24 bg-[#F7F7F7] border border-[#EEEEEE] overflow-hidden shrink-0 cursor-pointer"
+                          className="w-18 h-22 sm:w-20 sm:h-24 bg-transparent border border-[#EEEEEE] overflow-hidden shrink-0 cursor-pointer flex items-center justify-center p-1"
                         >
                           <img
                             src={product.image}
                             alt={product.name}
-                            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                            className="max-w-full max-h-full object-contain transition-transform duration-300 hover:scale-105"
                           />
                         </button>
                         <div className="min-w-0 flex-1">
@@ -395,12 +395,12 @@ export const CartPage: React.FC<CartPageProps> = ({
                 >
                   <div
                     onClick={() => onSelectProduct(rec)}
-                    className="aspect-square w-full bg-[#FAF8F5] overflow-hidden cursor-pointer"
+                    className="aspect-square w-full bg-transparent overflow-hidden cursor-pointer flex items-center justify-center p-2"
                   >
                     <img
                       src={rec.image}
                       alt={rec.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
                   <div className="mt-3">

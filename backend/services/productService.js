@@ -473,6 +473,8 @@ export async function createProduct(inputPayload) {
 
   const product = await Product.create(payload);
   invalidateCache("/api/products");
+  invalidateCache("/api/home");
+  invalidateCache("/api/deal-section");
   return product;
 }
 
@@ -486,6 +488,8 @@ export async function updateProduct(id, inputPayload) {
     throw ApiError.notFound("Product not found");
   }
   invalidateCache("/api/products");
+  invalidateCache("/api/home");
+  invalidateCache("/api/deal-section");
   return product;
 }
 
@@ -503,6 +507,8 @@ export async function adjustStock(id, stock) {
     throw ApiError.notFound("Product not found");
   }
   invalidateCache("/api/products");
+  invalidateCache("/api/home");
+  invalidateCache("/api/deal-section");
   return product;
 }
 
@@ -513,6 +519,7 @@ export async function deleteProduct(id) {
   }
   invalidateCache("/api/products");
   invalidateCache("/api/home");
+  invalidateCache("/api/deal-section");
   return { success: true, message: "Product deleted successfully" };
 }
 

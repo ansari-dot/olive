@@ -42,10 +42,7 @@ export function cache(ttlSeconds = 30) {
     if (hit && Date.now() < hit.expiresAt) {
       res.setHeader("X-Cache", "HIT");
       res.setHeader("Content-Type", "application/json");
-      res.setHeader(
-        "Cache-Control",
-        `public, max-age=${Math.floor((hit.expiresAt - Date.now()) / 1000)}`
-      );
+      res.setHeader("Cache-Control", "no-cache, must-revalidate");
       return res.send(hit.body);
     }
 
@@ -63,7 +60,7 @@ export function cache(ttlSeconds = 30) {
         });
       }
       res.setHeader("X-Cache", "MISS");
-      res.setHeader("Cache-Control", `public, max-age=${ttlSeconds}`);
+      res.setHeader("Cache-Control", "no-cache, must-revalidate");
       return originalJson(data);
     };
 

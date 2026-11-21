@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ShoppingBag, Heart, Eye } from 'lucide-react';
 import { Product } from '../data/storeData';
+import { resolveImageUrl } from '../services/api';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
 export interface FeaturedProductsSectionProps {
@@ -29,40 +30,13 @@ const TABS = [
 ];
 
 /**
- * Returns clean transparent background product cutout image, or the actual uploaded product image
+ * Returns the exact uploaded product image resolved cleanly, without injecting unwanted placeholder images
  */
-export const getCleanImage = (imgUrl?: string, category?: string) => {
+export const getCleanImage = (imgUrl?: string, _category?: string) => {
   if (imgUrl && typeof imgUrl === 'string' && imgUrl.trim()) {
-    return imgUrl;
+    return resolveImageUrl(imgUrl.trim());
   }
-
-  // Fallback to high quality transparent studio cutouts by category if no image is provided
-  if (category) {
-    const catLower = category.toLowerCase();
-    if (catLower.includes('spice') || catLower.includes('herb') || catLower.includes('powder')) {
-      return '/assets/images/nobg/shop_card_olive_jar_1794770042025_nobg.png';
-    }
-    if (catLower.includes('honey') || catLower.includes('sweetener')) {
-      return '/assets/images/nobg/unique_sidr_honeycomb_jar_1794820496427_nobg.png';
-    }
-    if (catLower.includes('olive') && !catLower.includes('oil')) {
-      return '/assets/images/nobg/featured_card_green_olives_1794769570392_nobg.png';
-    }
-    if (catLower.includes('tea') || catLower.includes('coffee') || catLower.includes('beverage')) {
-      return '/assets/images/nobg/card_oil_decanter_3_1794769257286_nobg.png';
-    }
-    if (catLower.includes('extract') || catLower.includes('shilajit') || catLower.includes('saffron')) {
-      return '/assets/images/nobg/unique_saffron_olive_elixir_1794820496501_nobg.png';
-    }
-    if (catLower.includes('essential') || catLower.includes('botanical oil')) {
-      return '/assets/images/nobg/shop_card_amber_bottle_1794770042120_nobg.png';
-    }
-    if (catLower.includes('nut') || catLower.includes('snack') || catLower.includes('fruit')) {
-      return '/assets/images/nobg/shop_card_black_olives_1794770041630_nobg.png';
-    }
-  }
-
-  return '/assets/images/nobg/featured_card_teardrop_oil_1794769568371_nobg.png';
+  return '';
 };
 
 export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = React.memo(({
@@ -179,10 +153,10 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = R
             return (
               <article
                 key={product.id}
-                className="group bg-white border border-[#EDEDED] hover:border-[#15472B]/30 hover:shadow-lg transition-all duration-200 flex flex-col justify-between overflow-hidden"
+                className="group bg-transparent border border-[#EDEDED] hover:border-[#15472B]/30 hover:shadow-lg transition-all duration-200 flex flex-col justify-between overflow-hidden"
               >
-                {/* Top Half: Studio Photo Area (Clean White Background with Transparent Product Cutout) */}
-                <div className="relative aspect-square w-full bg-white flex items-center justify-center p-5 overflow-hidden select-none">
+                {/* Top Half: Studio Photo Area (Clean Transparent Product Card) */}
+                <div className="relative aspect-square w-full bg-transparent flex items-center justify-center p-5 overflow-hidden select-none">
                   {/* Top-Left Badges: Discount Pill + Optional Secondary Pill */}
                   <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1">
                     {discountPercent && (
@@ -293,7 +267,7 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = R
                 </div>
 
                 {/* Bottom Half: Details Area (Left-Aligned as in Screenshot) */}
-                <div className="p-4 pt-3.5 bg-white flex flex-col justify-between flex-1 text-left">
+                <div className="p-4 pt-3.5 bg-transparent flex flex-col justify-between flex-1 text-left">
                   <div>
                     {/* Star Rating & Review Count (Left-Aligned, Gold Stars) */}
                     <div

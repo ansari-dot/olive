@@ -4,6 +4,7 @@ import { Product } from '../data/storeData';
 import {
   fetchProductById,
   submitProductReview,
+  resolveImageUrl,
   ProductDetailResponse,
 } from '../services/api';
 
@@ -98,6 +99,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [reviewSuccessNotice, setReviewSuccessNotice] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
+  // Keep internal state reactive to incoming initialProduct prop changes
+  useEffect(() => {
+    setProduct(initialProduct);
+  }, [initialProduct]);
+
   // Fetch live product details and reviews from backend
   useEffect(() => {
     let isMounted = true;
@@ -105,7 +111,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     if (!fetchTargetId) return;
 
     setLoadingDetails(true);
-    fetchProductById(fetchTargetId)
+    fetchProductById(fetchTargetId, { forceFresh: true })
       .then((data: ProductDetailResponse) => {
         if (!isMounted) return;
         setProduct(data.product);
@@ -144,15 +150,23 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     };
   }, [initialProduct.id, initialProduct.slug]);
 
+  // Strictly only show user-uploaded main image and real gallery images (no dummy/invented images)
   const thumbnails = useMemo(() => {
-    const gallery = product.galleryImages && product.galleryImages.length > 0
+    const mainImg = product.image ? resolveImageUrl(product.image) : '';
+    const rawGallery = Array.isArray(product.galleryImages) && product.galleryImages.length > 0
       ? product.galleryImages
-      : initialGallery;
-    const deduped = [product.image, ...gallery.filter((img) => img !== product.image)];
-    return deduped.slice(0, 5);
+      : Array.isArray(initialGallery) && initialGallery.length > 0
+      ? initialGallery
+      : [];
+    const galleryResolved = rawGallery
+      .filter((img) => typeof img === 'string' && img.trim())
+      .map((img) => resolveImageUrl(img))
+      .filter((img) => img !== mainImg);
+
+    return mainImg ? [mainImg, ...galleryResolved].slice(0, 5) : galleryResolved.slice(0, 5);
   }, [product.image, product.galleryImages, initialGallery]);
 
-  const mainImage = thumbnails[activeThumbIndex] ?? product.image;
+  const mainImage = thumbnails[activeThumbIndex] || (product.image ? resolveImageUrl(product.image) : '');
 
   const handleCopyShare = (platform: string) => {
     const shareText = `${product.name} — Zaitoon Pakistan (${formatPKR(product.price)})`;
@@ -250,35 +264,37 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
           {/* Left Gallery: Vertical Thumbnail Strip + Large Main Studio Frame */}
           <div className="lg:col-span-6 flex flex-col-reverse sm:flex-row gap-4">
-            {/* Thumbnail Strip */}
-            <div className="flex sm:flex-col gap-3 sm:w-[78px] shrink-0 overflow-x-auto sm:overflow-visible">
-              {thumbnails.map((imgSrc, idx) => {
-                const isSelected = idx === activeThumbIndex;
-                return (
-                  <button
-                    key={`${product.id}-thumb-${idx}`}
-                    type="button"
-                    onClick={() => setActiveThumbIndex(idx)}
-                    aria-label={`View image ${idx + 1} of ${product.name}`}
-                    className={`w-[68px] sm:w-full aspect-square bg-[#FAF3F0] overflow-hidden shrink-0 border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'border-[#181818]'
-                        : 'border-transparent hover:border-[#CCCCCC]'
-                    }`}
-                  >
-                    <img
-                      src={imgSrc}
-                      alt={`${product.name} thumbnail ${idx + 1}`}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                );
-              })}
-            </div>
+            {/* Thumbnail Strip: Only render when there are actually 2 or more real images */}
+            {thumbnails.length > 1 && (
+              <div className="flex sm:flex-col gap-3 sm:w-[78px] shrink-0 overflow-x-auto sm:overflow-visible">
+                {thumbnails.map((imgSrc, idx) => {
+                  const isSelected = idx === activeThumbIndex;
+                  return (
+                    <button
+                      key={`${product.id}-thumb-${idx}`}
+                      type="button"
+                      onClick={() => setActiveThumbIndex(idx)}
+                      aria-label={`View image ${idx + 1} of ${product.name}`}
+                      className={`w-[68px] sm:w-full aspect-square bg-transparent overflow-hidden shrink-0 border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-[#181818]'
+                          : 'border-[#EAEAEA] hover:border-[#CCCCCC]'
+                      }`}
+                    >
+                      <img
+                        src={imgSrc}
+                        alt={`${product.name} thumbnail ${idx + 1}`}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-contain p-1"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-            {/* Main Large Image Container */}
-            <div className="relative flex-1 aspect-[3/3.65] bg-[#FAF3F0] overflow-hidden">
+            {/* Main Large Image Container (Clean Transparent Background) */}
+            <div className="relative flex-1 aspect-[3/3.65] bg-transparent border border-[#EEEEEE] overflow-hidden flex items-center justify-center p-4">
               {product.isSale ? (
                 <span className="absolute top-0 left-0 z-10 bg-[#C46B3B] text-white text-[12px] font-medium leading-none px-3.5 py-2">
                   Sale
@@ -289,7 +305,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </span>
               )}
 
-              {!brokenImages[mainImage] ? (
+              {!brokenImages[mainImage] && mainImage ? (
                 <img
                   src={mainImage}
                   alt={product.name}
@@ -297,7 +313,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   onError={() =>
                     setBrokenImages((prev) => ({ ...prev, [mainImage]: true }))
                   }
-                  className="w-full h-full object-cover object-center"
+                  className="max-w-full max-h-full object-contain object-center"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center p-8 text-center text-[#15472B]">

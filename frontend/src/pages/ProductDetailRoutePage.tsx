@@ -23,17 +23,13 @@ export const ProductDetailRoutePage: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    fetchProductById(id)
+    fetchProductById(id, { forceFresh: true })
       .then((res) => {
         if (!isMounted) return;
         setProduct(res.product);
         setRelatedProducts(res.relatedProducts || []);
         setGalleryImages(
-          res.product?.galleryImages && res.product.galleryImages.length > 0
-            ? res.product.galleryImages
-            : res.product?.image
-            ? [res.product.image]
-            : []
+          Array.isArray(res.product?.galleryImages) ? res.product.galleryImages : []
         );
       })
       .catch((err) => {

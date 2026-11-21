@@ -71,7 +71,7 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = React
                 }`}
               >
                 {/* Clean Studio Frame with Craft Tag */}
-                <div className="relative aspect-[3/3.55] w-full bg-[#F7F3EE] overflow-hidden">
+                <div className="relative aspect-[3/3.55] w-full bg-transparent overflow-hidden">
                   {product.tag && (
                     <span className="absolute top-0 left-0 z-10 bg-[#7E8F5B] text-white text-[11.5px] font-medium leading-none px-3.5 py-2 tracking-[0.03em]">
                       {product.tag}

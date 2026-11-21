@@ -136,12 +136,12 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
                 {/* Product Image */}
                 <div
                   onClick={() => onSelectProduct(product)}
-                  className="aspect-square w-full bg-[#FAF8F5] overflow-hidden cursor-pointer"
+                  className="aspect-square w-full bg-transparent overflow-hidden cursor-pointer flex items-center justify-center p-2"
                 >
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
 
@@ -190,12 +190,12 @@ export const WishlistPage: React.FC<WishlistPageProps> = ({
                 >
                   <div
                     onClick={() => onSelectProduct(rec)}
-                    className="aspect-square w-full bg-[#FAF8F5] overflow-hidden cursor-pointer"
+                    className="aspect-square w-full bg-transparent overflow-hidden cursor-pointer flex items-center justify-center p-2"
                   >
                     <img
                       src={rec.image}
                       alt={rec.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
                   <div className="mt-3">

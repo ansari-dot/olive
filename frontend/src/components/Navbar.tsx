@@ -1038,15 +1038,12 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                               setOpenDropdown(null);
                               handleSelectProductInternal(prod);
                             }}
-                            className="flex items-center gap-3.5 p-2 rounded-xs hover:bg-[#FAF8F5] transition-colors cursor-pointer group border border-transparent hover:border-[#F1ECE4]"
+                            className="flex items-center gap-3.5 p-2 rounded-xs hover:bg-transparent transition-colors cursor-pointer group border border-transparent hover:border-[#F1ECE4]"
                           >
                             <img
-                              src={prod.image || '/assets/images/product_olive_oil_1794763960228.jpg'}
+                              src={prod.image || ''}
                               alt={prod.name}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/assets/images/product_olive_oil_1794763960228.jpg';
-                              }}
-                              className="w-[66px] h-[66px] object-cover rounded-2xs bg-[#FAF5F0] border border-[#EAE5DE] shrink-0"
+                              className="w-[66px] h-[66px] object-contain rounded-2xs bg-transparent border border-[#EAE5DE] shrink-0"
                             />
                             <div className="min-w-0 flex-1">
                               <p className="text-[12.5px] font-semibold text-[#1F2937] group-hover:text-[#15472B] line-clamp-2 leading-snug">

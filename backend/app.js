@@ -68,13 +68,23 @@ app.use(express.urlencoded({ extended: false, limit: env.REQUEST_BODY_LIMIT || "
 app.use(mongoSanitize);
 app.use(cookieParser());
 
-// Static uploads serving
-app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+// Static uploads serving (ensures uploads are served regardless of working directory)
+const rootUploads = path.resolve(process.cwd(), "uploads");
+const backendUploads = path.resolve(process.cwd(), "backend/uploads");
+if (fs.existsSync(rootUploads)) {
+  app.use("/uploads", express.static(rootUploads));
+}
+if (fs.existsSync(backendUploads)) {
+  app.use("/uploads", express.static(backendUploads));
+}
 
 // Static assets serving (storefront images fallback)
 const assetsDir = path.resolve(process.cwd(), "../frontend/public/assets");
+const directAssetsDir = path.resolve(process.cwd(), "frontend/public/assets");
 if (fs.existsSync(assetsDir)) {
   app.use("/assets", express.static(assetsDir));
+} else if (fs.existsSync(directAssetsDir)) {
+  app.use("/assets", express.static(directAssetsDir));
 }
 
 app.use("/api", globalLimiter);

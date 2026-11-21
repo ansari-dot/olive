@@ -76,18 +76,23 @@ async function fetchCached<T>(
  * Resolves image URL cleanly whether it is a remote URL, backend /uploads, or static /assets
  */
 export function resolveImageUrl(url?: string): string {
-  if (!url) return '';
+  if (!url || typeof url !== 'string' || !url.trim()) return '';
+  const trimmed = url.trim();
   if (
-    url.startsWith('http://') ||
-    url.startsWith('https://') ||
-    url.startsWith('data:')
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('data:')
   ) {
-    return url;
+    return trimmed;
   }
-  if (url.startsWith('/uploads/')) {
-    return `${BACKEND_ORIGIN}${url}`;
+  if (trimmed.startsWith('/uploads/') || trimmed.startsWith('uploads/')) {
+    const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    return `${BACKEND_ORIGIN}${cleanPath}`;
   }
-  return url;
+  if (trimmed.startsWith('/assets/') || trimmed.startsWith('assets/')) {
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  }
+  return `${BACKEND_ORIGIN}/${trimmed.replace(/^\/+/, '')}`;
 }
 
 /**
@@ -458,7 +463,7 @@ export async function fetchHomeSections(options?: FetchOptions): Promise<HomeSec
         shopProducts: Array.isArray(data.shopProducts) ? data.shopProducts.map(normalizeProduct) : [],
       };
     },
-    120000,
+    15000,
     options?.forceFresh
   );
 }
@@ -526,7 +531,7 @@ export async function fetchProductById(
           : [],
       };
     },
-    60000,
+    15000,
     options?.forceFresh
   );
 }
