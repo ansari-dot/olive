@@ -33,9 +33,7 @@ const SIGNATURE_FIELD_ORDER = [
 ];
 
 function pfEncode(value) {
-  return encodeURIComponent(String(value))
-    .replace(/%20/g, "+")
-    .replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  return encodeURIComponent(String(value).trim()).replace(/%20/g, "+");
 }
 
 export function buildSignatureString(data, passphrase = "", orderedKeys = null) {
@@ -74,7 +72,7 @@ export function buildPayfastPayloadForOrder(order, options = {}) {
   const firstName = nameParts[0] || "Customer";
   const lastName = nameParts.slice(1).join(" ") || "Valued";
 
-  const payload = {
+  const rawPayload = {
     merchant_id,
     merchant_key,
     return_url: `${clientUrl}/order-tracking?orderId=${order.orderReference}&payfast=success`,
@@ -88,6 +86,14 @@ export function buildPayfastPayloadForOrder(order, options = {}) {
     item_name: `Pak Veda Order ${order.orderReference}`,
     custom_str1: (order.customer?.phone || "").trim(),
   };
+
+  // Only include keys that have non-empty values so both signature and form fields match 1:1
+  const payload = {};
+  for (const [key, val] of Object.entries(rawPayload)) {
+    if (val !== undefined && val !== null && String(val).trim() !== "") {
+      payload[key] = String(val).trim();
+    }
+  }
 
   const signature = generateSignature(payload, passphrase, SIGNATURE_FIELD_ORDER);
 
