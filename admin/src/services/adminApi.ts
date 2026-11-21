@@ -2,6 +2,9 @@ import type {
   AdminBlogComment,
   AdminBlogPost,
   AdminCoupon,
+  AdminDeal,
+  CreateDealPayload,
+  UpdateDealPayload,
   AdminInquiry,
   AdminOrder,
   AdminProduct,
@@ -351,6 +354,50 @@ export async function toggleAdminCoupon(id: string): Promise<AdminCoupon> {
 
 export async function deleteAdminCoupon(id: string): Promise<void> {
   await request<unknown>(`/admin/coupons/${id}`, { method: 'DELETE' });
+}
+
+// Flash Deals & Sales
+export async function fetchAdminDeals(params?: {
+  productId?: string;
+  isActive?: boolean;
+}): Promise<AdminDeal[]> {
+  const qs = new URLSearchParams();
+  if (params?.productId) qs.set('productId', params.productId);
+  if (params?.isActive !== undefined) qs.set('isActive', String(params.isActive));
+  const query = qs.toString() ? `?${qs.toString()}` : '';
+  const res = await request<unknown>(`/admin/deals${query}`);
+  return unwrapList<AdminDeal>(res, ['deals']);
+}
+
+export async function createAdminDeal(payload: CreateDealPayload): Promise<AdminDeal> {
+  const res = await request<unknown>('/admin/deals', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return unwrapOne<AdminDeal>(res, ['deal']);
+}
+
+export async function updateAdminDeal(
+  id: string,
+  payload: UpdateDealPayload
+): Promise<AdminDeal> {
+  const res = await request<unknown>(`/admin/deals/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+  return unwrapOne<AdminDeal>(res, ['deal']);
+}
+
+export async function toggleAdminDeal(id: string, isActive: boolean): Promise<AdminDeal> {
+  const res = await request<unknown>(`/admin/deals/${id}/toggle`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isActive }),
+  });
+  return unwrapOne<AdminDeal>(res, ['deal']);
+}
+
+export async function deleteAdminDeal(id: string): Promise<void> {
+  await request<unknown>(`/admin/deals/${id}`, { method: 'DELETE' });
 }
 
 // Orders

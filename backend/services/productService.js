@@ -3,6 +3,7 @@ import Product from "../models/Product.js";
 import Review from "../models/Review.js";
 import Origin from "../models/Origin.js";
 import Order from "../models/Order.js";
+import { applyDealsToProducts } from "./dealService.js";
 import { invalidateCache } from "../middlewares/cache.js";
 import { escapeRegex } from "../utils/security.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -123,8 +124,9 @@ export async function findProductMapByIds(ids = []) {
   const cleanIds = ids.filter(Boolean);
   if (cleanIds.length === 0) return new Map();
   const products = await Product.find({ _id: { $in: cleanIds } }).lean();
+  const resolvedProducts = await applyDealsToProducts(products);
   const map = new Map();
-  for (const p of products) {
+  for (const p of resolvedProducts) {
     map.set(String(p._id), p);
   }
   return map;
@@ -174,8 +176,10 @@ export async function listProducts(query = {}, isPublic = true) {
     Product.countDocuments(filter),
   ]);
 
+  const resolvedProducts = await applyDealsToProducts(products);
+
   return {
-    products,
+    products: resolvedProducts,
     total,
     page,
     limit,
@@ -298,10 +302,13 @@ export async function getProductByIdOrSlug(idOrSlug, isPublic = true) {
     .limit(4)
     .lean();
 
+  const [resolvedProduct] = await applyDealsToProducts([product]);
+  const resolvedRelated = await applyDealsToProducts(relatedProducts);
+
   return {
-    product,
+    product: resolvedProduct,
     reviews,
-    relatedProducts,
+    relatedProducts: resolvedRelated,
   };
 }
 

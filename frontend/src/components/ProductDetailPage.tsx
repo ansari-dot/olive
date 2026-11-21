@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Check, Heart, Share2, ShoppingCart, Loader2 } from 'lucide-react';
+import { Check, Heart, Share2, ShoppingCart, Loader2, Flame, Clock } from 'lucide-react';
 import { Product } from '../data/storeData';
 import {
   fetchProductById,
@@ -33,6 +33,39 @@ interface DisplayReviewItem {
 }
 
 const formatPKR = (amount: number) => `Rs. ${amount.toLocaleString('en-PK')}`;
+
+function useCountdown(targetDate?: string) {
+  const [timeLeft, setTimeLeft] = useState<{
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+    isExpired: boolean;
+  }>({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: false });
+
+  useEffect(() => {
+    if (!targetDate) return;
+
+    const calculate = () => {
+      const diff = new Date(targetDate).getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: true });
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      setTimeLeft({ days, hours, minutes, seconds, isExpired: false });
+    };
+
+    calculate();
+    const interval = setInterval(calculate, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  return timeLeft;
+}
 
 const StarRating: React.FC<{ rating?: number; size?: 'sm' | 'md' }> = ({
   rating = 4,
@@ -89,6 +122,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [activeTab, setActiveTab] = useState<'description' | 'additional' | 'reviews'>('description');
   const [copiedNotice, setCopiedNotice] = useState<string | null>(null);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+  const countdown = useCountdown(product.dealEndsAt);
 
   // Review Form state
   const [reviewAuthor, setReviewAuthor] = useState('');
@@ -295,7 +329,13 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
             {/* Main Large Image Container (Clean Transparent Background) */}
             <div className="relative flex-1 aspect-[3/3.65] bg-transparent border border-[#EEEEEE] overflow-hidden flex items-center justify-center p-4">
-              {product.isSale ? (
+              {product.isDeal || product.dealBadge ? (
+                <div className="absolute top-3 left-3 z-10">
+                  <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[13px] font-bold px-2.5 py-1 leading-none tracking-tight shadow-2xs">
+                    {product.dealBadge || `-${product.discountPercent}%`}
+                  </span>
+                </div>
+              ) : product.isSale ? (
                 <span className="absolute top-0 left-0 z-10 bg-[#C46B3B] text-white text-[12px] font-medium leading-none px-3.5 py-2">
                   Sale
                 </span>
@@ -342,21 +382,97 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
 
             {/* Price Row */}
-            <div className="mt-4 flex items-baseline gap-3 text-[22px] font-medium tabular-nums">
-              {product.originalPrice ? (
+            <div className="mt-4 flex flex-wrap items-baseline gap-3 text-[24px] font-medium tabular-nums">
+              {product.originalPrice && product.originalPrice > product.price ? (
                 <>
                   <span className="text-[#888888] line-through text-[18px]">
                     {formatPKR(product.originalPrice)}
                   </span>
-                  <span className="text-[#C46B3B]">{formatPKR(product.price)}</span>
+                  <span className="text-[#D03B3B] font-bold">{formatPKR(product.price)}</span>
+                  <span className="text-[12px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                    Save {formatPKR(product.originalPrice - product.price)} (
+                    {product.discountPercent ||
+                      Math.round(
+                        ((product.originalPrice - product.price) /
+                          product.originalPrice) *
+                          100
+                      )}
+                    % off)
+                  </span>
                 </>
               ) : (
-                <span className="text-[#181818]">{formatPKR(product.price)}</span>
+                <span className="text-[#181818] font-bold">{formatPKR(product.price)}</span>
               )}
               <span className="text-[12px] font-normal uppercase tracking-[0.06em] text-[#7E8F5B]">
                 Tax Included · Nationwide COD
               </span>
             </div>
+
+            {/* Flash Deal Countdown Banner */}
+            {product.isDeal && !countdown.isExpired && (
+              <div className="mt-4 p-4 rounded-xl border border-red-200 bg-linear-to-r from-red-50/70 via-white to-red-50/40 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 rounded-lg bg-red-100 text-red-600 shrink-0">
+                      <Flame className="w-5 h-5 animate-pulse" />
+                    </span>
+                    <div>
+                      <div className="text-[12.5px] font-bold text-red-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>Limited Time Flash Sale</span>
+                        <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[11px] font-bold px-1.5 py-0.2">
+                          {product.dealBadge || `-${product.discountPercent}%`}
+                        </span>
+                      </div>
+                      <div className="text-[11.5px] text-[#64748B]">
+                        Special promotional harvest price ends soon
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Countdown Blocks */}
+                  <div className="flex items-center gap-1.5 font-mono text-center self-start sm:self-auto">
+                    <div className="bg-white border border-red-200 rounded-md px-2 py-1 min-w-[36px]">
+                      <div className="text-[14px] font-bold text-red-700 leading-tight">
+                        {String(countdown.days).padStart(2, '0')}
+                      </div>
+                      <div className="text-[9px] uppercase text-[#64748B]">Days</div>
+                    </div>
+                    <span className="text-red-500 font-bold">:</span>
+                    <div className="bg-white border border-red-200 rounded-md px-2 py-1 min-w-[36px]">
+                      <div className="text-[14px] font-bold text-red-700 leading-tight">
+                        {String(countdown.hours).padStart(2, '0')}
+                      </div>
+                      <div className="text-[9px] uppercase text-[#64748B]">Hours</div>
+                    </div>
+                    <span className="text-red-500 font-bold">:</span>
+                    <div className="bg-white border border-red-200 rounded-md px-2 py-1 min-w-[36px]">
+                      <div className="text-[14px] font-bold text-red-700 leading-tight">
+                        {String(countdown.minutes).padStart(2, '0')}
+                      </div>
+                      <div className="text-[9px] uppercase text-[#64748B]">Mins</div>
+                    </div>
+                    <span className="text-red-500 font-bold">:</span>
+                    <div className="bg-white border border-red-200 rounded-md px-2 py-1 min-w-[36px]">
+                      <div className="text-[14px] font-bold text-red-700 leading-tight">
+                        {String(countdown.seconds).padStart(2, '0')}
+                      </div>
+                      <div className="text-[9px] uppercase text-[#64748B]">Secs</div>
+                    </div>
+                  </div>
+                </div>
+
+                {product.dealStockLimit && product.dealStockLimit > 0 && (
+                  <div className="mt-3 pt-3 border-t border-red-100 flex items-center justify-between text-[11.5px]">
+                    <span className="text-red-800 font-medium">
+                      Claimed: {product.dealSoldCount || 0} / {product.dealStockLimit} units
+                    </span>
+                    <span className="text-[#64748B]">
+                      {Math.max(0, product.dealStockLimit - (product.dealSoldCount || 0))} remaining
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Editorial Description */}
             <p className="mt-4 text-[14.5px] text-[#555555] leading-relaxed">
@@ -824,13 +940,20 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <button
                     type="button"
                     onClick={() => onSelectProduct(rel)}
-                    className="relative aspect-[3/3.55] w-full bg-[#FAF3F0] overflow-hidden cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15472B]"
+                    className="relative aspect-[3/3.55] w-full bg-transparent border border-[#EEEEEE] overflow-hidden cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15472B]"
                   >
+                    {(rel.isDeal || rel.dealBadge || (rel.originalPrice && rel.originalPrice > rel.price)) && (
+                      <div className="absolute top-2.5 left-2.5 z-10">
+                        <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[11px] font-bold px-2 py-0.5 leading-none tracking-tight">
+                          {rel.dealBadge || (rel.discountPercent ? `-${rel.discountPercent}%` : '-13%')}
+                        </span>
+                      </div>
+                    )}
                     <img
                       src={rel.image}
                       alt={rel.name}
                       referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.03]"
+                      className="w-full h-full object-contain p-3 transition-transform duration-300 ease-out group-hover:scale-[1.03]"
                     />
                   </button>
 
@@ -848,12 +971,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       <StarRating rating={rel.rating ?? 4} size="sm" />
                     </div>
                     <div className="mt-1.5 flex items-center justify-center gap-2 text-[13.5px] tabular-nums">
-                      {rel.originalPrice ? (
+                      {rel.originalPrice && rel.originalPrice > rel.price ? (
                         <>
-                          <span className="text-[#777777] line-through">
+                          <span className="text-[#888888] line-through">
                             {formatPKR(rel.originalPrice)}
                           </span>
-                          <span className="text-[#C46B3B]">{formatPKR(rel.price)}</span>
+                          <span className="text-[#D03B3B] font-bold">{formatPKR(rel.price)}</span>
                         </>
                       ) : (
                         <span className="text-[#555555]">{formatPKR(rel.price)}</span>

@@ -13,6 +13,7 @@ import {
   pickProductsFromMap,
 } from "./productService.js";
 import { getDealSectionWithStock } from "./dealSectionService.js";
+import { applyDealsToProducts } from "./dealService.js";
 
 /**
  * Loads everything the home page needs in two waves:
@@ -47,7 +48,7 @@ export async function getHomeData() {
   const deal = await getDealSectionWithStock();
 
   // Query dynamic merchandising sections
-  const [featuredGrid, dynamicBestSellers, uniqueProducts, shopProducts] = await Promise.all([
+  const [rawFeaturedGrid, rawBestSellers, rawUnique, rawShop] = await Promise.all([
     Product.find({ isActive: true, sections: "featured-grid" })
       .sort({ "sectionOrder.featured-grid": 1, popularity: -1, createdAt: -1 })
       .limit(12)
@@ -64,6 +65,13 @@ export async function getHomeData() {
       .sort({ "sectionOrder.shop": 1, popularity: -1, createdAt: -1 })
       .limit(40)
       .lean(),
+  ]);
+
+  const [featuredGrid, dynamicBestSellers, uniqueProducts, shopProducts] = await Promise.all([
+    applyDealsToProducts(rawFeaturedGrid),
+    applyDealsToProducts(rawBestSellers),
+    applyDealsToProducts(rawUnique),
+    applyDealsToProducts(rawShop),
   ]);
 
   const sections = Array.isArray(categorySections) ? categorySections : [];

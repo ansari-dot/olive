@@ -134,6 +134,15 @@ export function normalizeProduct(raw: any): Product {
     tag: raw.tag || undefined,
     extractionMethod: raw.extractionMethod || undefined,
     acidityLevel: raw.acidityLevel || undefined,
+    dealBadge: raw.dealBadge || undefined,
+    dealEndsAt: raw.dealEndsAt || undefined,
+    dealStartsAt: raw.dealStartsAt || undefined,
+    discountPercent: raw.discountPercent ? Number(raw.discountPercent) : undefined,
+    isDeal: Boolean(raw.isDeal),
+    dealStockLimit: raw.dealStockLimit !== undefined ? Number(raw.dealStockLimit) : undefined,
+    dealSoldCount: raw.dealSoldCount !== undefined ? Number(raw.dealSoldCount) : undefined,
+    dealRemainingStock: raw.dealRemainingStock !== undefined ? raw.dealRemainingStock : undefined,
+    dealId: raw.dealId ? String(raw.dealId) : undefined,
   };
 }
 
@@ -437,6 +446,24 @@ export interface HomeSectionsData {
   bestSellers: Product[];
   uniqueProducts: Product[];
   shopProducts: Product[];
+}
+
+export async function fetchDeals(options?: {
+  forceFresh?: boolean;
+  ttlMs?: number;
+}): Promise<any[]> {
+  const url = `${API_BASE_URL}/deals`;
+  return fetchCached(
+    'store:active_deals',
+    async () => {
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data.deals) ? data.deals : [];
+    },
+    options?.ttlMs ?? 30000,
+    options?.forceFresh
+  );
 }
 
 /**

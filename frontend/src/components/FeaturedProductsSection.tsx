@@ -137,18 +137,22 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = R
             const isBroken = brokenImages[product.id];
             const isWishlisted = wishlistIds.includes(product.id);
 
-            // Compute discount percentage if originalPrice exists
+            // Compute discount percentage if originalPrice exists or if deal
             const hasDiscount =
-              product.originalPrice && product.originalPrice > product.price;
-            const discountPercent = hasDiscount
+              Boolean(product.isDeal) ||
+              Boolean(product.originalPrice && product.originalPrice > product.price);
+            const discountPercent = product.discountPercent
+              ? product.discountPercent
+              : hasDiscount && product.originalPrice
               ? Math.round(
-                  ((product.originalPrice! - product.price) /
-                    product.originalPrice!) *
+                  ((product.originalPrice - product.price) /
+                    product.originalPrice) *
                     100
                 )
               : product.isSale
               ? 20
               : null;
+            const badgeText = product.dealBadge || (discountPercent ? `-${discountPercent}%` : null);
 
             return (
               <article
@@ -157,11 +161,11 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = R
               >
                 {/* Top Half: Studio Photo Area (Clean Transparent Product Card) */}
                 <div className="relative aspect-square w-full bg-transparent flex items-center justify-center p-5 overflow-hidden select-none">
-                  {/* Top-Left Badges: Discount Pill + Optional Secondary Pill */}
+                  {/* Top-Left Badges: Red outlined discount badge matching reference */}
                   <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1">
-                    {discountPercent && (
-                      <span className="border border-[#E52E2E] bg-white text-[#E52E2E] text-[10.5px] font-bold px-1.5 py-0.5 leading-none tracking-tight">
-                        -{discountPercent}%
+                    {badgeText && (
+                      <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[11px] font-bold px-2 py-0.5 leading-none tracking-tight shadow-2xs">
+                        {badgeText}
                       </span>
                     )}
                     {product.isOrganic && (
@@ -312,10 +316,10 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = R
 
                   {/* Price Row (Strikethrough Original + Bold Red Sale Price) */}
                   <div className="mt-1 flex items-baseline gap-2">
-                    {hasDiscount ? (
+                    {hasDiscount && product.originalPrice && product.originalPrice > product.price ? (
                       <>
                         <span className="text-[12.5px] text-[#9CA3AF] line-through font-medium font-mono-data">
-                          Rs. {product.originalPrice!.toLocaleString('en-PK')}
+                          Rs. {product.originalPrice.toLocaleString('en-PK')}
                         </span>
                         <span className="text-[14.5px] font-extrabold text-[#E52E2E] font-mono-data">
                           Rs. {product.price.toLocaleString('en-PK')}

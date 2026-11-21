@@ -8,6 +8,7 @@ import * as authController from "../controllers/authController.js";
 import * as dashboardController from "../controllers/dashboardController.js";
 import * as productController from "../controllers/productController.js";
 import * as couponController from "../controllers/couponController.js";
+import * as dealController from "../controllers/dealController.js";
 import * as orderController from "../controllers/orderController.js";
 import * as blogController from "../controllers/blogController.js";
 import * as reviewController from "../controllers/reviewController.js";
@@ -83,6 +84,15 @@ router.post("/coupons", couponController.createCoupon);
 router.put("/coupons/:id", couponController.updateCoupon);
 router.patch("/coupons/:id/toggle", couponController.toggleCoupon);
 router.delete("/coupons/:id", couponController.deleteCoupon);
+
+// ====================================================================
+// 4b. Flash Deals & Sale Management
+// ====================================================================
+router.get("/deals", dealController.getAdminDeals);
+router.post("/deals", dealController.createDeal);
+router.put("/deals/:id", dealController.updateDeal);
+router.patch("/deals/:id/toggle", dealController.toggleDeal);
+router.delete("/deals/:id", dealController.deleteDeal);
 
 // ====================================================================
 // 5. Order Actions & Dispatch Lifecycle

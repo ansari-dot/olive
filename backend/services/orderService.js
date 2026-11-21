@@ -3,6 +3,7 @@ import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Coupon from "../models/Coupon.js";
 import { validateCoupon } from "./couponService.js";
+import { getActiveDealForProduct, incrementDealSoldAtomic } from "./dealService.js";
 import { invalidateCache } from "../middlewares/cache.js";
 import { escapeRegex } from "../utils/security.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -86,7 +87,10 @@ export async function createOrder(payload) {
       );
     }
 
-    const lineTotal = dbProduct.price * qty;
+    const activeDeal = await getActiveDealForProduct(dbProduct._id);
+    const effectivePrice = activeDeal ? activeDeal.dealPrice : dbProduct.price;
+
+    const lineTotal = effectivePrice * qty;
     subtotal += lineTotal;
 
     resolvedItems.push({
@@ -95,7 +99,11 @@ export async function createOrder(payload) {
       name: dbProduct.name,
       size: dbProduct.size,
       image: dbProduct.image,
-      price: dbProduct.price,
+      price: effectivePrice,
+      originalPrice: dbProduct.price,
+      isDeal: Boolean(activeDeal),
+      dealId: activeDeal ? activeDeal._id : undefined,
+      discountPercent: activeDeal ? activeDeal.discountPercent : 0,
       quantity: qty,
       lineTotal,
     });
@@ -180,7 +188,7 @@ export async function createOrder(payload) {
     statusHistory: initialHistory,
   });
 
-  // 6. Atomically deduct stock & increment soldCount
+  // 6. Atomically deduct stock & increment soldCount & dealSoldCount
   for (const item of resolvedItems) {
     await Product.findByIdAndUpdate(item.product, {
       $inc: {
@@ -188,6 +196,9 @@ export async function createOrder(payload) {
         soldCount: item.quantity,
       },
     });
+    if (item.dealId) {
+      await incrementDealSoldAtomic(item.dealId, item.quantity);
+    }
   }
 
   // 7. Increment coupon usedCount
@@ -199,6 +210,7 @@ export async function createOrder(payload) {
   }
 
   invalidateCache("/api/products");
+  invalidateCache("/api/deals");
 
   return {
     order,

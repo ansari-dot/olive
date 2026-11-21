@@ -6,6 +6,7 @@ import {
   LayoutGrid,
   Layers,
   TicketPercent,
+  Flame,
   BookOpen,
   Star,
   Inbox,
@@ -27,6 +28,7 @@ import { ProductsView } from './components/ProductsView';
 import { CategoriesView } from './components/CategoriesView';
 import { HomepageSectionsView } from './components/HomepageSectionsView';
 import { CouponsView } from './components/CouponsView';
+import { DealsView } from './components/DealsView';
 import { BlogsView } from './components/BlogsView';
 import { ReviewsView } from './components/ReviewsView';
 import { InquiriesView } from './components/InquiriesView';
@@ -38,6 +40,7 @@ type AdminTab =
   | 'products'
   | 'categories'
   | 'sections'
+  | 'deals'
   | 'coupons'
   | 'blogs'
   | 'reviews'
@@ -56,6 +59,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'products', label: 'Products & Stock', icon: Package },
   { id: 'categories', label: 'Categories & Origins', icon: Layers },
   { id: 'sections', label: 'Homepage Sections', icon: LayoutGrid },
+  { id: 'deals', label: 'Flash Deals', icon: Flame },
   { id: 'coupons', label: 'Harvest Coupons', icon: TicketPercent },
   { id: 'blogs', label: 'Orchard Journal', icon: BookOpen },
   { id: 'reviews', label: 'Reviews', icon: Star },
@@ -248,6 +252,7 @@ export const App: React.FC = () => {
           {activeTab === 'products' && <ProductsView />}
           {activeTab === 'categories' && <CategoriesView />}
           {activeTab === 'sections' && <HomepageSectionsView />}
+          {activeTab === 'deals' && <DealsView />}
           {activeTab === 'coupons' && <CouponsView />}
           {activeTab === 'blogs' && <BlogsView />}
           {activeTab === 'reviews' && <ReviewsView />}

@@ -101,6 +101,15 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = React
                     </button>
                   )}
 
+                  {/* Top-Left Deal Badge */}
+                  {(product.isDeal || product.dealBadge || (product.originalPrice && product.originalPrice > product.price)) && (
+                    <div className="absolute top-3 left-3 z-10">
+                      <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[11px] font-bold px-2 py-0.5 leading-none tracking-tight shadow-2xs">
+                        {product.dealBadge || (product.discountPercent ? `-${product.discountPercent}%` : '-13%')}
+                      </span>
+                    </div>
+                  )}
+
                   {!isBroken ? (
                     <button
                       type="button"
@@ -159,9 +168,20 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = React
                   </div>
 
                   <div className="mt-3 pt-2.5 border-t border-[#F2EFEA] flex items-center justify-center gap-3 tabular-nums">
-                    <span className="text-[14.5px] font-semibold text-[#181818]">
-                      {formatPKR(product.price)}
-                    </span>
+                    {product.originalPrice && product.originalPrice > product.price ? (
+                      <>
+                        <span className="text-[12.5px] text-[#9CA3AF] line-through font-mono-data">
+                          {formatPKR(product.originalPrice)}
+                        </span>
+                        <span className="text-[14.5px] font-semibold text-[#D03B3B] font-mono-data">
+                          {formatPKR(product.price)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[14.5px] font-semibold text-[#181818]">
+                        {formatPKR(product.price)}
+                      </span>
+                    )}
                     <span className="text-[12px] text-[#777777]">· {product.size}</span>
                   </div>
                 </div>

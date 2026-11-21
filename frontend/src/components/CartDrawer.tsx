@@ -164,9 +164,27 @@ export const CartDrawer: React.FC = () => {
                     <h4 className="text-[14px] font-medium text-[#181818] truncate">
                       {product.name}
                     </h4>
-                    <p className="text-[13px] text-[#444444] tabular-nums mt-0.5">
-                      {formatPKR(product.price)}
-                    </p>
+                    <div className="flex items-baseline gap-2 mt-0.5">
+                      {product.originalPrice && product.originalPrice > product.price ? (
+                        <>
+                          <span className="text-[12px] text-[#888888] line-through font-mono-data">
+                            {formatPKR(product.originalPrice)}
+                          </span>
+                          <span className="text-[13.5px] font-bold text-[#D03B3B] tabular-nums font-mono-data">
+                            {formatPKR(product.price)}
+                          </span>
+                        </>
+                      ) : (
+                        <p className="text-[13px] text-[#444444] tabular-nums">
+                          {formatPKR(product.price)}
+                        </p>
+                      )}
+                      {(product.isDeal || product.dealBadge) && (
+                        <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[10px] font-bold px-1 py-0.2">
+                          {product.dealBadge || `-${product.discountPercent}%`}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center justify-between mt-3">
                       <div className="inline-flex items-center border border-[#D4D4D4]">
                         <button

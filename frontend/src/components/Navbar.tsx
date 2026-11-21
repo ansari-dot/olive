@@ -765,9 +765,27 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                               </p>
                             </div>
                           </div>
-                          <span className="text-[12.5px] font-bold text-[#15472B] shrink-0 font-mono-data">
-                            Rs. {prod.price.toLocaleString('en-PK')}
-                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {prod.originalPrice && prod.originalPrice > prod.price ? (
+                              <div className="text-right">
+                                <span className="block text-[11px] text-[#94A3B8] line-through font-mono-data">
+                                  Rs. {prod.originalPrice.toLocaleString('en-PK')}
+                                </span>
+                                <span className="text-[12.5px] font-bold text-[#D03B3B] font-mono-data">
+                                  Rs. {prod.price.toLocaleString('en-PK')}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[12.5px] font-bold text-[#15472B] font-mono-data">
+                                Rs. {prod.price.toLocaleString('en-PK')}
+                              </span>
+                            )}
+                            {(prod.isDeal || prod.dealBadge) && (
+                              <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[10px] font-bold px-1 py-0.2">
+                                {prod.dealBadge || `-${prod.discountPercent}%`}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>

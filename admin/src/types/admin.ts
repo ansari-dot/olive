@@ -263,3 +263,60 @@ export interface AdminSectionsResponse {
   };
   products: AdminProduct[];
 }
+
+export type DealStatus = 'active' | 'scheduled' | 'expired' | 'disabled' | 'sold_out';
+
+export interface AdminDeal {
+  _id: string;
+  product: {
+    _id: string;
+    name: string;
+    price: number;
+    image?: string;
+    slug?: string;
+    category?: string;
+    stock?: number;
+    soldCount?: number;
+  };
+  title: string;
+  description?: string;
+  discountType: 'percent' | 'fixed_price';
+  discountValue: number;
+  originalPrice: number;
+  dealPrice: number;
+  discountPercent: number;
+  dealBadge?: string;
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  dealStockLimit: number;
+  dealSoldCount: number;
+  status: DealStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateDealPayload {
+  productId: string;
+  title?: string;
+  description?: string;
+  discountType: 'percent' | 'fixed_price';
+  discountValue: number;
+  startsAt?: string;
+  endsAt: string;
+  dealBadge?: string;
+  dealStockLimit?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateDealPayload {
+  title?: string;
+  description?: string;
+  discountType?: 'percent' | 'fixed_price';
+  discountValue?: number;
+  startsAt?: string;
+  endsAt?: string;
+  dealBadge?: string;
+  dealStockLimit?: number;
+  isActive?: boolean;
+}

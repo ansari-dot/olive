@@ -23,6 +23,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
+import dealRoutes from "./routes/dealRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
@@ -105,6 +106,7 @@ app.use("/api/admins", adminRoutes); // compatibility alias
 
 // Public Storefront Routes (Guest-friendly, NO signup required)
 app.use("/api/products", cache(120), productRoutes);
+app.use("/api/deals", cache(60), dealRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/promo", couponRoutes); // alias
 app.use("/api/orders", orderRoutes);
