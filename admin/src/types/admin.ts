@@ -41,6 +41,10 @@ export interface AdminProduct {
   popularity: number;
   size: string;
   description: string;
+  detailedDescription?: string;
+  ingredients?: string;
+  harvestDate?: string;
+  storageInstructions?: string;
   image: string;
   galleryImages: string[];
   tag?: string;
@@ -48,6 +52,7 @@ export interface AdminProduct {
   sectionOrder?: Record<string, number>;
   extractionMethod?: string;
   acidityLevel?: string;
+  isOrganic?: boolean;
   inStock?: boolean;
 }
 

@@ -137,6 +137,30 @@ const productSchema = new mongoose.Schema(
       default: "< 0.3% Free Fatty Acidity",
       trim: true,
     },
+    detailedDescription: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    ingredients: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    harvestDate: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    storageInstructions: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    isOrganic: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

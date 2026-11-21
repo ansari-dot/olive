@@ -50,6 +50,10 @@ const EMPTY_FORM: Partial<AdminProduct> = {
   stock: 36,
   size: '500 ml Dark Glass',
   description: '',
+  detailedDescription: '',
+  ingredients: '',
+  harvestDate: '',
+  storageInstructions: '',
   image: '',
   galleryImages: [],
   tag: '',
@@ -58,6 +62,7 @@ const EMPTY_FORM: Partial<AdminProduct> = {
   acidityLevel: '< 0.3% Free Fatty Acidity',
   isSale: false,
   isNew: false,
+  isOrganic: false,
   isActive: true,
 };
 
@@ -151,6 +156,11 @@ export const ProductsView: React.FC = () => {
       galleryImages: prod.galleryImages?.length ? prod.galleryImages : [],
       extractionMethod: prod.extractionMethod || 'First Cold-Press (< 27°C), Unfiltered',
       acidityLevel: prod.acidityLevel || '< 0.3% Free Fatty Acidity',
+      detailedDescription: prod.detailedDescription || '',
+      ingredients: prod.ingredients || '',
+      harvestDate: prod.harvestDate || '',
+      storageInstructions: prod.storageInstructions || '',
+      isOrganic: Boolean(prod.isOrganic),
     });
     setNewGalleryUrl('');
     setModalOpen(true);
@@ -867,6 +877,47 @@ export const ProductsView: React.FC = () => {
                     />
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Ingredients &amp; Composition
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 100% Single-Estate Cold-Pressed Extra Virgin Olive Oil"
+                      value={form.ingredients || ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, ingredients: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Harvest Season / Batch
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. November 2026 Batch #04"
+                      value={form.harvestDate || ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, harvestDate: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[12px] font-semibold text-[#334155]">
+                      Storage &amp; Care
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Store in a cool, dark pantry away from direct heat"
+                      value={form.storageInstructions || ''}
+                      onChange={(e) => setForm((prev) => ({ ...prev, storageInstructions: e.target.value }))}
+                      className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Section 4: Imagery */}
@@ -996,13 +1047,39 @@ export const ProductsView: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="block text-[12px] font-semibold text-[#334155]">
-                    Product Editorial Description
+                    Product Editorial Description (Short / Summary)
                   </label>
                   <textarea
                     rows={3}
-                    placeholder="Describe the aroma, tasting profile, harvest origin, and culinary uses..."
+                    placeholder="Short summary displayed below the product title..."
                     value={form.description || ''}
                     onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                    className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[12px] font-semibold text-[#334155]">
+                    Detailed Description / Full Harvest Story (Powers Product Detail &ldquo;Description&rdquo; Tab)
+                  </label>
+                  <textarea
+                    rows={5}
+                    placeholder="Full multi-paragraph description, extraction notes, culinary uses, terroir background... Leave blank to fallback to short description."
+                    value={form.detailedDescription || ''}
+                    onChange={(e) => setForm((prev) => ({ ...prev, detailedDescription: e.target.value }))}
+                    className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[12px] font-semibold text-[#334155]">
+                    Merchandising Tag / Badge
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. EVOO, Potohar Gold, Raw Sidr Honey, High Curcumin"
+                    value={form.tag || ''}
+                    onChange={(e) => setForm((prev) => ({ ...prev, tag: e.target.value }))}
                     className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] focus:outline-none focus:border-[#15472B]"
                   />
                 </div>
@@ -1067,6 +1144,16 @@ export const ProductsView: React.FC = () => {
                       className="accent-[#15472B] w-4 h-4"
                     />
                     <span>Mark as New Harvest</span>
+                  </label>
+
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-[13px] font-medium text-[#0F172A]">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.isOrganic)}
+                      onChange={(e) => setForm((prev) => ({ ...prev, isOrganic: e.target.checked }))}
+                      className="accent-[#15472B] w-4 h-4"
+                    />
+                    <span>100% Certified Organic</span>
                   </label>
                 </div>
               </div>

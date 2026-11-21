@@ -360,6 +360,10 @@ const ALLOWED_PRODUCT_FIELDS = [
   "stock",
   "size",
   "description",
+  "detailedDescription",
+  "ingredients",
+  "harvestDate",
+  "storageInstructions",
   "image",
   "galleryImages",
   "tag",
@@ -369,6 +373,7 @@ const ALLOWED_PRODUCT_FIELDS = [
   "acidityLevel",
   "isSale",
   "isNew",
+  "isOrganic",
   "isActive",
   "popularity",
 ];

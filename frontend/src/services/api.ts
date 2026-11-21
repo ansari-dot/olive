@@ -114,9 +114,14 @@ export function normalizeProduct(raw: any): Product {
     soldCount: raw.soldCount !== undefined ? Number(raw.soldCount) : 0,
     isSale: Boolean(raw.isSale),
     isNew: Boolean(raw.isNew),
+    isOrganic: Boolean(raw.isOrganic),
     popularity: raw.popularity !== undefined ? Number(raw.popularity) : 80,
     size: raw.size || '',
     description: raw.description || '',
+    detailedDescription: raw.detailedDescription || undefined,
+    ingredients: raw.ingredients || undefined,
+    harvestDate: raw.harvestDate || undefined,
+    storageInstructions: raw.storageInstructions || undefined,
     image: resolveImageUrl(raw.image),
     galleryImages: Array.isArray(raw.galleryImages)
       ? raw.galleryImages.map(resolveImageUrl)

@@ -324,24 +324,50 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {product.description}
             </p>
 
-            {/* Key Quality Callouts */}
+            {/* Key Quality Callouts - Dynamic from Admin Panel */}
             <div className="mt-5 grid grid-cols-2 gap-3 text-[12.5px] text-[#333333]">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
-                <span>Single-Estate Harvest: {product.origin || 'Potohar, Pakistan'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
-                <span>Acidity Level: {product.acidityLevel || '< 0.3% FFA'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
-                <span>Cold Extraction: {product.extractionMethod || 'Mechanical Press < 27°C'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
-                <span>Bottle Size: {product.size}</span>
-              </div>
+              {product.origin && (
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                  <span>Harvest Origin: {product.origin}</span>
+                </div>
+              )}
+              {product.size && (
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                  <span>Package Size: {product.size}</span>
+                </div>
+              )}
+              {product.extractionMethod && (
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                  <span>Extraction: {product.extractionMethod}</span>
+                </div>
+              )}
+              {product.acidityLevel && (
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                  <span>Acidity Level: {product.acidityLevel}</span>
+                </div>
+              )}
+              {product.flavour && (
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                  <span>Flavour: {product.flavour}</span>
+                </div>
+              )}
+              {product.harvestDate && (
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                  <span>Harvest Batch: {product.harvestDate}</span>
+                </div>
+              )}
+              {product.isOrganic && (
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                  <span className="text-[#15472B] font-semibold">100% Certified Organic</span>
+                </div>
+              )}
             </div>
 
             {/* Quantity Selector + Add to Cart + Buy Now Actions */}
@@ -494,45 +520,104 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           <div className="pt-6 pb-4">
             {activeTab === 'description' && (
               <div className="space-y-4 text-[14px] leading-[1.75] text-[#666666] max-w-[98ch]">
-                <p>
-                  {product.description} Harvested at early veraison across our Potohar and Chakwal
-                  orchards, each batch is pressed mechanically below 27°C within six hours of
-                  picking so natural polyphenols, chlorophyll, and aromatic esters remain intact.
-                </p>
-                <p>
-                  Ideal for raw finishing over garden greens, warm flatbread, roasted vegetables,
-                  and slow-simmered dishes. Bottled in light-protective packaging and shipped fresh
-                  with nationwide Cash on Delivery across Pakistan.
-                </p>
+                {product.detailedDescription ? (
+                  <div className="whitespace-pre-line space-y-3 text-[#555555]">
+                    {product.detailedDescription.split('\n\n').map((paragraph, idx) => (
+                      <p key={idx}>{paragraph}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <p>{product.description}</p>
+                )}
+
+                {product.ingredients && (
+                  <div className="mt-5 pt-4 border-t border-[#EFEFEF]">
+                    <h4 className="text-[12.5px] uppercase font-bold tracking-wider text-[#181818] mb-1">
+                      Ingredients &amp; Composition
+                    </h4>
+                    <p className="text-[13.5px] text-[#555555]">{product.ingredients}</p>
+                  </div>
+                )}
+
+                {product.storageInstructions && (
+                  <div className="mt-3">
+                    <h4 className="text-[12.5px] uppercase font-bold tracking-wider text-[#181818] mb-1">
+                      Storage &amp; Care
+                    </h4>
+                    <p className="text-[13.5px] text-[#555555]">{product.storageInstructions}</p>
+                  </div>
+                )}
               </div>
             )}
 
             {activeTab === 'additional' && (
               <div className="max-w-[680px] divide-y divide-[#EFEFEF] border-t border-b border-[#EFEFEF] text-[13.5px]">
+                {product.size && (
+                  <div className="py-3 grid grid-cols-3 gap-4">
+                    <span className="font-medium text-[#181818]">Pack Size</span>
+                    <span className="col-span-2 text-[#555555]">{product.size}</span>
+                  </div>
+                )}
+                {product.brand && (
+                  <div className="py-3 grid grid-cols-3 gap-4">
+                    <span className="font-medium text-[#181818]">Brand / Estate</span>
+                    <span className="col-span-2 text-[#555555]">{product.brand}</span>
+                  </div>
+                )}
+                {product.category && (
+                  <div className="py-3 grid grid-cols-3 gap-4">
+                    <span className="font-medium text-[#181818]">Category</span>
+                    <span className="col-span-2 text-[#555555]">
+                      {product.category} {product.subcategory ? `· ${product.subcategory}` : ''}
+                    </span>
+                  </div>
+                )}
+                {product.origin && (
+                  <div className="py-3 grid grid-cols-3 gap-4">
+                    <span className="font-medium text-[#181818]">Origin / Terroir</span>
+                    <span className="col-span-2 text-[#555555]">{product.origin}</span>
+                  </div>
+                )}
+                {product.extractionMethod && (
+                  <div className="py-3 grid grid-cols-3 gap-4">
+                    <span className="font-medium text-[#181818]">Extraction</span>
+                    <span className="col-span-2 text-[#555555]">{product.extractionMethod}</span>
+                  </div>
+                )}
+                {product.acidityLevel && (
+                  <div className="py-3 grid grid-cols-3 gap-4">
+                    <span className="font-medium text-[#181818]">Acidity Level</span>
+                    <span className="col-span-2 text-[#555555] tabular-nums">{product.acidityLevel}</span>
+                  </div>
+                )}
+                {product.flavour && (
+                  <div className="py-3 grid grid-cols-3 gap-4">
+                    <span className="font-medium text-[#181818]">Flavour Profile</span>
+                    <span className="col-span-2 text-[#555555]">{product.flavour}</span>
+                  </div>
+                )}
+                {product.ingredients && (
+                  <div className="py-3 grid grid-cols-3 gap-4">
+                    <span className="font-medium text-[#181818]">Ingredients</span>
+                    <span className="col-span-2 text-[#555555]">{product.ingredients}</span>
+                  </div>
+                )}
+                {product.harvestDate && (
+                  <div className="py-3 grid grid-cols-3 gap-4">
+                    <span className="font-medium text-[#181818]">Harvest Season</span>
+                    <span className="col-span-2 text-[#555555]">{product.harvestDate}</span>
+                  </div>
+                )}
+                {product.storageInstructions && (
+                  <div className="py-3 grid grid-cols-3 gap-4">
+                    <span className="font-medium text-[#181818]">Storage Instructions</span>
+                    <span className="col-span-2 text-[#555555]">{product.storageInstructions}</span>
+                  </div>
+                )}
                 <div className="py-3 grid grid-cols-3 gap-4">
-                  <span className="font-medium text-[#181818]">Pack Size</span>
-                  <span className="col-span-2 text-[#555555]">{product.size}</span>
-                </div>
-                <div className="py-3 grid grid-cols-3 gap-4">
-                  <span className="font-medium text-[#181818]">Brand / Estate</span>
-                  <span className="col-span-2 text-[#555555]">{product.brand}</span>
-                </div>
-                <div className="py-3 grid grid-cols-3 gap-4">
-                  <span className="font-medium text-[#181818]">Origin</span>
-                  <span className="col-span-2 text-[#555555]">
-                    {product.origin ?? 'Potohar Olive Belt, Pakistan'}
-                  </span>
-                </div>
-                <div className="py-3 grid grid-cols-3 gap-4">
-                  <span className="font-medium text-[#181818]">Extraction</span>
-                  <span className="col-span-2 text-[#555555]">
-                    {product.extractionMethod || 'First Cold-Press (< 27°C), Unfiltered'}
-                  </span>
-                </div>
-                <div className="py-3 grid grid-cols-3 gap-4">
-                  <span className="font-medium text-[#181818]">Acidity Level</span>
-                  <span className="col-span-2 text-[#555555] tabular-nums">
-                    {product.acidityLevel || '< 0.3% Free Fatty Acidity'}
+                  <span className="font-medium text-[#181818]">Purity Standard</span>
+                  <span className="col-span-2 text-[#15472B] font-medium">
+                    {product.isOrganic ? '100% Certified Organic Harvest' : 'Pure Single-Origin Harvest'}
                   </span>
                 </div>
               </div>
