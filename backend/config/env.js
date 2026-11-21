@@ -81,8 +81,8 @@ export const env = {
 
   PAYFAST: {
     URL: process.env.PAYFAST_URL || "https://sandbox.payfast.co.za/eng/process",
-    MERCHANT_ID: process.env.PAYFAST_MERCHANT_ID || "10000100",
-    MERCHANT_KEY: process.env.PAYFAST_MERCHANT_KEY || "46f0cd694581a",
+    MERCHANT_ID: process.env.PAYFAST_MERCHANT_ID || "10058885",
+    MERCHANT_KEY: process.env.PAYFAST_MERCHANT_KEY || "e43ad0kpt2n2t",
     PASSPHRASE: process.env.PAYFAST_PASSPHRASE || "",
     DEBUG: process.env.PAYFAST_DEBUG === "true",
     // PayFast publishes the IPN source IPs — keep them togglable so dev/

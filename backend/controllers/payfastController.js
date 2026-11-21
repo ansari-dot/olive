@@ -8,7 +8,9 @@ export const initPayfast = asyncHandler(async (req, res) => {
   if (orderRef) {
     const order = await Order.findOne({ orderReference: orderRef });
     if (!order) throw ApiError.notFound(`Order ${orderRef} not found`);
-    const payload = payfastService.buildPayfastPayloadForOrder(order);
+    const clientUrl = req.body.clientUrl || req.headers.origin || env.CLIENT_URL;
+    const serverUrl = req.body.serverUrl || `${req.protocol}://${req.get("host")}` || env.SERVER_URL;
+    const payload = payfastService.buildPayfastPayloadForOrder(order, { clientUrl, serverUrl });
     return res.json(payload);
   }
 

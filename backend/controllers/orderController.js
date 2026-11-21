@@ -25,6 +25,15 @@ export const trackOrder = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+// Public: PATCH /api/orders/:orderReference/payment-method
+export const updatePaymentMethod = asyncHandler(async (req, res) => {
+  const result = await orderService.updateOrderPaymentMethod(
+    req.params.orderReference,
+    req.body.paymentMethod
+  );
+  res.json(result);
+});
+
 // Admin: GET /api/admin/orders
 export const getAdminOrders = asyncHandler(async (req, res) => {
   const result = await orderService.listAdminOrders(req.query);

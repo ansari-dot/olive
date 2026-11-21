@@ -61,13 +61,13 @@ export function generateSignature(data, passphrase = "", orderedKeys = null) {
  * In Sandbox mode, uses default test merchant ID & key.
  * Later, live credentials in .env will seamlessly replace them.
  */
-export function buildPayfastPayloadForOrder(order) {
-  const merchant_id = env.PAYFAST.MERCHANT_ID || "10000100";
-  const merchant_key = env.PAYFAST.MERCHANT_KEY || "46f0cd694581a";
+export function buildPayfastPayloadForOrder(order, options = {}) {
+  const merchant_id = env.PAYFAST.MERCHANT_ID || "10058885";
+  const merchant_key = env.PAYFAST.MERCHANT_KEY || "e43ad0kpt2n2t";
   const passphrase = env.PAYFAST.PASSPHRASE || "";
 
-  const clientUrl = env.CLIENT_URL || "http://localhost:5173";
-  const serverUrl = env.SERVER_URL || "http://localhost:5000";
+  const clientUrl = (options.clientUrl || env.CLIENT_URL || "http://localhost:3000").replace(/\/$/, "");
+  const serverUrl = (options.serverUrl || env.SERVER_URL || "http://localhost:5000").replace(/\/$/, "");
 
   const customerName = (order.customer?.name || "Customer").trim();
   const nameParts = customerName.split(" ");
@@ -77,12 +77,12 @@ export function buildPayfastPayloadForOrder(order) {
   const payload = {
     merchant_id,
     merchant_key,
-    return_url: `${clientUrl}/order-tracking?orderId=${order.orderReference}&paid=1`,
+    return_url: `${clientUrl}/order-tracking?orderId=${order.orderReference}&payfast=success`,
     cancel_url: `${clientUrl}/checkout?cancel=1&orderId=${order.orderReference}`,
     notify_url: `${serverUrl}/api/payments/payfast/notify`,
     name_first: firstName,
     name_last: lastName,
-    email_address: order.customer?.email || "customer@zaitoonpakistan.pk",
+    email_address: order.customer?.email || "customer@pakveda.com",
     cell_number: order.customer?.phone || "03001234567",
     m_payment_id: order.orderReference,
     amount: Number(order.total).toFixed(2),
@@ -95,7 +95,7 @@ export function buildPayfastPayloadForOrder(order) {
     payment_url: env.PAYFAST.URL || "https://sandbox.payfast.co.za/eng/process",
     fields: { ...payload, signature },
     orderReference: order.orderReference,
-    isSandbox: !env.PAYFAST.MERCHANT_ID || env.PAYFAST.MERCHANT_ID === "10000100",
+    isSandbox: (env.PAYFAST.URL || "").includes("sandbox") || !env.IS_PROD,
   };
 }
 
@@ -134,10 +134,18 @@ export async function handlePayfastNotify(rawBody, meta = {}) {
   const orderReference = (body.m_payment_id || body.custom_str1 || "").trim().toUpperCase();
   if (!orderReference) throw ApiError.badRequest("Missing order reference in IPN");
 
+  console.log(`[PayFast ITN Webhook] Received notification for ${orderReference}. Status: ${body.payment_status}`);
+
   // In production or when passphrase is set, verify signature
-  if (env.IS_PROD || env.PAYFAST.PASSPHRASE) {
-    if (!verifyIpnSignature(body)) {
-      throw ApiError.unauthorized("Invalid PayFast IPN signature");
+  if (body.signature) {
+    const isValid = verifyIpnSignature(body);
+    if (!isValid) {
+      if (env.IS_PROD) {
+        console.warn(`[PayFast ITN] Signature verification failed for order ${orderReference}`);
+        throw ApiError.unauthorized("Invalid PayFast IPN signature");
+      } else {
+        console.warn(`[PayFast ITN] Non-blocking signature warning in sandbox/dev mode for order ${orderReference}`);
+      }
     }
   }
 

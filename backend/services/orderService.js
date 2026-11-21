@@ -305,7 +305,9 @@ export async function createOrder(payload, idempotencyKey = null) {
     paymentMethod === "PayFast (Sandbox)" ||
     paymentMethod === "PayFast"
   ) {
-    payfastData = buildPayfastPayloadForOrder(order);
+    payfastData = buildPayfastPayloadForOrder(order, {
+      clientUrl: payload?.clientUrl,
+    });
   }
 
   return {
@@ -314,6 +316,68 @@ export async function createOrder(payload, idempotencyKey = null) {
     bankDetails:
       paymentMethod === "Bank Transfer (IBFT)" ? IBFT_BANK_DETAILS : null,
   };
+}
+
+export async function updateOrderPaymentMethod(orderReference, newPaymentMethod) {
+  if (!orderReference || typeof orderReference !== "string") {
+    throw ApiError.badRequest("Order reference is required");
+  }
+
+  const cleanRef = orderReference.trim().toUpperCase();
+  const order = await Order.findOne({ orderReference: cleanRef });
+  if (!order) {
+    throw ApiError.notFound(`Order ${cleanRef} not found`);
+  }
+
+  if (order.paymentStatus === "paid") {
+    throw ApiError.badRequest(`Order ${cleanRef} is already marked as paid`);
+  }
+
+  if (newPaymentMethod === "Cash on Delivery") {
+    order.paymentMethod = "Cash on Delivery";
+    order.paymentStatus = "pending_cod";
+    if (order.shipment) {
+      order.shipment.codAmount = order.total;
+    }
+    order.statusHistory.push({
+      stage: order.trackingStage,
+      orderStatus: order.orderStatus,
+      note: "Customer switched payment method to Cash on Delivery (COD)",
+      updatedBy: "Customer",
+      timestamp: new Date(),
+    });
+    await order.save();
+    return {
+      success: true,
+      message: "Order updated to Cash on Delivery successfully",
+      order,
+    };
+  }
+
+  if (newPaymentMethod === "PayFast (Sandbox)" || newPaymentMethod === "PayFast") {
+    order.paymentMethod = "PayFast (Sandbox)";
+    order.paymentStatus = "pending_payfast";
+    if (order.shipment) {
+      order.shipment.codAmount = 0;
+    }
+    order.statusHistory.push({
+      stage: order.trackingStage,
+      orderStatus: order.orderStatus,
+      note: "Customer selected PayFast checkout",
+      updatedBy: "Customer",
+      timestamp: new Date(),
+    });
+    await order.save();
+    const payfast = buildPayfastPayloadForOrder(order);
+    return {
+      success: true,
+      message: "PayFast payment initialized",
+      order,
+      payfast,
+    };
+  }
+
+  throw ApiError.badRequest(`Unsupported payment method: ${newPaymentMethod}`);
 }
 
 export async function trackOrder(orderReference) {

@@ -7,5 +7,6 @@ const router = Router();
 // Public guest routes
 router.post("/", publicWriteLimiter, orderController.createOrder);
 router.get("/track/:orderReference", orderController.trackOrder);
+router.patch("/:orderReference/payment-method", publicWriteLimiter, orderController.updatePaymentMethod);
 
 export default router;

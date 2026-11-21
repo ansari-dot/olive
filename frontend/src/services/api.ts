@@ -687,6 +687,77 @@ export async function simulatePayfastSuccess(orderReference: string): Promise<an
 }
 
 /**
+ * POST /api/payments/payfast/init
+ * Re-fetches PayFast payload with signed fields for a pending order
+ */
+export async function initPayfast(orderReference: string): Promise<PayfastCheckoutInfo> {
+  const cleanRef = orderReference.trim().toUpperCase();
+  const res = await fetch(`${API_BASE_URL}/payments/payfast/init`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      orderReference: cleanRef,
+      clientUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to initialize PayFast payment');
+  }
+  return data;
+}
+
+/**
+ * PATCH /api/orders/:orderReference/payment-method
+ * Allows customer to switch payment method (e.g. from cancelled PayFast to COD)
+ */
+export async function updateOrderPaymentMethod(
+  orderReference: string,
+  paymentMethod: 'Cash on Delivery' | 'PayFast (Sandbox)'
+): Promise<any> {
+  const cleanRef = orderReference.trim().toUpperCase();
+  const res = await fetch(
+    `${API_BASE_URL}/orders/${encodeURIComponent(cleanRef)}/payment-method`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentMethod }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to update payment method');
+  }
+  return data;
+}
+
+/**
+ * Helper to submit an invisible HTML form POST to PayFast's gateway URL
+ */
+export function submitPayfastRedirect(
+  paymentUrl: string,
+  fields: Record<string, string>
+): void {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = paymentUrl;
+  form.style.display = 'none';
+
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined && value !== null) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = String(value);
+      form.appendChild(input);
+    }
+  }
+
+  document.body.appendChild(form);
+  form.submit();
+}
+
+/**
  * GET /api/orders/track/:orderReference
  */
 export async function trackOrder(

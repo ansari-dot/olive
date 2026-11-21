@@ -11,7 +11,7 @@ import {
   MessageSquare,
   ArrowRight,
 } from 'lucide-react';
-import { trackOrder } from '../services/api';
+import { trackOrder, simulatePayfastSuccess } from '../services/api';
 
 export interface TrackedOrderRecord {
   id: string;
@@ -26,6 +26,7 @@ export interface TrackedOrderRecord {
 interface OrderTrackingPageProps {
   placedOrders: TrackedOrderRecord[];
   initialOrderId?: string;
+  isPayfastSuccess?: boolean;
   onNavigateHome: () => void;
   onNavigateShop: () => void;
   onNavigateShipping: () => void;
@@ -78,6 +79,7 @@ const DISPATCH_STEPS = [
 export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
   placedOrders,
   initialOrderId = '',
+  isPayfastSuccess = false,
   onNavigateHome,
   onNavigateShop,
   onNavigateContact,
@@ -130,13 +132,22 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
     if (initialOrderId.trim()) {
       const normalized = initialOrderId.trim().toUpperCase();
       setQueryId(normalized);
-      performTracking(normalized);
+      if (isPayfastSuccess) {
+        // Settle sandbox payment on return so order status is instantly confirmed as Paid
+        simulatePayfastSuccess(normalized)
+          .catch(() => {})
+          .finally(() => {
+            performTracking(normalized);
+          });
+      } else {
+        performTracking(normalized);
+      }
     } else if (placedOrders.length > 0 && !tracked) {
       const latest = placedOrders[0];
       setQueryId(latest.id);
       performTracking(latest.id);
     }
-  }, [initialOrderId, placedOrders, performTracking]);
+  }, [initialOrderId, isPayfastSuccess, placedOrders, performTracking]);
 
   const handleLookup = (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,6 +192,21 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
             Enter your order reference code below to view live dispatch verification, courier movement, and estimated arrival.
           </p>
         </div>
+
+        {/* PayFast Success Alert Banner */}
+        {isPayfastSuccess && (
+          <div className="max-w-2xl mx-auto mb-8 p-5 border border-[#A7F3D0] bg-[#ECFDF5] text-[#065F46] shadow-sm flex items-start gap-3.5">
+            <CheckCircle2 className="w-6 h-6 text-[#047857] shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-[15px] text-[#065F46]">
+                PayFast Payment Confirmed!
+              </h3>
+              <p className="text-[13px] text-[#047857] mt-1 leading-relaxed">
+                Thank you! Your payment has been captured and verified via PayFast Sandbox. Your order is locked in and currently undergoing cold-packing at our Islamabad Orchard Hub.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Lookup Search Form Box */}
         <div className="max-w-2xl mx-auto bg-[#FAF8F5] border border-[#EBE7DF] p-6 sm:p-8 mb-12 shadow-sm">

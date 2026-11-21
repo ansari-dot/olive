@@ -9,6 +9,8 @@ export const OrderTrackingRoutePage: React.FC = () => {
   const { placedOrders } = useStore();
 
   const initialOrderId = searchParams.get('orderId') || '';
+  const isPayfastSuccess =
+    searchParams.get('payfast') === 'success' || searchParams.get('paid') === '1';
 
   const trackedRecords: TrackedOrderRecord[] = placedOrders.map((o) => ({
     id: o.id,
@@ -23,6 +25,7 @@ export const OrderTrackingRoutePage: React.FC = () => {
     <OrderTrackingPage
       placedOrders={trackedRecords}
       initialOrderId={initialOrderId}
+      isPayfastSuccess={isPayfastSuccess}
       onNavigateHome={() => navigate('/')}
       onNavigateShop={() => navigate('/shop')}
       onNavigateShipping={() => navigate('/shipping-policy')}

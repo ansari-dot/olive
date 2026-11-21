@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
-import { Check, Loader2, CreditCard, ShieldCheck, ExternalLink } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import {
+  Check,
+  Loader2,
+  CreditCard,
+  ShieldCheck,
+  ExternalLink,
+  AlertTriangle,
+  RotateCcw,
+} from 'lucide-react';
 import { CartPageItem } from './CartPage';
 import {
   validateCoupon,
   createOrder,
+  initPayfast,
+  updateOrderPaymentMethod,
+  submitPayfastRedirect,
   simulatePayfastSuccess,
   PayfastCheckoutInfo,
 } from '../services/api';
@@ -66,10 +78,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     'Cash on Delivery' | 'PayFast (Sandbox)'
   >('Cash on Delivery');
 
-  // PayFast sandbox state
+  // PayFast sandbox & cancellation URL state
+  const [searchParams] = useSearchParams();
+  const cancelParam = searchParams.get('cancel') === '1';
+  const cancelledOrderId = searchParams.get('orderId');
+
   const [payfastInfo, setPayfastInfo] = useState<PayfastCheckoutInfo | null>(null);
   const [payfastSimulating, setPayfastSimulating] = useState(false);
   const [payfastSettled, setPayfastSettled] = useState(false);
+  const [redirectingToPayfast, setRedirectingToPayfast] = useState(false);
+  const [retryLoading, setRetryLoading] = useState(false);
+  const [retryMessage, setRetryMessage] = useState<string | null>(null);
 
   // Promo code state
   const [promoInput, setPromoInput] = useState('');
@@ -174,11 +193,6 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       const orderRef = res.order.orderReference;
       const courierCode = res.order.courierTrackingCode || `TCS-${orderRef.replace(/[^0-9]/g, '')}`;
 
-      if (res.payfast) {
-        setPayfastInfo(res.payfast);
-      }
-      setPayfastSettled(false);
-
       // Notify parent to clear cart or update order count
       if (onPlaceOrder) {
         onPlaceOrder({
@@ -195,6 +209,16 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           orderReference: orderRef,
         });
       }
+
+      // If user selected PayFast, immediately auto-redirect to PayFast sandbox payment gateway!
+      if (paymentMethod === 'PayFast (Sandbox)' && res.payfast) {
+        setPayfastInfo(res.payfast);
+        setRedirectingToPayfast(true);
+        submitPayfastRedirect(res.payfast.payment_url, res.payfast.fields);
+        return;
+      }
+
+      setPayfastSettled(false);
 
       setConfirmedOrder({
         orderId: orderRef,
@@ -214,6 +238,36 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       setSubmitError(message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRetryPayfast = async (orderRef: string) => {
+    setRetryLoading(true);
+    setRetryMessage(null);
+    try {
+      const data = await initPayfast(orderRef);
+      setPayfastInfo(data);
+      setRedirectingToPayfast(true);
+      submitPayfastRedirect(data.payment_url, data.fields);
+    } catch (err: unknown) {
+      setRetryMessage(
+        err instanceof Error ? err.message : 'Failed to connect to PayFast'
+      );
+      setRetryLoading(false);
+    }
+  };
+
+  const handleSwitchToCod = async (orderRef: string) => {
+    setRetryLoading(true);
+    setRetryMessage(null);
+    try {
+      await updateOrderPaymentMethod(orderRef, 'Cash on Delivery');
+      onTrackOrder(orderRef);
+    } catch (err: unknown) {
+      setRetryMessage(
+        err instanceof Error ? err.message : 'Failed to switch to COD'
+      );
+      setRetryLoading(false);
     }
   };
 
@@ -265,6 +319,75 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             </button>
           )}
         </div>
+
+        {/* PayFast Sandbox Auto-Redirect Overlay */}
+        {redirectingToPayfast && payfastInfo && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs">
+            <div className="bg-white max-w-md w-full p-8 text-center space-y-4 shadow-2xl border border-[#E5E7EB]">
+              <div className="w-14 h-14 mx-auto rounded-full bg-[#ECFDF5] flex items-center justify-center text-[#15472B]">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+              <h3 className="text-[19px] font-semibold text-[#181818]">
+                Connecting to PayFast Gateway...
+              </h3>
+              <p className="text-[13px] text-[#666666] leading-relaxed">
+                Please wait while we redirect you to the PayFast Sandbox portal (Merchant ID: <strong>{payfastInfo.fields.merchant_id}</strong>) to complete your card payment.
+              </p>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => submitPayfastRedirect(payfastInfo.payment_url, payfastInfo.fields)}
+                  className="bg-[#15472B] hover:bg-[#0D2F1C] text-white text-[12px] font-bold uppercase tracking-wider px-6 py-2.5 transition cursor-pointer"
+                >
+                  Click Here if not redirected automatically
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PayFast Cancelled Notice Banner */}
+        {cancelParam && cancelledOrderId && (
+          <div className="mb-8 p-5 border border-[#F59E0B] bg-[#FFFBEB] text-[#92400E] shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-[#D97706]" />
+                  <h3 className="font-semibold text-[15px] text-[#92400E]">
+                    PayFast Transaction Cancelled (Order #{cancelledOrderId})
+                  </h3>
+                </div>
+                <p className="text-[13px] text-[#B45309]">
+                  Your online payment was cancelled or not completed on PayFast.
+                  Your order is safely saved. You can retry paying with card or switch to Cash on Delivery.
+                </p>
+                {retryMessage && (
+                  <p className="text-[12.5px] font-medium text-[#B91C1C] mt-1">{retryMessage}</p>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleRetryPayfast(cancelledOrderId)}
+                  disabled={retryLoading}
+                  className="bg-[#15472B] hover:bg-[#0D2F1C] disabled:bg-[#888888] text-white px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5"
+                >
+                  {retryLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                  <span>Retry Card Payment</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchToCod(cancelledOrderId)}
+                  disabled={retryLoading}
+                  className="bg-white border border-[#D97706] hover:bg-[#FEF3C7] text-[#92400E] px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Switch to Cash on Delivery</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Confirmed Order Receipt */}
         {confirmedOrder ? (
@@ -760,7 +883,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   </span>
                 </div>
                 <div className="flex items-center justify-between pt-3 border-t border-[#E6DDD2] text-[17px] font-medium text-[#181818]">
-                  <span>Total ({paymentMethod === 'Cash on Delivery' ? 'COD' : 'IBFT'})</span>
+                  <span>Total ({paymentMethod === 'Cash on Delivery' ? 'COD' : 'PayFast'})</span>
                   <span>{formatPKR(finalTotal)}</span>
                 </div>
               </div>
@@ -774,10 +897,18 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>PLACING ORDER...</span>
+                    <span>
+                      {paymentMethod === 'PayFast (Sandbox)'
+                        ? 'CONNECTING TO PAYFAST...'
+                        : 'PLACING ORDER...'}
+                    </span>
                   </>
                 ) : (
-                  <span>PLACE ORDER · {formatPKR(finalTotal)}</span>
+                  <span>
+                    {paymentMethod === 'PayFast (Sandbox)'
+                      ? `PAY VIA PAYFAST · ${formatPKR(finalTotal)}`
+                      : `PLACE ORDER (COD) · ${formatPKR(finalTotal)}`}
+                  </span>
                 )}
               </button>
 
