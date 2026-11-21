@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import {
   fetchCurrentAdmin,
-  getStoredToken,
   logoutAdmin,
 } from './services/adminApi';
 import type { AdminUser } from './types/admin';
@@ -75,16 +74,10 @@ export const App: React.FC = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
-    const token = getStoredToken();
-    if (!token) {
-      setBootstrapping(false);
-      return;
-    }
-
+    // Authenticate session via secure HttpOnly cookie
     fetchCurrentAdmin()
       .then((user) => setAdmin(user))
       .catch(() => {
-        logoutAdmin();
         setAdmin(null);
       })
       .finally(() => setBootstrapping(false));

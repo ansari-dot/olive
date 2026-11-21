@@ -1,23 +1,28 @@
-import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
-import AdminUser from "../models/AdminUser.js";
+import { verifySessionToken } from "../services/authService.js";
 
+/**
+ * Validates the admin session.
+ * Prioritizes HttpOnly session cookies, falling back to Authorization headers for API/test tools.
+ */
 export async function verifyAdmin(req, res, next) {
   try {
     let token = "";
 
-    // 1. Check Authorization header
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7).trim();
-    }
-
-    // 2. Check HttpOnly cookie
-    if (!token && req.cookies && req.cookies[env.COOKIE.NAME]) {
+    // 1. Primary secure channel: HttpOnly session cookie
+    if (req.cookies && req.cookies[env.COOKIE.NAME]) {
       token = req.cookies[env.COOKIE.NAME];
     }
 
-    // 3. Check X-Admin-Token header
+    // 2. Secondary fallback: Authorization header (for headless testing/API clients)
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7).trim();
+      }
+    }
+
+    // 3. Tertiary fallback: X-Admin-Token header
     if (!token && req.headers["x-admin-token"]) {
       token = String(req.headers["x-admin-token"]).trim();
     }
@@ -25,42 +30,26 @@ export async function verifyAdmin(req, res, next) {
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized: Admin authentication token required",
+        message: "Unauthorized: Admin session required",
       });
     }
 
-    const decoded = jwt.verify(token, env.JWT.SECRET);
-    const adminId = decoded.sub || decoded.id || decoded._id;
+    const meta = {
+      ipAddress: req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
+    };
 
-    const admin = await AdminUser.findById(adminId).select("-password");
-    if (!admin) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: Admin account not found",
-      });
-    }
-
-    if (!admin.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: "Forbidden: Admin account is inactive",
-      });
-    }
+    const { admin, session, auth } = await verifySessionToken(token, meta);
 
     req.admin = admin;
-    req.auth = {
-      sub: String(admin._id),
-      id: String(admin._id),
-      email: admin.email,
-      name: admin.name,
-      role: admin.role,
-    };
+    req.session = session;
+    req.auth = auth;
 
     return next();
   } catch (err) {
-    return res.status(401).json({
+    const status = err.statusCode || err.status || 401;
+    return res.status(status).json({
       success: false,
-      message: "Unauthorized: Invalid or expired admin token",
+      message: err.message || "Unauthorized: Invalid or expired admin session",
     });
   }
 }

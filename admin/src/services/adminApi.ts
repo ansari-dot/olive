@@ -56,11 +56,9 @@ export const getStoredToken = (): string | null => {
 
 export const setStoredToken = (token: string | null): void => {
   try {
-    if (token) {
-      window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    } else {
-      window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-    }
+    // Phase 1 security hardening: tokens are maintained strictly in HttpOnly cookies.
+    // Clean up any legacy token from localStorage.
+    window.localStorage.removeItem(TOKEN_STORAGE_KEY);
   } catch {
     // Ignore storage errors
   }
@@ -75,13 +73,15 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getStoredToken();
   const headers = new Headers(options.headers || {});
   if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
+
+  // Support legacy token if present, while prioritizing HttpOnly session cookie
+  const legacyToken = getStoredToken();
+  if (legacyToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${legacyToken}`);
   }
 
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
@@ -147,7 +147,8 @@ export async function loginAdmin(
   const data = (res.data as Record<string, unknown> | undefined) ?? res;
   const token = (data.token as string) || (res.token as string) || '';
   const admin = (data.admin as AdminUser) || (data.user as AdminUser) || (res.admin as AdminUser);
-  if (token) setStoredToken(token);
+  // Ensure any old token is removed from localStorage; session is managed via HttpOnly cookie
+  setStoredToken(null);
   return { token, admin };
 }
 
@@ -157,6 +158,8 @@ export async function fetchCurrentAdmin(): Promise<AdminUser> {
 }
 
 export function logoutAdmin(): void {
+  // Revoke session server-side in MongoDB and clear cookie
+  request('/admin/auth/logout', { method: 'POST' }).catch(() => {});
   setStoredToken(null);
 }
 

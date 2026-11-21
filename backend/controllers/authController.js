@@ -16,18 +16,39 @@ function buildCookieOptions(maxAgeMs) {
 }
 
 export const login = asyncHandler(async (req, res) => {
-  const { token, expiresInMs, admin } = await authService.loginAdmin(req.body);
-  res.cookie(env.COOKIE.NAME, token, buildCookieOptions(expiresInMs));
+  const meta = {
+    ipAddress: req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "",
+    userAgent: req.headers["user-agent"] || "",
+  };
+
+  const { sessionToken, expiresInMs, admin } = await authService.loginAdmin(req.body, meta);
+
+  // Set the cryptographically secure opaque session identifier strictly in an HttpOnly cookie
+  res.cookie(env.COOKIE.NAME, sessionToken, buildCookieOptions(expiresInMs));
+
   res.json({
     success: true,
-    token,
     admin,
+    token: sessionToken, // Provided for headless testing compatibility
     expiresInMs,
   });
 });
 
-export const logout = asyncHandler(async (_req, res) => {
+export const logout = asyncHandler(async (req, res) => {
+  // Extract token from cookie, Authorization header, or x-admin-token
+  const cookieToken = req.cookies?.[env.COOKIE.NAME];
+  const authHeader = req.headers.authorization;
+  const bearerToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.substring(7).trim() : null;
+  const headerToken = req.headers["x-admin-token"];
+  const token = cookieToken || bearerToken || headerToken;
+
+  if (token) {
+    await authService.revokeSession(token, "User initiated logout");
+  }
+
+  // Clear session cookie
   res.cookie(env.COOKIE.NAME, "", buildCookieOptions(0));
+
   res.json({ success: true, message: "Logged out successfully" });
 });
 

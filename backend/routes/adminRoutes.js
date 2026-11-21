@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { verifyAdmin } from "../middlewares/verifyAdmin.js";
+import { requireRole } from "../middlewares/requireRole.js";
 import { upload } from "../middlewares/upload.js";
 import { authLimiter } from "../middlewares/rateLimit.js";
 
@@ -43,7 +44,7 @@ router.get("/products", productController.getAdminProducts);
 router.post("/products", productController.createProduct);
 router.put("/products/:id", productController.updateProduct);
 router.patch("/products/:id/stock", productController.updateStock);
-router.delete("/products/:id", productController.deleteProduct);
+router.delete("/products/:id", requireRole("super_admin"), productController.deleteProduct);
 
 // Merchandising Sections
 router.get("/sections", productController.getAdminSections);
@@ -83,7 +84,7 @@ router.get("/coupons", couponController.getAdminCoupons);
 router.post("/coupons", couponController.createCoupon);
 router.put("/coupons/:id", couponController.updateCoupon);
 router.patch("/coupons/:id/toggle", couponController.toggleCoupon);
-router.delete("/coupons/:id", couponController.deleteCoupon);
+router.delete("/coupons/:id", requireRole("super_admin"), couponController.deleteCoupon);
 
 // ====================================================================
 // 4b. Flash Deals & Sale Management
@@ -92,7 +93,7 @@ router.get("/deals", dealController.getAdminDeals);
 router.post("/deals", dealController.createDeal);
 router.put("/deals/:id", dealController.updateDeal);
 router.patch("/deals/:id/toggle", dealController.toggleDeal);
-router.delete("/deals/:id", dealController.deleteDeal);
+router.delete("/deals/:id", requireRole("super_admin"), dealController.deleteDeal);
 
 // ====================================================================
 // 5. Order Actions & Dispatch Lifecycle
@@ -106,8 +107,8 @@ router.patch("/orders/:orderReference/status", orderController.updateOrderStatus
 router.patch("/orders/:orderReference/tracking", orderController.updateOrderTracking);
 router.patch("/orders/:orderReference/payment", orderController.updateOrderPayment);
 router.patch("/orders/:orderReference/cancel", orderController.cancelOrder);
-router.delete("/orders/all", orderController.deleteAllOrders);
-router.delete("/orders/:orderReference", orderController.deleteOrder);
+router.delete("/orders/all", requireRole("super_admin"), orderController.deleteAllOrders);
+router.delete("/orders/:orderReference", requireRole("super_admin"), orderController.deleteOrder);
 
 // ====================================================================
 // 6. Blogs, Reviews, Contact Inquiries & Newsletter Management
@@ -116,20 +117,20 @@ router.delete("/orders/:orderReference", orderController.deleteOrder);
 router.get("/blogs", blogController.getAdminBlogs);
 router.post("/blogs", blogController.createBlog);
 router.put("/blogs/:id", blogController.updateBlog);
-router.delete("/blogs/:id", blogController.deleteBlog);
-router.delete("/blogs/:id/comments/:commentId", blogController.deleteBlogComment);
+router.delete("/blogs/:id", requireRole("super_admin"), blogController.deleteBlog);
+router.delete("/blogs/:id/comments/:commentId", requireRole("super_admin"), blogController.deleteBlogComment);
 
 // Reviews
 router.get("/reviews", reviewController.getAdminReviews);
 router.patch("/reviews/:id/moderate", reviewController.moderateReview);
-router.delete("/reviews/:id", reviewController.deleteReview);
+router.delete("/reviews/:id", requireRole("super_admin"), reviewController.deleteReview);
 
 // Contact Inquiries
 router.get("/inquiries", contactInquiryController.getAdminInquiries);
 router.patch("/inquiries/:id", contactInquiryController.updateInquiry);
 
 // Newsletter
-router.get("/newsletter/export", newsletterController.exportSubscribersCSV);
+router.get("/newsletter/export", requireRole("super_admin"), newsletterController.exportSubscribersCSV);
 router.get("/newsletter", newsletterController.getAdminSubscribers);
 
 export default router;

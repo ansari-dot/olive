@@ -201,8 +201,8 @@ export async function createOrder(payload, idempotencyKey = null) {
     paymentMethod === "Bank Transfer (IBFT)"
       ? "awaiting_ibft"
       : paymentMethod.includes("PayFast")
-      ? "pending_payfast"
-      : "pending_cod";
+        ? "pending_payfast"
+        : "pending_cod";
 
   const now = new Date();
   const initialHistory = [
@@ -790,9 +790,8 @@ export async function updateOrderPayment(orderReference, payload, adminUser) {
   order.statusHistory.push({
     stage: order.trackingStage,
     orderStatus: order.orderStatus,
-    note: `Payment status updated to "${order.paymentStatus}"${
-      order.ibftReference ? ` (Ref: ${order.ibftReference})` : ""
-    }`,
+    note: `Payment status updated to "${order.paymentStatus}"${order.ibftReference ? ` (Ref: ${order.ibftReference})` : ""
+      }`,
     updatedBy: adminUser?.name || "Admin",
     timestamp: new Date(),
   });
