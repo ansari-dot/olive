@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Coupon from "../models/Coupon.js";
+import EmailOutbox from "../models/EmailOutbox.js";
 import { validateCoupon } from "./couponService.js";
 import { getActiveDealForProduct } from "./dealService.js";
 import {
