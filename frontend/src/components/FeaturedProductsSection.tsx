@@ -295,24 +295,29 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = R
                 {/* Bottom Half: Details Area (Left-Aligned as in Screenshot) */}
                 <div className="p-4 pt-3.5 bg-white flex flex-col justify-between flex-1 text-left">
                   <div>
-                    {/* Star Rating (Left-Aligned, Gold Stars) */}
+                    {/* Star Rating & Review Count (Left-Aligned, Gold Stars) */}
                     <div
-                      className="flex items-center gap-0.5 mb-1.5 text-[#FBBF24]"
+                      className="flex items-center gap-1.5 mb-1.5 text-[#FBBF24]"
                       aria-label={`Rated ${product.rating || 5} out of 5 stars`}
                     >
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <svg
-                          key={s}
-                          viewBox="0 0 16 16"
-                          className={`w-3.5 h-3.5 ${
-                            s <= (product.rating || 5)
-                              ? 'text-[#FBBF24] fill-[#FBBF24]'
-                              : 'text-[#D1D5DB]'
-                          }`}
-                        >
-                          <path d="M8 1.4L9.95 5.35L14.3 5.98L11.15 9.05L11.89 13.38L8 11.33L4.11 13.38L4.85 9.05L1.7 5.98L6.05 5.35L8 1.4Z" />
-                        </svg>
-                      ))}
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <svg
+                            key={s}
+                            viewBox="0 0 16 16"
+                            className={`w-3.5 h-3.5 ${
+                              s <= Math.round(product.rating || 5)
+                                ? 'text-[#FBBF24] fill-[#FBBF24]'
+                                : 'text-[#D1D5DB] fill-[#D1D5DB]'
+                            }`}
+                          >
+                            <path d="M8 1.4L9.95 5.35L14.3 5.98L11.15 9.05L11.89 13.38L8 11.33L4.11 13.38L4.85 9.05L1.7 5.98L6.05 5.35L8 1.4Z" />
+                          </svg>
+                        ))}
+                      </div>
+                      <span className="text-[11.5px] font-medium text-[#6B7280]">
+                        ({product.reviewsCount ?? 0})
+                      </span>
                     </div>
 
                     {/* Product Title (Bold, Left-Aligned, Line-Clamp 1) */}

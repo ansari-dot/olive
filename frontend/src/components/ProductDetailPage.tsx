@@ -23,9 +23,12 @@ interface ProductDetailPageProps {
 interface DisplayReviewItem {
   id: string;
   author: string;
+  email?: string;
+  city?: string;
   date: string;
   rating: number;
   comment: string;
+  verifiedPurchase?: boolean;
 }
 
 const formatPKR = (amount: number) => `Rs. ${amount.toLocaleString('en-PK')}`;
@@ -88,6 +91,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   // Review Form state
   const [reviewAuthor, setReviewAuthor] = useState('');
+  const [reviewEmail, setReviewEmail] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -111,7 +115,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         if (data.reviews && data.reviews.length > 0) {
           const mappedReviews: DisplayReviewItem[] = data.reviews.map((r) => ({
             id: r._id || r.id || String(Math.random()),
-            author: r.city ? `${r.author} · ${r.city}` : r.author,
+            author: r.author,
+            email: r.email,
+            city: r.city,
             date: r.createdAt
               ? new Date(r.createdAt).toLocaleDateString('en-PK', {
                   day: 'numeric',
@@ -121,6 +127,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               : 'Recent',
             rating: r.rating,
             comment: r.comment,
+            verifiedPurchase: r.verifiedPurchase ?? true,
           }));
           setReviewsList(mappedReviews);
         }
@@ -159,17 +166,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanAuthor = reviewAuthor.trim();
+    const cleanEmail = reviewEmail.trim().toLowerCase();
     const cleanComment = reviewComment.trim();
-    if (!cleanAuthor || !cleanComment) return;
+    if (!cleanAuthor || !cleanEmail || !cleanComment) return;
 
     setSubmittingReview(true);
     setReviewError(null);
     setReviewSuccessNotice(null);
 
     try {
-      const targetId = product.mongoId || product.id;
+      const targetId = product.mongoId || product.id || product.slug;
       const res = await submitProductReview(targetId, {
         author: cleanAuthor,
+        email: cleanEmail,
         rating: reviewRating,
         comment: cleanComment,
       });
@@ -177,17 +186,31 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       const newReviewItem: DisplayReviewItem = {
         id: res.review?._id || res.review?.id || `rev-${Date.now()}`,
         author: cleanAuthor,
+        email: cleanEmail,
         date: 'Today',
         rating: reviewRating,
         comment: cleanComment,
+        verifiedPurchase: true,
       };
 
-      setReviewsList((prev) => [newReviewItem, ...prev]);
+      setReviewsList((prev) => {
+        const filtered = prev.filter((r) => r.email?.toLowerCase() !== cleanEmail);
+        return [newReviewItem, ...filtered];
+      });
+
+      // Update product rating and reviews count immediately with dynamic server values
+      setProduct((prev) => ({
+        ...prev,
+        rating: res.rating ?? reviewRating,
+        reviewsCount: res.reviewsCount ?? (prev.reviewsCount ? prev.reviewsCount + 1 : 1),
+      }));
+
       setReviewAuthor('');
+      setReviewEmail('');
       setReviewRating(5);
       setReviewComment('');
-      setReviewSuccessNotice('Thank you! Your harvest review has been submitted.');
-      setTimeout(() => setReviewSuccessNotice(null), 4000);
+      setReviewSuccessNotice('Thank you! Your verified purchase review has been published.');
+      setTimeout(() => setReviewSuccessNotice(null), 5000);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to submit review';
       setReviewError(message);
@@ -634,9 +657,23 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     reviewsList.map((rev) => (
                       <div key={rev.id} className="pb-5 border-b border-[#EFEFEF]">
                         <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <span className="text-[14px] font-medium text-[#181818]">
-                            {rev.author}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-medium text-[#181818]">
+                              {rev.author}
+                            </span>
+                            {rev.verifiedPurchase && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#16A34A] bg-[#DCFCE7] px-2 py-0.5 rounded-full border border-[#86EFAC]">
+                                <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20">
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                <span>Verified Buyer</span>
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[12px] text-[#777777]">{rev.date}</span>
                         </div>
                         <StarRating rating={rev.rating} size="sm" />
@@ -650,9 +687,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
                 <form
                   onSubmit={handleSubmitReview}
-                  className="lg:col-span-5 space-y-3 bg-[#FAF9F6] p-5 border border-[#EAEAEA]"
+                  className="lg:col-span-5 space-y-3.5 bg-[#FAF9F6] p-5 border border-[#EAEAEA]"
                 >
-                  <h3 className="text-[15px] font-medium text-[#181818]">Write a review</h3>
+                  <div>
+                    <h3 className="text-[15px] font-medium text-[#181818]">Write a review</h3>
+                    <p className="text-[11.5px] text-[#666666] mt-0.5">
+                      Verified Buyer: Only customers who purchased this harvest with their email can review.
+                    </p>
+                  </div>
 
                   {reviewSuccessNotice && (
                     <div className="p-3 bg-[#EEF5EB] border border-[#D5EAD5] text-[#1D5A2A] text-[12.5px]">
@@ -661,34 +703,66 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   )}
 
                   {reviewError && (
-                    <div className="p-3 bg-[#FDF2F2] border border-[#F8B4B4] text-[#9B1C1C] text-[12.5px]">
+                    <div className="p-3 bg-[#FDF2F2] border border-[#F8B4B4] text-[#9B1C1C] text-[12.5px] leading-relaxed">
                       {reviewError}
                     </div>
                   )}
 
-                  <input
-                    type="text"
-                    required
-                    value={reviewAuthor}
-                    onChange={(e) => setReviewAuthor(e.target.value)}
-                    placeholder="Your name"
-                    className="w-full bg-white border border-[#D4D4D4] px-3.5 py-2 text-[13.5px] focus:outline-none focus:border-[#15472B]"
-                  />
+                  <div>
+                    <input
+                      type="text"
+                      required
+                      value={reviewAuthor}
+                      onChange={(e) => setReviewAuthor(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full bg-white border border-[#D4D4D4] px-3.5 py-2 text-[13.5px] focus:outline-none focus:border-[#15472B]"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="email"
+                      required
+                      value={reviewEmail}
+                      onChange={(e) => setReviewEmail(e.target.value)}
+                      placeholder="Your order email (Used to verify purchase)"
+                      className="w-full bg-white border border-[#D4D4D4] px-3.5 py-2 text-[13.5px] focus:outline-none focus:border-[#15472B]"
+                    />
+                    <span className="text-[11px] text-[#777777] mt-1 block">
+                      Must match the email used when purchasing this item at checkout.
+                    </span>
+                  </div>
+
                   <div className="flex items-center gap-2 text-[13px] text-[#555555]">
                     <span>Rating:</span>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setReviewRating(star)}
-                        className={`text-[16px] cursor-pointer ${
-                          star <= reviewRating ? 'text-[#C46B3B]' : 'text-[#CCCCCC]'
-                        }`}
-                      >
-                        ★
-                      </button>
-                    ))}
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(star)}
+                          className={`text-[18px] cursor-pointer transition-colors ${
+                            star <= reviewRating ? 'text-[#C46B3B]' : 'text-[#CCCCCC]'
+                          }`}
+                          aria-label={`Rate ${star} stars`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-[11.5px] font-semibold text-[#181818] ml-1">
+                      {reviewRating === 5
+                        ? '5/5 Excellent'
+                        : reviewRating === 4
+                        ? '4/5 Very Good'
+                        : reviewRating === 3
+                        ? '3/5 Average'
+                        : reviewRating === 2
+                        ? '2/5 Below Average'
+                        : '1/5 Poor'}
+                    </span>
                   </div>
+
                   <textarea
                     required
                     rows={3}
@@ -697,18 +771,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     placeholder="Share your tasting notes..."
                     className="w-full bg-white border border-[#D4D4D4] px-3.5 py-2 text-[13.5px] focus:outline-none focus:border-[#15472B]"
                   />
+
                   <button
                     type="submit"
                     disabled={submittingReview}
-                    className="px-5 py-2.5 bg-[#0B0B0B] hover:bg-[#15472B] disabled:bg-[#888888] text-white text-[11.5px] font-semibold uppercase tracking-[0.08em] transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full px-5 py-2.5 bg-[#0B0B0B] hover:bg-[#15472B] disabled:bg-[#888888] text-white text-[11.5px] font-semibold uppercase tracking-[0.08em] transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
                     {submittingReview ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Submitting...</span>
+                        <span>Verifying Order &amp; Submitting...</span>
                       </>
                     ) : (
-                      <span>Submit Review</span>
+                      <span>SUBMIT REVIEW</span>
                     )}
                   </button>
                 </form>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Plus, Search, Trash2, Upload, X, Edit2 } from 'lucide-react';
+import { Plus, Search, Trash2, Upload, X, Edit2, Star, Check, EyeOff, MessageSquare } from 'lucide-react';
 import {
   DEFAULT_IMAGE_PLACEHOLDER,
   createAdminProduct,
@@ -7,12 +7,15 @@ import {
   fetchAdminCategories,
   fetchAdminOrigins,
   fetchAdminProducts,
+  fetchAdminReviews,
+  moderateAdminReview,
+  deleteAdminReview,
   resolveAssetUrl,
   updateAdminProduct,
   updateProductStock,
   uploadAdminImage,
 } from '../services/adminApi';
-import type { AdminProduct, BrandName } from '../types/admin';
+import type { AdminProduct, AdminReview, BrandName } from '../types/admin';
 import { formatPKR } from '../utils/formatters';
 
 const BRAND_OPTIONS: BrandName[] = [
@@ -91,6 +94,59 @@ export const ProductsView: React.FC = () => {
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Product Reviews Inspection & Moderation Modal state
+  const [reviewsModalOpen, setReviewsModalOpen] = useState(false);
+  const [selectedProductForReviews, setSelectedProductForReviews] = useState<AdminProduct | null>(null);
+  const [productReviews, setProductReviews] = useState<AdminReview[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
+  const [confirmDeleteReviewId, setConfirmDeleteReviewId] = useState<string | null>(null);
+
+  const openProductReviewsModal = async (prod: AdminProduct) => {
+    setSelectedProductForReviews(prod);
+    setReviewsModalOpen(true);
+    setLoadingReviews(true);
+    setConfirmDeleteReviewId(null);
+    try {
+      const all = await fetchAdminReviews();
+      const filtered = all.filter((r) => {
+        const pId = typeof r.product === 'object' && r.product ? r.product._id : String(r.product);
+        return pId === prod._id || (typeof r.product === 'object' && r.product?.slug === prod.slug);
+      });
+      setProductReviews(filtered);
+    } catch {
+      setProductReviews([]);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  const handleToggleProductReview = async (review: AdminReview) => {
+    try {
+      const updated = await moderateAdminReview(review._id, !review.isApproved);
+      setProductReviews((prev) =>
+        prev.map((r) => (r._id === review._id ? { ...r, ...updated } : r))
+      );
+      await loadProducts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update review visibility');
+    }
+  };
+
+  const handleDeleteProductReview = async (reviewId: string) => {
+    setDeletingReviewId(reviewId);
+    try {
+      await deleteAdminReview(reviewId);
+      setProductReviews((prev) => prev.filter((r) => r._id !== reviewId));
+      setConfirmDeleteReviewId(null);
+      await loadProducts();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete review');
+    } finally {
+      setDeletingReviewId(null);
+    }
+  };
 
   const refreshTaxonomies = () => {
     fetchAdminCategories()
@@ -450,6 +506,7 @@ export const ProductsView: React.FC = () => {
                 <th className="py-3 px-4 text-left font-semibold">Product</th>
                 <th className="py-3 px-4 text-left font-semibold">Brand &amp; Category</th>
                 <th className="py-3 px-4 text-left font-semibold">Sections</th>
+                <th className="py-3 px-4 text-left font-semibold">Reviews</th>
                 <th className="py-3 px-4 text-right font-semibold">Price (PKR)</th>
                 <th className="py-3 px-4 text-right font-semibold">Stock</th>
                 <th className="py-3 px-4 text-right font-semibold">Actions</th>
@@ -528,6 +585,18 @@ export const ProductsView: React.FC = () => {
                         Inactive
                       </span>
                     )}
+                  </td>
+                  <td className="py-3 px-4 whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => void openProductReviewsModal(prod)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F8FAFC] hover:bg-[#FEF3C7] border border-[#CBD5E1] hover:border-[#F59E0B] text-[#0F172A] text-[12px] font-medium transition-colors cursor-pointer rounded-xs"
+                      title="Inspect & Moderate Customer Reviews"
+                    >
+                      <Star className="w-3.5 h-3.5 text-[#D97706] fill-[#D97706]" />
+                      <span className="font-semibold">{prod.rating ? Number(prod.rating).toFixed(1) : '5.0'}</span>
+                      <span className="text-[#64748B] text-[11px]">({prod.reviewsCount || 0})</span>
+                    </button>
                   </td>
                   <td className="py-3 px-4 text-right font-mono-data">
                     <span className="font-semibold text-[#0F172A]">{formatPKR(prod.price)}</span>
@@ -615,6 +684,30 @@ export const ProductsView: React.FC = () => {
 
             {/* Modal Body */}
             <form onSubmit={handleSaveProduct} className="flex-1 overflow-y-auto px-6 py-5 space-y-6 text-[13px]">
+              {editingId && (
+                <div className="bg-[#FEF3C7]/60 border border-[#FDE68A] p-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-4 h-4 text-[#D97706] fill-[#D97706]" />
+                    <span className="text-[13px] font-semibold text-[#92400E]">
+                      Storefront Rating: {form.rating ? Number(form.rating).toFixed(1) : '5.0'} / 5.0
+                    </span>
+                    <span className="text-[12px] text-[#78350F]">
+                      ({form.reviewsCount || 0} customer reviews)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const found = products.find((p) => p._id === editingId);
+                      if (found) void openProductReviewsModal(found);
+                    }}
+                    className="text-[11.5px] font-semibold uppercase tracking-wider text-[#92400E] underline hover:text-[#78350F] cursor-pointer"
+                  >
+                    Inspect Reviews
+                  </button>
+                </div>
+              )}
+
               {/* Section 1: Basic Information */}
               <div className="space-y-4">
                 <h4 className="text-[12px] font-bold uppercase tracking-wider text-[#15472B] border-b border-[#E2E8F0] pb-1.5">
@@ -1176,6 +1269,177 @@ export const ProductsView: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Product Reviews Inspection & Moderation Modal */}
+      {reviewsModalOpen && selectedProductForReviews && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-[700px] max-h-[88vh] bg-white border border-[#E2E8F0] shadow-xl flex flex-col">
+            <div className="px-6 py-4 border-b border-[#E2E8F0] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={resolveAssetUrl(selectedProductForReviews.image)}
+                  alt={selectedProductForReviews.name}
+                  className="w-10 h-12 object-cover border border-[#E2E8F0] bg-[#FAF3F0]"
+                />
+                <div>
+                  <h3 className="text-[16px] font-semibold text-[#0F172A] line-clamp-1">
+                    {selectedProductForReviews.name}
+                  </h3>
+                  <div className="flex items-center gap-2 text-[12px] text-[#64748B]">
+                    <span className="inline-flex items-center gap-1 font-semibold text-[#D97706]">
+                      <Star className="w-3.5 h-3.5 fill-[#D97706]" />
+                      <span>{selectedProductForReviews.rating ? Number(selectedProductForReviews.rating).toFixed(1) : '5.0'}</span>
+                    </span>
+                    <span>·</span>
+                    <span>{productReviews.length} total customer reviews</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewsModalOpen(false)}
+                aria-label="Close modal"
+                className="p-1.5 text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {loadingReviews ? (
+                <div className="py-12 text-center text-[13.5px] text-[#64748B]">
+                  Loading product reviews...
+                </div>
+              ) : productReviews.length === 0 ? (
+                <div className="py-12 text-center text-[#64748B] space-y-2">
+                  <Star className="w-8 h-8 text-[#CBD5E1] mx-auto" />
+                  <p className="text-[14px] font-medium text-[#334155]">
+                    No customer reviews yet
+                  </p>
+                  <p className="text-[12.5px] text-[#94A3B8]">
+                    When verified buyers submit reviews for this harvest, they will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3.5">
+                  {productReviews.map((review) => {
+                    const isDeleting = deletingReviewId === review._id;
+                    const isConfirming = confirmDeleteReviewId === review._id;
+                    return (
+                      <div
+                        key={review._id}
+                        className="border border-[#E2E8F0] bg-[#F8FAFC] p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4"
+                      >
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-[13.5px] text-[#0F172A]">
+                              {review.author}
+                            </span>
+                            {review.email && (
+                              <span className="text-[11.5px] text-[#2563EB] font-mono-data">
+                                ({review.email})
+                              </span>
+                            )}
+                            {review.verifiedPurchase && (
+                              <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[#16A34A] bg-[#DCFCE7] px-2 py-0.5 rounded-full border border-[#86EFAC]">
+                                <Check className="w-3 h-3 stroke-[2.5]" />
+                                <span>Verified Buyer</span>
+                              </span>
+                            )}
+                            {review.orderReference && (
+                              <span className="text-[11px] text-[#64748B] font-mono-data">
+                                · Ref: {review.orderReference}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1 text-[#D97706]">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-3.5 h-3.5 ${
+                                  star <= review.rating ? 'fill-[#D97706]' : 'text-[#CBD5E1]'
+                                }`}
+                              />
+                            ))}
+                            <span className="text-[12px] font-semibold text-[#0F172A] ml-1">
+                              {review.rating}/5
+                            </span>
+                          </div>
+
+                          <p className="text-[13px] text-[#334155] leading-relaxed whitespace-pre-wrap bg-white p-3 border border-[#E2E8F0]/70">
+                            {review.comment}
+                          </p>
+                        </div>
+
+                        <div className="shrink-0 flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => void handleToggleProductReview(review)}
+                            className="border border-[#CBD5E1] hover:border-[#0F172A] px-2 py-1 text-[11px] font-medium text-[#0F172A] inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            {review.isApproved ? (
+                              <>
+                                <EyeOff className="w-3 h-3" />
+                                <span>Hide</span>
+                              </>
+                            ) : (
+                              <>
+                                <Check className="w-3 h-3 text-[#16A34A]" />
+                                <span>Approve</span>
+                              </>
+                            )}
+                          </button>
+
+                          {isConfirming ? (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                disabled={isDeleting}
+                                onClick={() => void handleDeleteProductReview(review._id)}
+                                className="bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-60 text-white px-2 py-1 text-[11px] font-semibold cursor-pointer"
+                              >
+                                {isDeleting ? 'Deleting...' : 'Confirm'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteReviewId(null)}
+                                className="border border-[#CBD5E1] px-2 py-1 text-[11px] text-[#475569] cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteReviewId(review._id)}
+                              aria-label="Delete review"
+                              className="border border-[#FECACA] hover:bg-[#FEF2F2] text-[#DC2626] p-1.5 cursor-pointer rounded-xs"
+                              title="Delete review"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-3.5 border-t border-[#E2E8F0] bg-[#F8FAFC] flex justify-end">
+              <button
+                type="button"
+                onClick={() => setReviewsModalOpen(false)}
+                className="bg-[#0F172A] hover:bg-[#1E293B] text-white px-4 py-2 text-[12px] font-medium cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

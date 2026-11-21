@@ -242,6 +242,15 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
     return filteredPosts.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredPosts, currentPage]);
 
+  // Dynamic Popular Posts: Only show posts marked as popular in Admin Panel (or fallback to recent)
+  const popularPosts = useMemo(() => {
+    const popularOnly = posts.filter((p) => p.isPopular);
+    if (popularOnly.length > 0) {
+      return popularOnly;
+    }
+    return posts;
+  }, [posts]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setCurrentPage(1);
@@ -519,7 +528,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
               </div>
 
               <div className="space-y-3.5">
-                {posts.slice(0, 6).map((item) => (
+                {popularPosts.slice(0, 6).map((item) => (
                   <div
                     key={item.id || item.slug}
                     onClick={() => onSelectPost(item)}

@@ -37,6 +37,7 @@ interface BlogFormState {
   alt: string;
   contentText: string;
   takeawaysText: string;
+  isPopular: boolean;
   isPublished: boolean;
 }
 
@@ -55,6 +56,7 @@ const EMPTY_BLOG_FORM: BlogFormState = {
   alt: '',
   contentText: '',
   takeawaysText: '',
+  isPopular: false,
   isPublished: true,
 };
 
@@ -161,6 +163,7 @@ export const BlogsView: React.FC = () => {
       alt: post.alt || post.title,
       contentText: (post.content || []).join('\n\n'),
       takeawaysText: (post.takeaways || []).join('\n'),
+      isPopular: post.isPopular ?? false,
       isPublished: post.isPublished ?? true,
     });
     setModalOpen(true);
@@ -217,6 +220,7 @@ export const BlogsView: React.FC = () => {
         image: form.image.trim(),
         alt: form.alt.trim() || form.title.trim(),
         content: paragraphs,
+        isPopular: form.isPopular,
         isPublished: form.isPublished,
       };
 
@@ -350,9 +354,16 @@ export const BlogsView: React.FC = () => {
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="font-medium text-[#0F172A] truncate max-w-[340px]">
-                          {post.title}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-[#0F172A] truncate max-w-[340px]">
+                            {post.title}
+                          </p>
+                          {post.isPopular && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A] text-[10.5px] font-semibold rounded-xs shrink-0">
+                              ★ Popular
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11.5px] text-[#64748B] font-mono-data truncate max-w-[340px]">
                           /blogs/{post.slug}
                         </p>
@@ -681,14 +692,30 @@ export const BlogsView: React.FC = () => {
                 />
               </div>
 
-              <label className="inline-flex items-center gap-2 text-[13px] text-[#0F172A] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.isPublished}
-                  onChange={(e) => setForm((p) => ({ ...p, isPublished: e.target.checked }))}
-                />
-                <span>Published on public storefront</span>
-              </label>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 pt-1">
+                <label className="inline-flex items-center gap-2 text-[13px] text-[#0F172A] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.isPublished}
+                    onChange={(e) => setForm((p) => ({ ...p, isPublished: e.target.checked }))}
+                    className="w-4 h-4 text-[#15472B] border-[#CBD5E1] rounded focus:ring-[#15472B]"
+                  />
+                  <span>Published on public storefront</span>
+                </label>
+
+                <label className="inline-flex items-center gap-2 text-[13px] text-[#0F172A] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.isPopular}
+                    onChange={(e) => setForm((p) => ({ ...p, isPopular: e.target.checked }))}
+                    className="w-4 h-4 text-[#15472B] border-[#CBD5E1] rounded focus:ring-[#15472B]"
+                  />
+                  <span className="font-medium flex items-center gap-1.5 text-[#0F172A]">
+                    <span className="text-[#D97706]">★</span>
+                    <span>Show in Popular Posts (Sidebar widget)</span>
+                  </span>
+                </label>
+              </div>
 
               <div className="pt-4 border-t border-[#E2E8F0] flex justify-end gap-3">
                 <button

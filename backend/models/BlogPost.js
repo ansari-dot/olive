@@ -100,6 +100,10 @@ const blogPostSchema = new mongoose.Schema(
       type: [blogCommentSchema],
       default: [],
     },
+    isPopular: {
+      type: Boolean,
+      default: false,
+    },
     isPublished: {
       type: Boolean,
       default: true,
@@ -111,6 +115,7 @@ const blogPostSchema = new mongoose.Schema(
 );
 
 blogPostSchema.index({ isPublished: 1, createdAt: -1 });
+blogPostSchema.index({ isPopular: 1 });
 blogPostSchema.index({ category: 1 });
 blogPostSchema.index({ tags: 1 });
 

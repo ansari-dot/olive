@@ -164,6 +164,7 @@ export interface AdminBlogPost {
   alt: string;
   content: string[];
   comments?: AdminBlogComment[];
+  isPopular?: boolean;
   isPublished: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -177,8 +178,12 @@ export interface AdminReview {
     slug?: string;
   } | string;
   author: string;
+  email?: string;
+  city?: string;
   rating: number;
   comment: string;
+  orderReference?: string;
+  verifiedPurchase?: boolean;
   isApproved: boolean;
   createdAt: string;
 }

@@ -868,17 +868,26 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
                       {/* Bottom Half: Text Meta (Left Aligned, Exact Match to Reference Image) */}
                       <div className="p-4 sm:p-5 pt-3 flex flex-col justify-between flex-1 border-t border-[#F5F5F5] bg-white">
                         <div>
-                          {/* Left-Aligned Gold Stars Rating */}
-                          <div className="flex items-center gap-0.5 text-[#F59E0B]">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <svg
-                                key={star}
-                                viewBox="0 0 16 16"
-                                className="w-3.5 h-3.5 fill-[#F59E0B]"
-                              >
-                                <path d="M8 1.4L9.95 5.35L14.3 5.98L11.15 9.05L11.89 13.38L8 11.33L4.11 13.38L4.85 9.05L1.7 5.98L6.05 5.35L8 1.4Z" />
-                              </svg>
-                            ))}
+                          {/* Dynamic Gold Stars Rating & Reviews Count */}
+                          <div className="flex items-center gap-1.5 text-[#F59E0B]">
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <svg
+                                  key={star}
+                                  viewBox="0 0 16 16"
+                                  className={`w-3.5 h-3.5 ${
+                                    star <= Math.round(product.rating || 5)
+                                      ? 'fill-[#F59E0B] text-[#F59E0B]'
+                                      : 'fill-[#E5E7EB] text-[#E5E7EB]'
+                                  }`}
+                                >
+                                  <path d="M8 1.4L9.95 5.35L14.3 5.98L11.15 9.05L11.89 13.38L8 11.33L4.11 13.38L4.85 9.05L1.7 5.98L6.05 5.35L8 1.4Z" />
+                                </svg>
+                              ))}
+                            </div>
+                            <span className="text-[11.5px] font-medium text-[#6B7280]">
+                              ({product.reviewsCount ?? 0})
+                            </span>
                           </div>
 
                           {/* Product Title */}

@@ -105,6 +105,7 @@ const ALLOWED_BLOG_FIELDS = [
   "alt",
   "content",
   "comments",
+  "isPopular",
   "isPublished",
 ];
 
@@ -114,6 +115,10 @@ function pickBlogPayload(body) {
     if (body[field] !== undefined) {
       payload[field] = body[field];
     }
+  }
+
+  if (payload.isPopular !== undefined) {
+    payload.isPopular = Boolean(payload.isPopular);
   }
 
   // Sanitize tags

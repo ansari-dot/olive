@@ -206,6 +206,7 @@ export function normalizeBlogPost(raw: any): BlogPost {
       ? raw.content
       : [String(raw.content || '')],
     comments: rawComments,
+    isPopular: Boolean(raw.isPopular),
     isPublished: raw.isPublished ?? true,
     createdAt: raw.createdAt,
   };
@@ -254,9 +255,12 @@ export interface ReviewItem {
   id?: string;
   _id?: string;
   author: string;
+  email?: string;
   city?: string;
   rating: number;
   comment: string;
+  verifiedPurchase?: boolean;
+  orderReference?: string;
   createdAt?: string;
   date?: string;
 }
@@ -532,7 +536,7 @@ export async function fetchProductById(
  */
 export async function submitProductReview(
   idOrSlug: string,
-  payload: { author: string; rating: number; comment: string }
+  payload: { author: string; email: string; rating: number; comment: string; city?: string }
 ): Promise<{
   success: boolean;
   message: string;
@@ -554,8 +558,9 @@ export async function submitProductReview(
     throw new Error(data.message || 'Failed to submit review');
   }
 
-  // Purge product detail cache so updated review and count load immediately
+  // Purge product detail and catalog cache so updated review and count load immediately
   clearApiCache(`product:${cleanId}`);
+  clearApiCache('products');
 
   return {
     success: true,
@@ -563,8 +568,12 @@ export async function submitProductReview(
     review: {
       id: data.review?._id || data.review?.id,
       author: data.review?.author || payload.author,
+      email: data.review?.email || payload.email,
       rating: data.review?.rating || payload.rating,
       comment: data.review?.comment || payload.comment,
+      verifiedPurchase: Boolean(data.review?.verifiedPurchase ?? true),
+      orderReference: data.review?.orderReference,
+      city: data.review?.city,
       date: 'Just now',
     },
     rating: data.rating,

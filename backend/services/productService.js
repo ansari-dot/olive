@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Review from "../models/Review.js";
 import Origin from "../models/Origin.js";
+import Order from "../models/Order.js";
 import { invalidateCache } from "../middlewares/cache.js";
 import { escapeRegex } from "../utils/security.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -298,9 +299,21 @@ export async function getProductByIdOrSlug(idOrSlug, isPublic = true) {
   };
 }
 
-export async function addProductReview(idOrSlug, { author, rating, comment }) {
-  if (!author || !comment || !rating) {
-    throw ApiError.badRequest("Author, rating (1-5), and comment are required");
+export async function addProductReview(idOrSlug, { author, email, rating, comment, city }) {
+  if (!author || !author.trim()) {
+    throw ApiError.badRequest("Your name is required");
+  }
+  if (!email || !email.trim()) {
+    throw ApiError.badRequest("Your purchase email is required to verify your order");
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(cleanEmail)) {
+    throw ApiError.badRequest("Please provide a valid email address");
+  }
+
+  if (!comment || !comment.trim()) {
+    throw ApiError.badRequest("Review tasting notes/comment are required");
   }
 
   const numRating = Number(rating);
@@ -311,13 +324,54 @@ export async function addProductReview(idOrSlug, { author, rating, comment }) {
   const productData = await getProductByIdOrSlug(idOrSlug, true);
   const product = productData.product;
 
-  const review = await Review.create({
+  // Real-world e-commerce verified buyer check:
+  // Check if an order exists containing this product with this customer's email
+  const safeEmail = cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const order = await Order.findOne({
+    "customer.email": { $regex: new RegExp(`^${safeEmail}$`, "i") },
+    $or: [
+      { "items.product": product._id },
+      { "items.slug": product.slug },
+    ],
+    orderStatus: { $ne: "cancelled" },
+  }).sort({ createdAt: -1 });
+
+  if (!order) {
+    throw ApiError.badRequest(
+      `Only verified buyers who ordered this harvest can leave a review. No order was found for "${cleanEmail}" containing this product. Please check the email address you entered during checkout.`
+    );
+  }
+
+  // Check if user already reviewed this product with this email
+  const existingReview = await Review.findOne({
     product: product._id,
-    author: author.trim(),
-    rating: numRating,
-    comment: comment.trim(),
-    isApproved: true,
+    email: cleanEmail,
   });
+
+  let review;
+  if (existingReview) {
+    existingReview.author = author.trim();
+    existingReview.rating = numRating;
+    existingReview.comment = comment.trim();
+    if (city?.trim()) existingReview.city = city.trim();
+    existingReview.orderReference = order.orderReference;
+    existingReview.verifiedPurchase = true;
+    existingReview.isApproved = true;
+    await existingReview.save();
+    review = existingReview;
+  } else {
+    review = await Review.create({
+      product: product._id,
+      author: author.trim(),
+      email: cleanEmail,
+      city: city?.trim() || order.shippingAddress?.city || "",
+      rating: numRating,
+      comment: comment.trim(),
+      orderReference: order.orderReference,
+      verifiedPurchase: true,
+      isApproved: true,
+    });
+  }
 
   // Recalculate parent Product.rating & reviewsCount
   const stats = await Review.aggregate([
@@ -332,12 +386,14 @@ export async function addProductReview(idOrSlug, { author, rating, comment }) {
   ]);
 
   const newReviewsCount = stats[0]?.count || 1;
-  const newRating = Math.round((stats[0]?.avgRating || numRating) * 10) / 10;
+  const rawAvg = stats[0]?.avgRating || numRating;
+  const newRating = Math.round(rawAvg * 10) / 10;
 
-  product.rating = Math.round(newRating);
+  product.rating = newRating;
   product.reviewsCount = newReviewsCount;
   await product.save();
   invalidateCache("/api/products");
+  invalidateCache("/api/home");
 
   return {
     review,

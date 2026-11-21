@@ -119,8 +119,9 @@ export const ReviewsView: React.FC = () => {
           <table className="w-full text-[13px]">
             <thead>
               <tr className="text-[11px] uppercase tracking-[0.06em] text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0]">
-                <th className="py-3 px-4 text-left font-semibold">Author &amp; Date</th>
+                <th className="py-3 px-4 text-left font-semibold">Customer &amp; Date</th>
                 <th className="py-3 px-4 text-left font-semibold">Product</th>
+                <th className="py-3 px-4 text-left font-semibold">Order / Verification</th>
                 <th className="py-3 px-4 text-left font-semibold">Rating</th>
                 <th className="py-3 px-4 text-left font-semibold">Review Comment</th>
                 <th className="py-3 px-4 text-left font-semibold">Status</th>
@@ -132,17 +133,41 @@ export const ReviewsView: React.FC = () => {
                 const productName =
                   typeof review.product === 'object' && review.product
                     ? review.product.name
-                    : 'Zaitoon Product';
+                    : 'Pak Veda Product';
                 return (
                   <tr key={review._id} className="hover:bg-[#F8FAFC] align-top">
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <p className="font-medium text-[#0F172A]">{review.author}</p>
-                      <p className="text-[11px] text-[#64748B] font-mono-data">
+                      {review.email && (
+                        <p className="text-[11.5px] text-[#2563EB] font-mono-data">
+                          {review.email}
+                        </p>
+                      )}
+                      <p className="text-[11px] text-[#64748B] font-mono-data mt-0.5">
                         {formatDateTime(review.createdAt)}
                       </p>
                     </td>
                     <td className="py-3.5 px-4 text-[#334155] max-w-[200px]">
                       <p className="truncate font-medium">{productName}</p>
+                    </td>
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <div className="space-y-1">
+                        {review.verifiedPurchase ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#16A34A] bg-[#DCFCE7] px-2 py-0.5 rounded-full border border-[#86EFAC]">
+                            <Check className="w-3 h-3 stroke-[2.5]" />
+                            <span>Verified Buyer</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-[10.5px] text-[#64748B] bg-[#F1F5F9] px-2 py-0.5 rounded-full">
+                            Unverified
+                          </span>
+                        )}
+                        {review.orderReference && (
+                          <p className="text-[11px] font-mono-data text-[#475569]">
+                            Ref: {review.orderReference}
+                          </p>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="inline-flex items-center gap-0.5 text-[#D97706]">

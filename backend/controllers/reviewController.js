@@ -2,6 +2,7 @@ import Review from "../models/Review.js";
 import Product from "../models/Product.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
+import { invalidateCache } from "../middlewares/cache.js";
 
 async function recalculateRating(productId) {
   const stats = await Review.aggregate([
@@ -15,8 +16,11 @@ async function recalculateRating(productId) {
     },
   ]);
   const reviewsCount = stats[0]?.count || 0;
-  const rating = reviewsCount > 0 ? Math.round(stats[0].avgRating) : 5;
+  const rawAvg = stats[0]?.avgRating || 5;
+  const rating = reviewsCount > 0 ? Math.round(rawAvg * 10) / 10 : 5;
   await Product.findByIdAndUpdate(productId, { rating, reviewsCount });
+  invalidateCache("/api/products");
+  invalidateCache("/api/home");
 }
 
 // Public: POST /api/reviews
