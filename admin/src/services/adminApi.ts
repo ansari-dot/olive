@@ -1,4 +1,5 @@
 import type {
+  AdminBlogComment,
   AdminBlogPost,
   AdminCoupon,
   AdminInquiry,
@@ -482,6 +483,17 @@ export async function updateAdminBlog(
 
 export async function deleteAdminBlog(id: string): Promise<void> {
   await request<unknown>(`/admin/blogs/${id}`, { method: 'DELETE' });
+}
+
+export async function deleteAdminBlogComment(
+  blogId: string,
+  commentId: string
+): Promise<AdminBlogComment[]> {
+  const res = await request<{ success: boolean; comments: AdminBlogComment[] }>(
+    `/admin/blogs/${blogId}/comments/${commentId}`,
+    { method: 'DELETE' }
+  );
+  return res.comments || [];
 }
 
 // Reviews

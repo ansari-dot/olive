@@ -24,7 +24,7 @@ export const BlogDetailRoutePage: React.FC = () => {
     setError(null);
 
     Promise.all([
-      fetchBlogById(id),
+      fetchBlogById(id, { forceFresh: true }),
       fetchBlogs(),
       fetchProducts({ limit: 4 }),
     ])

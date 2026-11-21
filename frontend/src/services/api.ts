@@ -681,6 +681,38 @@ export async function fetchBlogById(
 }
 
 /**
+ * GET /api/blogs/:idOrSlug/comments
+ * Fetches fresh reader notes / comments for a blog post
+ */
+export async function fetchBlogComments(
+  idOrSlug: string,
+  options?: FetchOptions
+): Promise<BlogPost['comments']> {
+  const cleanId = encodeURIComponent(idOrSlug.trim());
+  const res = await fetch(`${API_BASE_URL}/blogs/${cleanId}/comments`, {
+    signal: options?.signal,
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  const list = data.comments || data.data || [];
+  return list.map((c: any) => ({
+    id: c._id ? String(c._id) : c.id || `c-${Date.now()}`,
+    _id: c._id ? String(c._id) : undefined,
+    author: c.author || 'Reader',
+    city: c.city || 'Pakistan',
+    comment: c.comment || '',
+    createdAt: c.createdAt,
+    date: c.createdAt
+      ? new Date(c.createdAt).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : 'Recently',
+  }));
+}
+
+/**
  * POST /api/blogs/:idOrSlug/comments
  * Submits a public reader note/comment to a blog post and invalidates cache
  */
@@ -701,7 +733,7 @@ export async function submitBlogComment(
   }
 
   // Invalidate in-memory caches
-  clearApiCache(`blog:${cleanId}`);
+  clearApiCache('blog');
   clearApiCache('blogs_list');
 
   return {

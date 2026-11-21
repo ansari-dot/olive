@@ -102,6 +102,7 @@ router.get("/blogs", blogController.getAdminBlogs);
 router.post("/blogs", blogController.createBlog);
 router.put("/blogs/:id", blogController.updateBlog);
 router.delete("/blogs/:id", blogController.deleteBlog);
+router.delete("/blogs/:id/comments/:commentId", blogController.deleteBlogComment);
 
 // Reviews
 router.get("/reviews", reviewController.getAdminReviews);

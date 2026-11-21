@@ -41,7 +41,13 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
   const [submittingComment, setSubmittingComment] = useState(false);
   const [commentSuccess, setCommentSuccess] = useState<string | null>(null);
 
-  // Fetch full post and related content if missing
+  // Sync state if initialPost updates from parent
+  useEffect(() => {
+    setPost(initialPost);
+    setComments(initialPost.comments || []);
+  }, [initialPost]);
+
+  // Fetch full post and related content if missing or to ensure real-time fresh data
   useEffect(() => {
     let isMounted = true;
     if (initialPost.id || initialPost.slug) {
@@ -50,9 +56,7 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
         .then((fullPost) => {
           if (isMounted && fullPost) {
             setPost(fullPost);
-            if (fullPost.comments && fullPost.comments.length > 0) {
-              setComments(fullPost.comments);
-            }
+            setComments(fullPost.comments || []);
           }
         })
         .catch((err) => console.error('Failed to load full post:', err));
@@ -355,6 +359,13 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
                     <option>Multan</option>
                     <option>Faisalabad</option>
                     <option>Quetta</option>
+                    <option>Sialkot</option>
+                    <option>Gujranwala</option>
+                    <option>Abbottabad</option>
+                    <option>Skardu</option>
+                    <option>Gilgit</option>
+                    <option>Swat</option>
+                    <option>Chakwal</option>
                   </select>
                 </div>
                 <textarea

@@ -27,6 +27,23 @@ export const getBlogByIdOrSlug = asyncHandler(async (req, res) => {
   res.json({ success: true, blog, data: blog });
 });
 
+// Public: GET /api/blogs/:idOrSlug/comments
+export const getBlogComments = asyncHandler(async (req, res) => {
+  const { idOrSlug } = req.params;
+  const query = {};
+  if (mongoose.Types.ObjectId.isValid(idOrSlug)) {
+    query.$or = [{ _id: idOrSlug }, { slug: idOrSlug.toLowerCase() }];
+  } else {
+    query.slug = idOrSlug.toLowerCase();
+  }
+
+  const blog = await BlogPost.findOne(query).select("title slug comments");
+  if (!blog) {
+    throw ApiError.notFound(`Blog post "${idOrSlug}" not found`);
+  }
+  res.json({ success: true, comments: blog.comments || [], data: blog.comments || [] });
+});
+
 // Public: POST /api/blogs/:idOrSlug/comments
 export const addBlogComment = asyncHandler(async (req, res) => {
   const { idOrSlug } = req.params;
@@ -153,4 +170,29 @@ export const deleteBlog = asyncHandler(async (req, res) => {
   if (!blog) throw ApiError.notFound("Blog post not found");
   invalidateCache("/api/blogs");
   res.json({ success: true, message: "Blog post deleted successfully" });
+});
+
+// Admin: DELETE /api/admin/blogs/:id/comments/:commentId
+export const deleteBlogComment = asyncHandler(async (req, res) => {
+  const { id, commentId } = req.params;
+  const blog = await BlogPost.findById(id);
+  if (!blog) throw ApiError.notFound("Blog post not found");
+
+  const initialCount = blog.comments ? blog.comments.length : 0;
+  blog.comments = (blog.comments || []).filter(
+    (c) => c._id.toString() !== commentId && c.id !== commentId
+  );
+
+  if (blog.comments.length === initialCount) {
+    throw ApiError.notFound("Comment not found on this blog post");
+  }
+
+  await blog.save();
+  invalidateCache("/api/blogs");
+
+  res.json({
+    success: true,
+    message: "Reader note removed successfully",
+    comments: blog.comments,
+  });
 });
