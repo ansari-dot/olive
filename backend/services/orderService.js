@@ -109,15 +109,27 @@ export async function createOrder(payload) {
     });
   }
 
-  // 2. Coupon validation if provided
+  // 2. Coupon validation if provided (excluding deal items)
   let discountAmount = 0;
   let appliedCouponCode = null;
 
   if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+    const regularItems = resolvedItems.filter((it) => !it.isDeal);
+    const regularSubtotal = regularItems.reduce((acc, it) => acc + it.lineTotal, 0);
+    const dealItems = resolvedItems.filter((it) => it.isDeal);
+
+    if (regularItems.length === 0 && dealItems.length > 0) {
+      throw ApiError.badRequest(
+        "Coupon codes cannot be applied to Flash Deal items. Your cart contains only promotional deal products."
+      );
+    }
+
     try {
       const couponRes = await validateCoupon({
         code: couponCode.trim(),
-        subtotal,
+        subtotal: regularSubtotal,
+        totalSubtotal: subtotal,
+        hasDealItems: dealItems.length > 0,
       });
       discountAmount = couponRes.discountAmount;
       appliedCouponCode = couponRes.code;

@@ -10,6 +10,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { Product } from '../data/storeData';
+import { validateCoupon } from '../services/api';
 
 export interface CartPageItem {
   product: Product;
@@ -50,6 +51,9 @@ export const CartPage: React.FC<CartPageProps> = ({
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [serverDiscountAmount, setServerDiscountAmount] = useState(0);
+  const [couponNotice, setCouponNotice] = useState<string | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const freeShippingThreshold = 3500;
@@ -58,19 +62,57 @@ export const CartPage: React.FC<CartPageProps> = ({
     Math.round((subtotal / freeShippingThreshold) * 100)
   );
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     const clean = couponCode.trim().toUpperCase();
     if (!clean) return;
-    if (clean === 'VEDA20' || clean === 'ORGANIC10') {
-      setCouponApplied(true);
-      setCouponError(null);
-    } else {
-      setCouponError('Invalid coupon code. Try VEDA20 for 20% off.');
+
+    setValidatingCoupon(true);
+    setCouponError(null);
+    setCouponNotice(null);
+
+    const dealItems = items.filter((it) => it.product.isDeal);
+    const regularItems = items.filter((it) => !it.product.isDeal);
+
+    if (regularItems.length === 0 && dealItems.length > 0) {
+      setCouponApplied(false);
+      setServerDiscountAmount(0);
+      setCouponError(
+        'Coupon codes cannot be applied to Flash Deal items. Your cart contains only promotional deal products.'
+      );
+      setValidatingCoupon(false);
+      return;
+    }
+
+    try {
+      const itemsPayload = items.map((it) => ({
+        productId: it.product.mongoId || it.product.id,
+        quantity: it.quantity,
+        isDeal: Boolean(it.product.isDeal),
+        price: it.product.price,
+      }));
+      const res = await validateCoupon(clean, subtotal, itemsPayload);
+      if (res.valid) {
+        setCouponApplied(true);
+        setServerDiscountAmount(res.discountAmount);
+        setCouponNotice(res.message || `Coupon ${clean} applied successfully!`);
+        setCouponError(null);
+      } else {
+        setCouponApplied(false);
+        setServerDiscountAmount(0);
+        setCouponError(res.message || 'Invalid or expired coupon code.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to validate coupon';
+      setCouponApplied(false);
+      setServerDiscountAmount(0);
+      setCouponError(msg);
+    } finally {
+      setValidatingCoupon(false);
     }
   };
 
-  const discountAmount = couponApplied ? Math.round(subtotal * 0.2) : 0;
+  const discountAmount = couponApplied ? serverDiscountAmount : 0;
   const finalTotal = Math.max(0, orderTotal - discountAmount);
 
   return (
@@ -325,9 +367,9 @@ export const CartPage: React.FC<CartPageProps> = ({
                       </span>
                     </div>
 
-                    {couponApplied && (
+                    {discountAmount > 0 && (
                       <div className="flex items-center justify-between text-[#15472B]">
-                        <span>Coupon Discount (20%)</span>
+                        <span>Coupon Discount</span>
                         <span className="font-bold tabular-nums">
                           -{formatPKR(discountAmount)}
                         </span>
@@ -342,19 +384,20 @@ export const CartPage: React.FC<CartPageProps> = ({
                         type="text"
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value)}
-                        placeholder="Coupon code (e.g. VEDA20)"
+                        placeholder="Coupon code (e.g. ZAITOON10)"
                         className="w-full bg-white border border-[#D5D0C5] px-3 py-2 text-[12px] text-[#222222] uppercase tracking-wider focus:outline-none focus:border-[#15472B]"
                       />
                       <button
                         type="submit"
-                        className="bg-[#1F1F1F] hover:bg-[#15472B] text-white text-[11px] font-bold uppercase tracking-wider px-4 py-2 transition-colors cursor-pointer shrink-0"
+                        disabled={validatingCoupon}
+                        className="bg-[#1F1F1F] hover:bg-[#15472B] disabled:bg-[#888888] text-white text-[11px] font-bold uppercase tracking-wider px-4 py-2 transition-colors cursor-pointer shrink-0"
                       >
-                        Apply
+                        {validatingCoupon ? 'Validating...' : 'Apply'}
                       </button>
                     </form>
-                    {couponApplied && (
+                    {couponApplied && couponNotice && (
                       <p className="text-[11px] text-[#15472B] font-semibold mt-1.5">
-                        Coupon applied: 20% discount activated!
+                        {couponNotice}
                       </p>
                     )}
                     {couponError && (

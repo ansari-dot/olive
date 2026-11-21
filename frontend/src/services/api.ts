@@ -294,6 +294,8 @@ export interface CouponValidationResult {
   discountAmount: number;
   shippingFee: number;
   finalTotal: number;
+  eligibleSubtotal?: number;
+  dealItemsExcluded?: boolean;
   message: string;
 }
 
@@ -618,12 +620,13 @@ export async function submitProductReview(
  */
 export async function validateCoupon(
   code: string,
-  subtotal: number
+  subtotal: number,
+  items?: Array<{ productId: string; quantity: number; isDeal?: boolean; price?: number }>
 ): Promise<CouponValidationResult> {
   const res = await fetch(`${API_BASE_URL}/coupons/validate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, subtotal }),
+    body: JSON.stringify({ code, subtotal, items }),
   });
   const data = await res.json();
   if (!res.ok) {

@@ -86,8 +86,27 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     setValidatingPromo(true);
     setPromoNotice(null);
 
+    const dealItems = items.filter((it) => it.product.isDeal);
+    const regularItems = items.filter((it) => !it.product.isDeal);
+
+    if (regularItems.length === 0 && dealItems.length > 0) {
+      setAppliedPromo(null);
+      setServerDiscount(0);
+      setPromoNotice(
+        'Coupon codes cannot be applied to Flash Deal items. Your cart contains only promotional deal products.'
+      );
+      setValidatingPromo(false);
+      return;
+    }
+
     try {
-      const res = await validateCoupon(code, subtotal);
+      const itemsPayload = items.map((it) => ({
+        productId: it.product.mongoId || it.product.id,
+        quantity: it.quantity,
+        isDeal: Boolean(it.product.isDeal),
+        price: it.product.price,
+      }));
+      const res = await validateCoupon(code, subtotal, itemsPayload);
       if (res.valid) {
         setAppliedPromo(code);
         setServerDiscount(res.discountAmount);
