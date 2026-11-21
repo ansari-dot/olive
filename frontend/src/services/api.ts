@@ -137,11 +137,66 @@ export function normalizeProduct(raw: any): Product {
  */
 export function normalizeBlogPost(raw: any): BlogPost {
   const id = raw.slug || (raw._id ? String(raw._id) : raw.id);
+  const createdDate = raw.createdAt ? new Date(raw.createdAt) : null;
+  const defaultYear =
+    createdDate && !isNaN(createdDate.getTime())
+      ? String(createdDate.getFullYear())
+      : '2026';
+
+  let rawTags: string[] = [];
+  if (Array.isArray(raw.tags)) {
+    rawTags = raw.tags.map((t: unknown) => String(t).trim()).filter(Boolean);
+  } else if (typeof raw.tags === 'string') {
+    rawTags = raw.tags
+      .split(',')
+      .map((t: string) => t.trim())
+      .filter(Boolean);
+  }
+
+  let rawTakeaways: string[] = [];
+  if (Array.isArray(raw.takeaways)) {
+    rawTakeaways = raw.takeaways
+      .map((t: unknown) => String(t).trim())
+      .filter(Boolean);
+  } else if (typeof raw.takeaways === 'string') {
+    rawTakeaways = raw.takeaways
+      .split(/\r?\n/)
+      .map((t: string) => t.trim())
+      .filter(Boolean);
+  }
+
+  const rawComments = Array.isArray(raw.comments)
+    ? raw.comments.map((c: any) => ({
+        id: c._id ? String(c._id) : c.id || `c-${Date.now()}-${Math.random()}`,
+        _id: c._id ? String(c._id) : undefined,
+        author: c.author || 'Reader',
+        city: c.city || 'Pakistan',
+        comment: c.comment || '',
+        createdAt: c.createdAt,
+        date: c.createdAt
+          ? new Date(c.createdAt).toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })
+          : 'Recently',
+      }))
+    : [];
+
   return {
     id,
     slug: raw.slug || id,
-    day: raw.day || '',
-    month: raw.month || '',
+    day: raw.day || (createdDate ? String(createdDate.getDate()).padStart(2, '0') : '01'),
+    month:
+      raw.month ||
+      (createdDate
+        ? createdDate.toLocaleString('en-US', { month: 'short' }).toUpperCase()
+        : 'OCT'),
+    year: raw.year || defaultYear,
+    author: raw.author || 'Pak Veda',
+    category: raw.category || 'Harvest & Extraction',
+    tags: rawTags,
+    takeaways: rawTakeaways,
     title: raw.title || '',
     excerpt: raw.excerpt || '',
     readTime: raw.readTime || '4 min read',
@@ -150,6 +205,8 @@ export function normalizeBlogPost(raw: any): BlogPost {
     content: Array.isArray(raw.content)
       ? raw.content
       : [String(raw.content || '')],
+    comments: rawComments,
+    isPublished: raw.isPublished ?? true,
     createdAt: raw.createdAt,
   };
 }
@@ -621,6 +678,50 @@ export async function fetchBlogById(
     180000,
     options?.forceFresh
   );
+}
+
+/**
+ * POST /api/blogs/:idOrSlug/comments
+ * Submits a public reader note/comment to a blog post and invalidates cache
+ */
+export async function submitBlogComment(
+  idOrSlug: string,
+  payload: { author: string; city?: string; comment: string }
+): Promise<{ success: boolean; message: string; comments: BlogPost['comments'] }> {
+  const cleanId = encodeURIComponent(idOrSlug.trim());
+  const res = await fetch(`${API_BASE_URL}/blogs/${cleanId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to submit comment');
+  }
+
+  // Invalidate in-memory caches
+  clearApiCache(`blog:${cleanId}`);
+  clearApiCache('blogs_list');
+
+  return {
+    success: true,
+    message: data.message || 'Comment submitted successfully',
+    comments: (data.comments || []).map((c: any) => ({
+      id: c._id ? String(c._id) : c.id || `c-${Date.now()}`,
+      author: c.author || 'Reader',
+      city: c.city || 'Pakistan',
+      comment: c.comment || '',
+      createdAt: c.createdAt,
+      date: c.createdAt
+        ? new Date(c.createdAt).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        : 'Today',
+    })),
+  };
 }
 
 /**

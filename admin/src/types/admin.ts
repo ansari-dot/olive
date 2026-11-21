@@ -138,18 +138,35 @@ export interface AdminOrder {
   createdAt: string;
 }
 
+export interface AdminBlogComment {
+  _id?: string;
+  id?: string;
+  author: string;
+  city?: string;
+  comment: string;
+  createdAt?: string;
+}
+
 export interface AdminBlogPost {
   _id: string;
   slug: string;
   day: string;
   month: string;
+  year?: string;
+  author?: string;
+  category?: string;
+  tags?: string[];
+  takeaways?: string[];
   title: string;
   excerpt: string;
   readTime: string;
   image: string;
   alt: string;
   content: string[];
+  comments?: AdminBlogComment[];
   isPublished: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AdminReview {

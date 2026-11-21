@@ -24,11 +24,16 @@ interface BlogFormState {
   slug: string;
   day: string;
   month: string;
+  year: string;
+  author: string;
+  category: string;
+  tagsText: string;
   readTime: string;
   excerpt: string;
   image: string;
   alt: string;
   contentText: string;
+  takeawaysText: string;
   isPublished: boolean;
 }
 
@@ -37,11 +42,16 @@ const EMPTY_BLOG_FORM: BlogFormState = {
   slug: '',
   day: String(new Date().getDate()).padStart(2, '0'),
   month: new Date().toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+  year: String(new Date().getFullYear()),
+  author: 'Pak Veda',
+  category: 'Harvest & Extraction',
+  tagsText: 'Extra Virgin, Cold-Pressed, Potohar',
   readTime: '4 min read',
   excerpt: '',
   image: '',
   alt: '',
   contentText: '',
+  takeawaysText: '',
   isPublished: true,
 };
 
@@ -100,11 +110,16 @@ export const BlogsView: React.FC = () => {
       slug: post.slug,
       day: post.day,
       month: post.month,
+      year: post.year || '2026',
+      author: post.author || 'Pak Veda',
+      category: post.category || 'Harvest & Extraction',
+      tagsText: (post.tags || []).join(', '),
       readTime: post.readTime,
       excerpt: post.excerpt,
       image: post.image,
       alt: post.alt || post.title,
       contentText: (post.content || []).join('\n\n'),
+      takeawaysText: (post.takeaways || []).join('\n'),
       isPublished: post.isPublished ?? true,
     });
     setModalOpen(true);
@@ -136,11 +151,26 @@ export const BlogsView: React.FC = () => {
         .map((p) => p.trim())
         .filter(Boolean);
 
+      const parsedTags = form.tagsText
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+      const parsedTakeaways = form.takeawaysText
+        .split(/\r?\n/)
+        .map((t) => t.trim())
+        .filter(Boolean);
+
       const payload: Partial<AdminBlogPost> = {
         title: form.title.trim(),
         slug: (form.slug.trim() || toSlug(form.title)).toLowerCase(),
         day: form.day.trim(),
         month: form.month.trim().toUpperCase(),
+        year: form.year.trim() || '2026',
+        author: form.author.trim() || 'Pak Veda',
+        category: form.category.trim() || 'Harvest & Extraction',
+        tags: parsedTags,
+        takeaways: parsedTakeaways,
         readTime: form.readTime.trim(),
         excerpt: form.excerpt.trim(),
         image: form.image.trim(),
@@ -246,6 +276,7 @@ export const BlogsView: React.FC = () => {
             <thead>
               <tr className="text-[11px] uppercase tracking-[0.06em] text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0]">
                 <th className="py-3 px-4 text-left font-semibold">Article</th>
+                <th className="py-3 px-4 text-left font-semibold">Category &amp; Author</th>
                 <th className="py-3 px-4 text-left font-semibold">Date Stamp</th>
                 <th className="py-3 px-4 text-left font-semibold">Read Time</th>
                 <th className="py-3 px-4 text-left font-semibold">Visibility</th>
@@ -281,13 +312,21 @@ export const BlogsView: React.FC = () => {
                           {post.title}
                         </p>
                         <p className="text-[11.5px] text-[#64748B] font-mono-data truncate max-w-[340px]">
-                          /blog/{post.slug}
+                          /blogs/{post.slug}
                         </p>
                       </div>
                     </div>
                   </td>
+                  <td className="py-3 px-4 whitespace-nowrap">
+                    <span className="inline-block px-2 py-0.5 bg-[#F1F5F9] text-[#334155] text-[11px] font-medium rounded-xs border border-[#E2E8F0] mb-0.5">
+                      {post.category || 'Harvest & Extraction'}
+                    </span>
+                    <p className="text-[11.5px] text-[#64748B]">
+                      {post.author || 'Pak Veda'}
+                    </p>
+                  </td>
                   <td className="py-3 px-4 font-mono-data text-[#334155] whitespace-nowrap">
-                    {post.day} {post.month}
+                    {post.day} {post.month} {post.year || '2026'}
                   </td>
                   <td className="py-3 px-4 font-mono-data text-[#475569] whitespace-nowrap">
                     {post.readTime}
@@ -404,7 +443,43 @@ export const BlogsView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11.5px] uppercase tracking-[0.06em] font-semibold text-[#475569] mb-1">
+                    Category *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    list="blog-categories-list"
+                    value={form.category}
+                    onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+                    placeholder="Harvest & Extraction"
+                    className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px]"
+                  />
+                  <datalist id="blog-categories-list">
+                    <option value="Harvest & Extraction" />
+                    <option value="Olive Oil & Culinary" />
+                    <option value="Himalayan Shilajit & Honey" />
+                    <option value="Orchard News & Potohar" />
+                    <option value="Botanical Remedies & Spices" />
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-[11.5px] uppercase tracking-[0.06em] font-semibold text-[#475569] mb-1">
+                    Author / Contributor
+                  </label>
+                  <input
+                    type="text"
+                    value={form.author}
+                    onChange={(e) => setForm((p) => ({ ...p, author: e.target.value }))}
+                    placeholder="Pak Veda Editorial Team"
+                    className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-3">
                 <div>
                   <label className="block text-[11.5px] uppercase tracking-[0.06em] font-semibold text-[#475569] mb-1">
                     Day *
@@ -433,6 +508,19 @@ export const BlogsView: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-[11.5px] uppercase tracking-[0.06em] font-semibold text-[#475569] mb-1">
+                    Year *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.year}
+                    onChange={(e) => setForm((p) => ({ ...p, year: e.target.value }))}
+                    placeholder="2026"
+                    className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] font-mono-data"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11.5px] uppercase tracking-[0.06em] font-semibold text-[#475569] mb-1">
                     Read Time *
                   </label>
                   <input
@@ -444,6 +532,19 @@ export const BlogsView: React.FC = () => {
                     className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px]"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-[11.5px] uppercase tracking-[0.06em] font-semibold text-[#475569] mb-1">
+                  Merchandising Tags (Comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={form.tagsText}
+                  onChange={(e) => setForm((p) => ({ ...p, tagsText: e.target.value }))}
+                  placeholder="Extra Virgin, Cold-Pressed, Potohar, Swat Valley"
+                  className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px]"
+                />
               </div>
 
               <div>
@@ -511,6 +612,19 @@ export const BlogsView: React.FC = () => {
                   onChange={(e) => setForm((p) => ({ ...p, contentText: e.target.value }))}
                   placeholder="Write paragraph 1 here...&#10;&#10;Write paragraph 2 here..."
                   className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] leading-relaxed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11.5px] uppercase tracking-[0.06em] font-semibold text-[#475569] mb-1">
+                  Key Takeaways / Practical Storage Notes (One point per line)
+                </label>
+                <textarea
+                  rows={3}
+                  value={form.takeawaysText}
+                  onChange={(e) => setForm((p) => ({ ...p, takeawaysText: e.target.value }))}
+                  placeholder="Keep bottles tightly sealed in a cool dark pantry&#10;Consume within 4-6 months of opening for peak polyphenol potency&#10;Ideal for finishing lentils, salads, and warm sourdough"
+                  className="w-full border border-[#CBD5E1] px-3 py-2 text-[13px] leading-relaxed font-mono-data"
                 />
               </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Share2 } from 'lucide-react';
-import { BlogPost, Product } from '../data/storeData';
-import { fetchBlogs, fetchProducts, fetchBlogById } from '../services/api';
+import { Share2, Check, Loader2 } from 'lucide-react';
+import { BlogPost, Product, BlogComment } from '../data/storeData';
+import { fetchBlogs, fetchProducts, fetchBlogById, submitBlogComment } from '../services/api';
 
 interface BlogDetailPageProps {
   post: BlogPost;
@@ -15,22 +15,7 @@ interface BlogDetailPageProps {
   onNavigateShop: () => void;
 }
 
-interface BlogComment {
-  id: string;
-  author: string;
-  city: string;
-  date: string;
-  comment: string;
-}
-
 const formatPKR = (amount: number) => `Rs. ${amount.toLocaleString('en-PK')}`;
-
-const inferTopic = (post: BlogPost): string => {
-  const lower = post.title.toLowerCase();
-  if (lower.includes('health')) return 'Olive Health';
-  if (lower.includes('superfood')) return 'Culinary';
-  return 'Purity';
-};
 
 export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
   post: initialPost,
@@ -49,27 +34,26 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
   const [imgBroken, setImgBroken] = useState(false);
   const [copiedNotice, setCopiedNotice] = useState<string | null>(null);
 
-  const [comments, setComments] = useState<BlogComment[]>([
-    {
-      id: 'bc-1',
-      author: 'Sana Mahmood',
-      city: 'Karachi',
-      date: '12 Oct 2026',
-      comment:
-        'Thank you for sharing the acidity testing process—knowing the exact harvest standard makes choosing daily cold-pressed olive oil effortless.',
-    },
-  ]);
+  const [comments, setComments] = useState<BlogComment[]>(initialPost.comments || []);
   const [commentAuthor, setCommentAuthor] = useState('');
   const [commentCity, setCommentCity] = useState('Lahore');
   const [commentBody, setCommentBody] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentSuccess, setCommentSuccess] = useState<string | null>(null);
 
   // Fetch full post and related content if missing
   useEffect(() => {
     let isMounted = true;
-    if (initialPost.id) {
-      fetchBlogById(initialPost.id)
+    if (initialPost.id || initialPost.slug) {
+      const targetId = initialPost.slug || initialPost.id;
+      fetchBlogById(targetId, { forceFresh: true })
         .then((fullPost) => {
-          if (isMounted && fullPost) setPost(fullPost);
+          if (isMounted && fullPost) {
+            setPost(fullPost);
+            if (fullPost.comments && fullPost.comments.length > 0) {
+              setComments(fullPost.comments);
+            }
+          }
         })
         .catch((err) => console.error('Failed to load full post:', err));
     }
@@ -78,7 +62,7 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
       fetchBlogs()
         .then((all) => {
           if (isMounted) {
-            setRelatedPosts(all.filter((p) => p.id !== initialPost.id).slice(0, 3));
+            setRelatedPosts(all.filter((p) => p.id !== initialPost.id && p.slug !== initialPost.slug).slice(0, 3));
           }
         })
         .catch((err) => console.error('Failed to load related blogs:', err));
@@ -95,32 +79,70 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [initialPost.id, initialRelated.length, initialFeatured.length]);
+  }, [initialPost.id, initialPost.slug, initialRelated.length, initialFeatured.length]);
 
   const handleShare = () => {
-    const text = `${post.title} — Zaitoon Pakistan Orchard Journal`;
+    const text = `${post.title} — Pak Veda Harvest Journal`;
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(text).catch(() => {});
+      navigator.clipboard.writeText(window.location.href || text).catch(() => {});
     }
     setCopiedNotice('Article link copied to clipboard.');
     window.setTimeout(() => setCopiedNotice(null), 2500);
   };
 
-  const handleSubmitComment = (e: React.FormEvent) => {
+  const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentAuthor.trim() || !commentBody.trim()) return;
-    setComments((prev) => [
-      {
-        id: `bc-${Date.now()}`,
+    if (!commentAuthor.trim() || !commentBody.trim() || submittingComment) return;
+    setSubmittingComment(true);
+    setCommentSuccess(null);
+
+    try {
+      const targetSlug = post.slug || post.id;
+      const res = await submitBlogComment(targetSlug, {
         author: commentAuthor.trim(),
         city: commentCity,
-        date: 'Today',
         comment: commentBody.trim(),
-      },
-      ...prev,
-    ]);
-    setCommentAuthor('');
-    setCommentBody('');
+      });
+
+      if (res.comments && res.comments.length > 0) {
+        setComments(res.comments);
+      } else {
+        setComments((prev) => [
+          {
+            id: `bc-${Date.now()}`,
+            author: commentAuthor.trim(),
+            city: commentCity,
+            date: 'Today',
+            comment: commentBody.trim(),
+          },
+          ...prev,
+        ]);
+      }
+
+      setCommentAuthor('');
+      setCommentBody('');
+      setCommentSuccess('Thank you! Your note has been published.');
+      window.setTimeout(() => setCommentSuccess(null), 4000);
+    } catch (err) {
+      console.error('Failed to submit comment:', err);
+      // Fallback local update
+      setComments((prev) => [
+        {
+          id: `bc-${Date.now()}`,
+          author: commentAuthor.trim(),
+          city: commentCity,
+          date: 'Today',
+          comment: commentBody.trim(),
+        },
+        ...prev,
+      ]);
+      setCommentAuthor('');
+      setCommentBody('');
+      setCommentSuccess('Your note has been posted.');
+      window.setTimeout(() => setCommentSuccess(null), 4000);
+    } finally {
+      setSubmittingComment(false);
+    }
   };
 
   return (
@@ -156,12 +178,14 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
           <article className="lg:col-span-8">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-3 text-[11.5px] uppercase tracking-[0.09em]">
-                <span className="text-[#C46B3B] font-semibold">{inferTopic(post)}</span>
+                <span className="text-[#C46B3B] font-semibold">
+                  {post.category || 'Harvest & Extraction'}
+                </span>
                 <span className="text-[#CCCCCC]" aria-hidden="true">
                   |
                 </span>
                 <span className="text-[#666666] tabular-nums">
-                  {post.day} {post.month} · {post.readTime}
+                  By <strong className="font-medium text-[#333333]">{post.author || 'Pak Veda'}</strong> · {post.day} {post.month} {post.year || '2026'} · {post.readTime}
                 </span>
               </div>
 
@@ -195,7 +219,7 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
               {!imgBroken ? (
                 <img
                   src={post.image}
-                  alt={post.alt}
+                  alt={post.alt || post.title}
                   referrerPolicy="no-referrer"
                   onError={() => setImgBroken(true)}
                   className="w-full h-full object-cover object-center"
@@ -217,34 +241,41 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
               {post.content.map((para, idx) => (
                 <p key={idx}>{para}</p>
               ))}
-              <p>
-                Across Zaitoon Pakistan’s partner groves in Potohar, Chakwal, and Swat Valley,
-                preserving olive polyphenols begins at the orchard gate. Olives are picked into
-                ventilated crates—never stacked in heat-trapping sacks—and milled the same afternoon
-                to protect fresh leafy aroma and low free fatty acidity (&lt; 0.3%).
-              </p>
             </div>
 
-            {/* Key Orchard Takeaways Strip */}
-            <div className="mt-8 bg-[#FAF3F0] p-6 sm:p-7">
-              <p className="text-[11.5px] uppercase tracking-[0.09em] text-[#C46B3B] font-semibold mb-3">
-                Orchard Storage &amp; Daily Use Note
-              </p>
-              <ul className="space-y-2 text-[13.5px] text-[#444444]">
-                <li className="flex items-start gap-2.5">
-                  <span className="w-[4px] h-[4px] bg-[#C46B3B] shrink-0 mt-2" aria-hidden="true" />
-                  <span>Keep bottles tightly corked in a cool pantry away from stove heat.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="w-[4px] h-[4px] bg-[#C46B3B] shrink-0 mt-2" aria-hidden="true" />
-                  <span>Use dark-glass bottles within 4–6 months of opening for peak freshness.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="w-[4px] h-[4px] bg-[#C46B3B] shrink-0 mt-2" aria-hidden="true" />
-                  <span>Ideal for finishing grilled meats, lentils, salads, and warm flatbreads.</span>
-                </li>
-              </ul>
-            </div>
+            {/* Dynamic Key Takeaways / Notes Strip (Rendered only when defined) */}
+            {post.takeaways && post.takeaways.length > 0 && (
+              <div className="mt-8 bg-[#FAF3F0] p-6 sm:p-7">
+                <p className="text-[11.5px] uppercase tracking-[0.09em] text-[#C46B3B] font-semibold mb-3">
+                  Key Highlights &amp; Practical Notes
+                </p>
+                <ul className="space-y-2 text-[13.5px] text-[#444444]">
+                  {post.takeaways.map((point, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5">
+                      <span className="w-[4px] h-[4px] bg-[#C46B3B] shrink-0 mt-2" aria-hidden="true" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Merchandising Tags */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="mt-8 pt-5 border-t border-[#EAEAEA] flex flex-wrap items-center gap-2">
+                <span className="text-[11.5px] uppercase tracking-wider text-[#888888] font-semibold mr-1">
+                  Tags:
+                </span>
+                {post.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-[11px] px-2.5 py-1 bg-[#F9F9F8] border border-[#E5E5E5] text-[#555555]"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Back to Blogs Toolbar */}
             <div className="mt-8 pt-6 border-t border-[#EAEAEA] flex items-center justify-between gap-4">
@@ -273,19 +304,32 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
                 Reader Notes ({comments.length})
               </h2>
 
-              <div className="space-y-4 mb-8">
-                {comments.map((item) => (
-                  <div key={item.id} className="border border-[#EAEAEA] bg-white p-5">
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                      <p className="text-[14px] font-medium text-[#181818]">
-                        {item.author} · <span className="text-[#666666] font-normal">{item.city}</span>
-                      </p>
-                      <span className="text-[12px] text-[#777777]">{item.date}</span>
+              {comments.length === 0 ? (
+                <p className="text-[13.5px] text-[#888888] italic py-3 mb-6">
+                  No reader notes yet. Be the first to share your experience or kitchen tip!
+                </p>
+              ) : (
+                <div className="space-y-4 mb-8">
+                  {comments.map((item, idx) => (
+                    <div key={item.id || idx} className="border border-[#EAEAEA] bg-white p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <p className="text-[14px] font-medium text-[#181818]">
+                          {item.author} · <span className="text-[#666666] font-normal">{item.city}</span>
+                        </p>
+                        <span className="text-[12px] text-[#777777]">{item.date || 'Recently'}</span>
+                      </div>
+                      <p className="text-[13.5px] leading-[1.68] text-[#555555]">{item.comment}</p>
                     </div>
-                    <p className="text-[13.5px] leading-[1.68] text-[#555555]">{item.comment}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+
+              {commentSuccess && (
+                <div className="mb-4 bg-[#EDF7ED] border border-[#C8E6C9] text-[#2E7D32] px-4 py-3 text-[13px] flex items-center gap-2">
+                  <Check className="w-4 h-4 shrink-0" />
+                  <span>{commentSuccess}</span>
+                </div>
+              )}
 
               <form onSubmit={handleSubmitComment} className="bg-[#FAF3F0] p-6 sm:p-7 space-y-4">
                 <h3 className="text-[16px] font-normal text-[#181818]">Leave a Note</h3>
@@ -309,6 +353,8 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
                     <option>Rawalpindi</option>
                     <option>Peshawar</option>
                     <option>Multan</option>
+                    <option>Faisalabad</option>
+                    <option>Quetta</option>
                   </select>
                 </div>
                 <textarea
@@ -321,9 +367,11 @@ export const BlogDetailPage: React.FC<BlogDetailPageProps> = ({
                 />
                 <button
                   type="submit"
-                  className="bg-[#0B0B0B] hover:bg-[#15472B] text-white text-[11.5px] font-semibold uppercase tracking-[0.08em] px-6 py-3 transition-colors cursor-pointer"
+                  disabled={submittingComment}
+                  className="bg-[#0B0B0B] hover:bg-[#15472B] disabled:opacity-60 text-white text-[11.5px] font-semibold uppercase tracking-[0.08em] px-6 py-3 transition-colors cursor-pointer inline-flex items-center gap-2"
                 >
-                  POST COMMENT
+                  {submittingComment && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{submittingComment ? 'SUBMITTING...' : 'POST COMMENT'}</span>
                 </button>
               </form>
             </section>

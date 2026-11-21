@@ -140,7 +140,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
   onNavigateShop,
 }) => {
   const [posts, setPosts] = useState<BlogPost[]>(
-    initialPosts.length >= 6 ? initialPosts : FALLBACK_BLOGS
+    initialPosts.length > 0 ? initialPosts : []
   );
   const [loading, setLoading] = useState<boolean>(initialPosts.length === 0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -151,25 +151,23 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    fetchBlogs()
+    fetchBlogs({ forceFresh: true })
       .then((data) => {
-        if (isMounted && data && data.length > 0) {
-          // If less than 6, blend with fallback so the 3x2 grid is always full
-          if (data.length < 6) {
-            const combined = [...data];
-            FALLBACK_BLOGS.forEach((fb) => {
-              if (!combined.some((p) => p.slug === fb.slug || p.title === fb.title)) {
-                combined.push(fb);
-              }
-            });
-            setPosts(combined);
-          } else {
+        if (isMounted) {
+          if (data && data.length > 0) {
             setPosts(data);
+          } else if (initialPosts.length > 0) {
+            setPosts(initialPosts);
+          } else {
+            setPosts(FALLBACK_BLOGS);
           }
         }
       })
       .catch((err) => {
         console.error('Failed to load blog posts:', err);
+        if (isMounted && posts.length === 0) {
+          setPosts(initialPosts.length > 0 ? initialPosts : FALLBACK_BLOGS);
+        }
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -180,6 +178,34 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
     };
   }, []);
 
+  // Dynamically derive distinct categories from actual published blogs
+  const dynamicCategories = useMemo(() => {
+    const set = new Set<string>();
+    posts.forEach((p) => {
+      if (p.category && p.category.trim()) {
+        set.add(p.category.trim());
+      }
+    });
+    if (set.size === 0) {
+      CATEGORIES.forEach((c) => set.add(c));
+    }
+    return Array.from(set);
+  }, [posts]);
+
+  // Dynamically derive distinct tags from actual published blogs
+  const dynamicTags = useMemo(() => {
+    const set = new Set<string>();
+    posts.forEach((p) => {
+      (p.tags || []).forEach((t) => {
+        if (t && t.trim()) set.add(t.trim());
+      });
+    });
+    if (set.size === 0) {
+      POPULAR_TAGS.forEach((t) => set.add(t));
+    }
+    return Array.from(set);
+  }, [posts]);
+
   // Filter posts based on search, category, and tag
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
@@ -187,21 +213,34 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
       const matchesSearch =
         !q ||
         post.title.toLowerCase().includes(q) ||
-        post.excerpt.toLowerCase().includes(q);
+        post.excerpt.toLowerCase().includes(q) ||
+        (post.author && post.author.toLowerCase().includes(q)) ||
+        (post.category && post.category.toLowerCase().includes(q)) ||
+        (post.tags && post.tags.some((t) => t.toLowerCase().includes(q))) ||
+        (post.content || []).some((para) => para.toLowerCase().includes(q));
 
       const matchesCategory =
         selectedCategory === 'All' ||
-        post.title.toLowerCase().includes(selectedCategory.split(' ')[0].toLowerCase()) ||
-        post.excerpt.toLowerCase().includes(selectedCategory.split(' ')[0].toLowerCase());
+        (post.category && post.category.toLowerCase() === selectedCategory.toLowerCase()) ||
+        post.title.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+        post.excerpt.toLowerCase().includes(selectedCategory.toLowerCase());
 
       const matchesTag =
         selectedTag === 'All' ||
+        (post.tags && post.tags.some((t) => t.toLowerCase() === selectedTag.toLowerCase())) ||
         post.title.toLowerCase().includes(selectedTag.toLowerCase()) ||
         post.excerpt.toLowerCase().includes(selectedTag.toLowerCase());
 
       return matchesSearch && matchesCategory && matchesTag;
     });
   }, [posts, searchQuery, selectedCategory, selectedTag]);
+
+  const ITEMS_PER_PAGE = 6;
+  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / ITEMS_PER_PAGE));
+  const paginatedPosts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredPosts.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredPosts, currentPage]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,7 +342,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
             ) : (
               /* 2-Column Article Grid (Exact Reference Match) */
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-7 gap-y-12">
-                {filteredPosts.slice(0, 6).map((post) => {
+                {paginatedPosts.map((post) => {
                   const isBroken = brokenImages[post.id];
                   return (
                     <article key={post.id || post.slug} className="group flex flex-col">
@@ -328,6 +367,11 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
                             </span>
                           </div>
                         )}
+                        {post.category && (
+                          <div className="absolute top-3 right-3 bg-[#15472B]/90 text-white text-[10.5px] font-semibold tracking-wide uppercase px-2.5 py-1 backdrop-blur-xs">
+                            {post.category}
+                          </div>
+                        )}
                       </div>
 
                       {/* Title */}
@@ -345,13 +389,13 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
                       <div className="flex items-center gap-2 text-[12px] text-[#888888] mt-2 mb-2.5">
                         <span className="inline-flex items-center gap-1">
                           <User className="w-3.5 h-3.5 stroke-[2] text-[#888888]" />
-                          <span>Pak Veda</span>
+                          <span>{post.author || 'Pak Veda'}</span>
                         </span>
                         <span className="text-[#CCCCCC] select-none">—</span>
                         <span className="inline-flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 stroke-[2] text-[#888888]" />
                           <span>
-                            {post.month} {post.day}, 2026
+                            {post.month} {post.day}, {post.year || '2026'}
                           </span>
                         </span>
                       </div>
@@ -378,49 +422,32 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
             )}
 
             {/* Pagination Controls */}
-            {filteredPosts.length > 0 && (
+            {totalPages > 1 && (
               <div className="flex items-center justify-start gap-2 mt-12 pt-6 border-t border-[#EEEEEE]">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(1)}
-                  className={`w-9 h-9 flex items-center justify-center text-[12px] font-bold border transition-colors cursor-pointer ${
-                    currentPage === 1
-                      ? 'bg-[#15472B] text-white border-[#15472B]'
-                      : 'bg-white text-[#666666] border-[#E5E5E5] hover:border-[#15472B]'
-                  }`}
-                >
-                  1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(2)}
-                  className={`w-9 h-9 flex items-center justify-center text-[12px] font-bold border transition-colors cursor-pointer ${
-                    currentPage === 2
-                      ? 'bg-[#15472B] text-white border-[#15472B]'
-                      : 'bg-white text-[#666666] border-[#E5E5E5] hover:border-[#15472B]'
-                  }`}
-                >
-                  2
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(3)}
-                  className={`w-9 h-9 flex items-center justify-center text-[12px] font-bold border transition-colors cursor-pointer ${
-                    currentPage === 3
-                      ? 'bg-[#15472B] text-white border-[#15472B]'
-                      : 'bg-white text-[#666666] border-[#E5E5E5] hover:border-[#15472B]'
-                  }`}
-                >
-                  3
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, 3))}
-                  className="w-9 h-9 flex items-center justify-center text-[12px] font-bold border bg-white text-[#666666] border-[#E5E5E5] hover:border-[#15472B] transition-colors cursor-pointer"
-                  aria-label="Next page"
-                >
-                  &gt;
-                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-9 h-9 flex items-center justify-center text-[12px] font-bold border transition-colors cursor-pointer ${
+                      currentPage === pageNum
+                        ? 'bg-[#15472B] text-white border-[#15472B]'
+                        : 'bg-white text-[#666666] border-[#E5E5E5] hover:border-[#15472B]'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+                {currentPage < totalPages && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                    className="w-9 h-9 flex items-center justify-center text-[12px] font-bold border bg-white text-[#666666] border-[#E5E5E5] hover:border-[#15472B] transition-colors cursor-pointer"
+                    aria-label="Next page"
+                  >
+                    &gt;
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -460,7 +487,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
               </div>
 
               <ul className="space-y-1.5 text-[13px]">
-                {CATEGORIES.map((cat) => {
+                {dynamicCategories.map((cat) => {
                   const isActive = selectedCategory === cat;
                   return (
                     <li key={cat}>
@@ -513,7 +540,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
                         {item.title}
                       </h4>
                       <p className="text-[11px] text-[#999999] mt-1">
-                        {item.month} {item.day}, 2026
+                        {item.month} {item.day}, {item.year || '2026'}
                       </p>
                     </div>
                   </div>
@@ -531,7 +558,7 @@ export const BlogsPage: React.FC<BlogsPageProps> = ({
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {POPULAR_TAGS.map((tag) => {
+                {dynamicTags.map((tag) => {
                   const isActive = selectedTag === tag;
                   return (
                     <button

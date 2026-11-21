@@ -1,5 +1,30 @@
 import mongoose from "mongoose";
 
+const blogCommentSchema = new mongoose.Schema(
+  {
+    author: {
+      type: String,
+      required: [true, "Comment author is required"],
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: "Pakistan",
+    },
+    comment: {
+      type: String,
+      required: [true, "Comment body is required"],
+      trim: true,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: true }
+);
+
 const blogPostSchema = new mongoose.Schema(
   {
     slug: {
@@ -18,6 +43,29 @@ const blogPostSchema = new mongoose.Schema(
       type: String,
       required: [true, "Publication month is required"],
       trim: true,
+    },
+    year: {
+      type: String,
+      trim: true,
+      default: "2026",
+    },
+    author: {
+      type: String,
+      trim: true,
+      default: "Pak Veda",
+    },
+    category: {
+      type: String,
+      trim: true,
+      default: "Harvest & Extraction",
+    },
+    tags: {
+      type: [String],
+      default: [],
+    },
+    takeaways: {
+      type: [String],
+      default: [],
     },
     title: {
       type: String,
@@ -48,6 +96,10 @@ const blogPostSchema = new mongoose.Schema(
       type: [String],
       required: [true, "Blog content paragraphs are required"],
     },
+    comments: {
+      type: [blogCommentSchema],
+      default: [],
+    },
     isPublished: {
       type: Boolean,
       default: true,
@@ -59,6 +111,8 @@ const blogPostSchema = new mongoose.Schema(
 );
 
 blogPostSchema.index({ isPublished: 1, createdAt: -1 });
+blogPostSchema.index({ category: 1 });
+blogPostSchema.index({ tags: 1 });
 
 const BlogPost = mongoose.models.BlogPost || mongoose.model("BlogPost", blogPostSchema);
 
