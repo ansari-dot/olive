@@ -1,17 +1,17 @@
 import React from 'react';
-import { ZaitoonLogo } from './ZaitoonLogo';
+import { useNavigate } from 'react-router-dom';
 
 interface FooterProps {
-  onNavigateHome: () => void;
-  onNavigateAbout: () => void;
-  onNavigateShop: (category?: string) => void;
-  onNavigateBlogs: () => void;
-  onNavigateContact: () => void;
+  onNavigateHome?: () => void;
+  onNavigateAbout?: () => void;
+  onNavigateShop?: (category?: string) => void;
+  onNavigateBlogs?: () => void;
+  onNavigateContact?: () => void;
   onNavigateWishlist?: () => void;
-  onNavigateCart: () => void;
-  onNavigateShipping: () => void;
-  onScrollToSection: (sectionId: string) => void;
-  onOpenAccount: () => void;
+  onNavigateCart?: () => void;
+  onNavigateShipping?: () => void;
+  onScrollToSection?: (sectionId: string) => void;
+  onOpenAccount?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = React.memo(({
@@ -26,6 +26,40 @@ export const Footer: React.FC<FooterProps> = React.memo(({
   onScrollToSection,
   onOpenAccount,
 }) => {
+  const navigate = useNavigate();
+
+  const handleHome = () => (onNavigateHome ? onNavigateHome() : navigate('/'));
+  const handleAbout = () => (onNavigateAbout ? onNavigateAbout() : navigate('/about'));
+  const handleShop = (category?: string) => {
+    if (onNavigateShop) {
+      onNavigateShop(category);
+    } else {
+      navigate(
+        category && category !== 'All'
+          ? `/shop?category=${encodeURIComponent(category)}`
+          : '/shop'
+      );
+    }
+  };
+  const handleBlogs = () => (onNavigateBlogs ? onNavigateBlogs() : navigate('/blogs'));
+  const handleContact = () => (onNavigateContact ? onNavigateContact() : navigate('/contact'));
+  const handleWishlist = () => (onNavigateWishlist ? onNavigateWishlist() : navigate('/wishlist'));
+  const handleCart = () => (onNavigateCart ? onNavigateCart() : navigate('/cart'));
+  const handleShipping = () => (onNavigateShipping ? onNavigateShipping() : navigate('/shipping-policy'));
+  const handleScrollToSection = (sectionId: string) => {
+    if (onScrollToSection) {
+      onScrollToSection(sectionId);
+    } else {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        navigate(`/#${sectionId}`);
+      }
+    }
+  };
+  const handleAccount = () => (onOpenAccount ? onOpenAccount() : navigate('/order-tracking'));
+
   const shopLinks = [
     { label: 'Ground & Whole Spices', category: 'Ground Spices' },
     { label: 'Artisanal Olive Oils', category: 'Olive Products' },
@@ -42,7 +76,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-12">
           {/* Brand Column */}
           <div className="lg:col-span-4 space-y-5">
-            <div onClick={onNavigateHome} className="cursor-pointer select-none inline-block group">
+            <div onClick={handleHome} className="cursor-pointer select-none inline-block group">
               <img
                 src="/assets/images/pak_veda_logo_white.svg"
                 alt="Pak Veda"
@@ -55,7 +89,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
             <div className="flex items-center gap-4 pt-1 text-[12px] uppercase tracking-[0.1em] text-[#A8DC72]">
               <button
                 type="button"
-                onClick={onNavigateAbout}
+                onClick={handleAbout}
                 className="hover:text-white transition-colors cursor-pointer"
               >
                 Orchards
@@ -63,7 +97,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <span className="text-[#3C644A]" aria-hidden="true">·</span>
               <button
                 type="button"
-                onClick={() => onScrollToSection('testimonials')}
+                onClick={() => handleScrollToSection('testimonials')}
                 className="hover:text-white transition-colors cursor-pointer"
               >
                 Reviews
@@ -71,7 +105,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <span className="text-[#3C644A]" aria-hidden="true">·</span>
               <button
                 type="button"
-                onClick={onNavigateBlogs}
+                onClick={handleBlogs}
                 className="hover:text-white transition-colors cursor-pointer"
               >
                 Journal
@@ -89,7 +123,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
                 <li key={item.label}>
                   <button
                     type="button"
-                    onClick={() => onNavigateShop(item.category)}
+                    onClick={() => handleShop(item.category)}
                     className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer text-left"
                   >
                     {item.label}
@@ -108,7 +142,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <li>
                 <button
                   type="button"
-                  onClick={onNavigateHome}
+                  onClick={handleHome}
                   className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
                 >
                   Home
@@ -117,7 +151,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <li>
                 <button
                   type="button"
-                  onClick={onNavigateAbout}
+                  onClick={handleAbout}
                   className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
                 >
                   About Us
@@ -126,7 +160,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <li>
                 <button
                   type="button"
-                  onClick={() => onNavigateShop('All')}
+                  onClick={() => handleShop('All')}
                   className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
                 >
                   Shop
@@ -135,7 +169,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <li>
                 <button
                   type="button"
-                  onClick={onNavigateBlogs}
+                  onClick={handleBlogs}
                   className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
                 >
                   Blogs
@@ -144,27 +178,25 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <li>
                 <button
                   type="button"
-                  onClick={onNavigateContact}
+                  onClick={handleContact}
                   className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
                 >
                   Contact Us
                 </button>
               </li>
-              {onNavigateWishlist && (
-                <li>
-                  <button
-                    type="button"
-                    onClick={onNavigateWishlist}
-                    className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
-                  >
-                    Wishlist
-                  </button>
-                </li>
-              )}
               <li>
                 <button
                   type="button"
-                  onClick={onNavigateCart}
+                  onClick={handleWishlist}
+                  className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
+                >
+                  Wishlist
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={handleCart}
                   className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
                 >
                   Shopping Cart
@@ -173,7 +205,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <li>
                 <button
                   type="button"
-                  onClick={onNavigateShipping}
+                  onClick={handleShipping}
                   className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
                 >
                   Shipping &amp; Returns
@@ -182,7 +214,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               <li>
                 <button
                   type="button"
-                  onClick={onOpenAccount}
+                  onClick={handleAccount}
                   className="hover:text-white hover:underline underline-offset-4 transition-colors cursor-pointer"
                 >
                   Track Order
@@ -227,3 +259,5 @@ export const Footer: React.FC<FooterProps> = React.memo(({
     </footer>
   );
 });
+
+export default Footer;

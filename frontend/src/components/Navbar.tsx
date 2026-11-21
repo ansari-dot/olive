@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useStore } from '../context/StoreContext';
 import {
   Menu,
   X,
@@ -130,17 +132,17 @@ const COLLECTION_OPTIONS = [
 ];
 
 interface NavbarProps {
-  activeNav: NavSection;
-  cartCount: number;
-  wishlistCount: number;
+  activeNav?: NavSection;
+  cartCount?: number;
+  wishlistCount?: number;
   orderCount?: number;
   featuredProducts?: Product[];
-  onSelectNav: (nav: NavSection) => void;
+  onSelectNav?: (nav: NavSection) => void;
   onNavigateCategory?: (category: string, subcategory?: string) => void;
   onOpenSearch?: () => void;
-  onOpenOrderTracking: () => void;
-  onOpenWishlist: () => void;
-  onOpenCart: () => void;
+  onOpenOrderTracking?: () => void;
+  onOpenWishlist?: () => void;
+  onOpenCart?: () => void;
   onOpenShipping?: () => void;
   onSelectProduct?: (product: Product) => void;
   onSearchSubmit?: (query: string, category?: string) => void;
@@ -160,6 +162,77 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
   onSelectProduct,
   onSearchSubmit,
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const store = useStore();
+
+  const effectiveCartCount = cartCount !== undefined ? cartCount : store.cartCount;
+  const effectiveWishlistCount = wishlistCount !== undefined ? wishlistCount : store.wishlistCount;
+
+  const derivedNav: NavSection = useMemo(() => {
+    if (activeNav) return activeNav;
+    const p = location.pathname.toLowerCase();
+    if (p.startsWith('/about')) return 'ABOUT US';
+    if (p.startsWith('/shop') || p.startsWith('/product')) return 'SHOP';
+    if (p.startsWith('/blog')) return 'BLOGS';
+    if (p.startsWith('/contact')) return 'CONTACT US';
+    return 'HOME';
+  }, [activeNav, location.pathname]);
+
+  const currentNav = activeNav || derivedNav;
+
+  const handleSelectNavInternal = (nav: NavSection) => {
+    if (onSelectNav) {
+      onSelectNav(nav);
+      return;
+    }
+    switch (nav) {
+      case 'HOME':
+        navigate('/');
+        break;
+      case 'ABOUT US':
+        navigate('/about');
+        break;
+      case 'SHOP':
+        navigate('/shop');
+        break;
+      case 'BLOGS':
+        navigate('/blogs');
+        break;
+      case 'CONTACT US':
+        navigate('/contact');
+        break;
+    }
+  };
+
+  const handleOpenCartInternal = () => {
+    if (onOpenCart) onOpenCart();
+    else store.setCartDrawerOpen(true);
+  };
+
+  const handleOpenWishlistInternal = () => {
+    if (onOpenWishlist) onOpenWishlist();
+    else navigate('/wishlist');
+  };
+
+  const handleOpenOrderTrackingInternal = () => {
+    if (onOpenOrderTracking) onOpenOrderTracking();
+    else navigate('/order-tracking');
+  };
+
+  const handleOpenShippingInternal = () => {
+    if (onOpenShipping) onOpenShipping();
+    else navigate('/shipping-policy');
+  };
+
+  const handleSelectProductInternal = (prod: Product) => {
+    if (onSelectProduct) {
+      onSelectProduct(prod);
+    } else {
+      navigate(`/product/${prod.slug || prod.id}`);
+    }
+  };
+
   const displayProducts =
     featuredProducts && featuredProducts.length > 0
       ? featuredProducts.slice(0, 2)
@@ -269,7 +342,11 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
     if (onNavigateCategory) {
       onNavigateCategory(categoryName, subcategoryName);
     } else {
-      onSelectNav('SHOP');
+      let url = `/shop?category=${encodeURIComponent(categoryName)}`;
+      if (subcategoryName) {
+        url += `&subcategory=${encodeURIComponent(subcategoryName)}`;
+      }
+      navigate(url);
     }
   };
 
@@ -279,12 +356,12 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
     setMobileMenuOpen(false);
     if (onSearchSubmit) {
       onSearchSubmit(searchQuery, selectedCollection);
-    } else if (onNavigateCategory) {
-      onNavigateCategory(
-        selectedCollection !== 'All Collection' ? selectedCollection : 'All'
-      );
     } else {
-      onSelectNav('SHOP');
+      let url = `/shop?search=${encodeURIComponent(searchQuery)}`;
+      if (selectedCollection && selectedCollection !== 'All Collection') {
+        url += `&category=${encodeURIComponent(selectedCollection)}`;
+      }
+      navigate(url);
     }
   };
 
@@ -313,7 +390,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
           <div className="flex items-center gap-3 text-[11.5px] sm:text-[12px] shrink-0">
             <button
               type="button"
-              onClick={onOpenOrderTracking}
+              onClick={handleOpenOrderTrackingInternal}
               className="hover:text-[#111111] transition-colors cursor-pointer font-medium"
             >
               Order Tracking
@@ -417,7 +494,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
           {/* Left Brand Logo: Scaled Up Image Form */}
           <div
             onClick={() => {
-              onSelectNav('HOME');
+              handleSelectNavInternal('HOME');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="flex items-center gap-2 cursor-pointer select-none shrink-0 group py-1"
@@ -514,11 +591,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                           key={prod.id}
                           onClick={() => {
                             setSearchFocused(false);
-                            if (onSelectProduct) {
-                              onSelectProduct(prod);
-                            } else {
-                              handleCategoryClick(prod.category);
-                            }
+                            handleSelectProductInternal(prod);
                           }}
                           className="p-2.5 flex items-center justify-between gap-3 hover:bg-[#F8FAFC] cursor-pointer transition-colors"
                         >
@@ -561,26 +634,26 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
             {/* Wishlist Icon */}
             <button
               type="button"
-              onClick={onOpenWishlist}
-              aria-label={`Wishlist (${wishlistCount} items)`}
+              onClick={handleOpenWishlistInternal}
+              aria-label={`Wishlist (${effectiveWishlistCount} items)`}
               className="relative p-1 text-[#0F172A] hover:text-[#C46B3B] transition-colors cursor-pointer"
             >
               <Heart className="w-6 h-6 stroke-[1.6]" />
               <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E52E2E] text-white text-[10.5px] font-bold flex items-center justify-center leading-none">
-                {wishlistCount}
+                {effectiveWishlistCount}
               </span>
             </button>
 
             {/* Cart Icon */}
             <button
               type="button"
-              onClick={onOpenCart}
-              aria-label={`Shopping cart (${cartCount} items)`}
+              onClick={handleOpenCartInternal}
+              aria-label={`Shopping cart (${effectiveCartCount} items)`}
               className="relative p-1 text-[#0F172A] hover:text-[#15472B] transition-colors cursor-pointer"
             >
               <ShoppingCart className="w-6 h-6 stroke-[1.6]" />
               <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E52E2E] text-white text-[10.5px] font-bold flex items-center justify-center leading-none">
-                {cartCount}
+                {effectiveCartCount}
               </span>
             </button>
           </div>
@@ -615,9 +688,9 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               {/* 1. HOME (Direct Click, No Dropdown) */}
               <button
                 type="button"
-                onClick={() => onSelectNav('HOME')}
+                onClick={() => handleSelectNavInternal('HOME')}
                 className={`h-full inline-flex items-center hover:text-[#A8DC72] transition-colors cursor-pointer select-none ${
-                  activeNav === 'HOME'
+                  currentNav === 'HOME'
                     ? 'text-white border-b-2 border-[#A8DC72]'
                     : 'text-white'
                 }`}
@@ -628,9 +701,9 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               {/* 2. ABOUT US (Direct Click, No Dropdown) */}
               <button
                 type="button"
-                onClick={() => onSelectNav('ABOUT US')}
+                onClick={() => handleSelectNavInternal('ABOUT US')}
                 className={`h-full inline-flex items-center hover:text-[#A8DC72] transition-colors cursor-pointer select-none ${
-                  activeNav === 'ABOUT US'
+                  currentNav === 'ABOUT US'
                     ? 'text-white border-b-2 border-[#A8DC72]'
                     : 'text-white'
                 }`}
@@ -648,12 +721,12 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                   type="button"
                   onClick={() => {
                     setOpenDropdown(null);
-                    onSelectNav('SHOP');
+                    handleSelectNavInternal('SHOP');
                   }}
                   className={`h-full inline-flex items-center gap-1.5 px-3.5 transition-colors cursor-pointer select-none font-bold uppercase tracking-[0.05em] ${
                     openDropdown === 'SHOP'
                       ? 'bg-[#E52E2E] text-white'
-                      : activeNav === 'SHOP'
+                      : currentNav === 'SHOP'
                       ? 'text-white border-b-2 border-[#A8DC72]'
                       : 'text-white hover:text-[#A8DC72]'
                   }`}
@@ -675,9 +748,9 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               >
                 <button
                   type="button"
-                  onClick={() => onSelectNav('BLOGS')}
+                  onClick={() => handleSelectNavInternal('BLOGS')}
                   className={`h-full inline-flex items-center gap-1.5 hover:text-[#A8DC72] transition-colors cursor-pointer select-none ${
-                    activeNav === 'BLOGS'
+                    currentNav === 'BLOGS'
                       ? 'text-white border-b-2 border-[#A8DC72]'
                       : 'text-white'
                   }`}
@@ -692,7 +765,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                       <button
                         type="button"
                         onClick={() => {
-                          onSelectNav('BLOGS');
+                          handleSelectNavInternal('BLOGS');
                           setOpenDropdown(null);
                         }}
                         className="w-full text-left px-4 py-2 text-[12.5px] font-medium hover:bg-[#F8FAFC] hover:text-[#15472B] transition-colors cursor-pointer"
@@ -702,7 +775,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                       <button
                         type="button"
                         onClick={() => {
-                          onSelectNav('BLOGS');
+                          handleSelectNavInternal('BLOGS');
                           setOpenDropdown(null);
                         }}
                         className="w-full text-left px-4 py-2 text-[12.5px] font-medium hover:bg-[#F8FAFC] hover:text-[#15472B] transition-colors cursor-pointer"
@@ -712,7 +785,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                       <button
                         type="button"
                         onClick={() => {
-                          onSelectNav('BLOGS');
+                          handleSelectNavInternal('BLOGS');
                           setOpenDropdown(null);
                         }}
                         className="w-full text-left px-4 py-2 text-[12.5px] font-medium hover:bg-[#F8FAFC] hover:text-[#15472B] transition-colors cursor-pointer"
@@ -722,7 +795,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                       <button
                         type="button"
                         onClick={() => {
-                          onSelectNav('BLOGS');
+                          handleSelectNavInternal('BLOGS');
                           setOpenDropdown(null);
                         }}
                         className="w-full text-left px-4 py-2 text-[12.5px] font-medium hover:bg-[#F8FAFC] hover:text-[#15472B] transition-colors cursor-pointer"
@@ -737,9 +810,9 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               {/* 5. CONTACT US (Direct Click, No Dropdown) */}
               <button
                 type="button"
-                onClick={() => onSelectNav('CONTACT US')}
+                onClick={() => handleSelectNavInternal('CONTACT US')}
                 className={`h-full inline-flex items-center hover:text-[#A8DC72] transition-colors cursor-pointer select-none ${
-                  activeNav === 'CONTACT US'
+                  currentNav === 'CONTACT US'
                     ? 'text-white border-b-2 border-[#A8DC72]'
                     : 'text-white'
                 }`}
@@ -751,10 +824,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
             {/* Right Distinct Highlight Block: Free Shipping (#E52E2E) */}
             <button
               type="button"
-              onClick={() => {
-                if (onOpenShipping) onOpenShipping();
-                else onSelectNav('SHOP');
-              }}
+              onClick={handleOpenShippingInternal}
               className="h-full bg-[#E52E2E] hover:bg-[#D62828] text-white px-5 sm:px-6 lg:px-7 flex items-center gap-2.5 transition-colors cursor-pointer select-none shrink-0"
             >
               <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shrink-0">
@@ -875,8 +945,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                             key={prod.id}
                             onClick={() => {
                               setOpenDropdown(null);
-                              if (onSelectProduct) onSelectProduct(prod);
-                              else handleCategoryClick(prod.category);
+                              handleSelectProductInternal(prod);
                             }}
                             className="flex items-center gap-3.5 p-2 rounded-xs hover:bg-[#FAF8F5] transition-colors cursor-pointer group border border-transparent hover:border-[#F1ECE4]"
                           >
@@ -979,7 +1048,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               <button
                 type="button"
                 onClick={() => {
-                  onSelectNav('HOME');
+                  handleSelectNavInternal('HOME');
                   setMobileMenuOpen(false);
                 }}
                 className="w-full text-left py-2.5 border-b border-[#F1F5F9] hover:text-[#15472B] transition-colors cursor-pointer"
@@ -990,7 +1059,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               <button
                 type="button"
                 onClick={() => {
-                  onSelectNav('ABOUT US');
+                  handleSelectNavInternal('ABOUT US');
                   setMobileMenuOpen(false);
                 }}
                 className="w-full text-left py-2.5 border-b border-[#F1F5F9] hover:text-[#15472B] transition-colors cursor-pointer"
@@ -1001,7 +1070,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               <button
                 type="button"
                 onClick={() => {
-                  onSelectNav('SHOP');
+                  handleSelectNavInternal('SHOP');
                   setMobileMenuOpen(false);
                 }}
                 className="w-full text-left py-2.5 border-b border-[#F1F5F9] hover:text-[#15472B] transition-colors cursor-pointer"
@@ -1030,7 +1099,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                     <button
                       type="button"
                       onClick={() => {
-                        onSelectNav('BLOGS');
+                        handleSelectNavInternal('BLOGS');
                         setMobileMenuOpen(false);
                       }}
                       className="text-[#475569] hover:text-[#15472B] text-left w-full py-1"
@@ -1040,7 +1109,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                     <button
                       type="button"
                       onClick={() => {
-                        onSelectNav('BLOGS');
+                        handleSelectNavInternal('BLOGS');
                         setMobileMenuOpen(false);
                       }}
                       className="text-[#475569] hover:text-[#15472B] text-left w-full py-1"
@@ -1050,7 +1119,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                     <button
                       type="button"
                       onClick={() => {
-                        onSelectNav('BLOGS');
+                        handleSelectNavInternal('BLOGS');
                         setMobileMenuOpen(false);
                       }}
                       className="text-[#475569] hover:text-[#15472B] text-left w-full py-1"
@@ -1064,7 +1133,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               <button
                 type="button"
                 onClick={() => {
-                  onSelectNav('CONTACT US');
+                  handleSelectNavInternal('CONTACT US');
                   setMobileMenuOpen(false);
                 }}
                 className="w-full text-left py-2.5 border-b border-[#F1F5F9] hover:text-[#15472B] transition-colors cursor-pointer"
@@ -1075,7 +1144,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
               <button
                 type="button"
                 onClick={() => {
-                  onOpenOrderTracking();
+                  handleOpenOrderTrackingInternal();
                   setMobileMenuOpen(false);
                 }}
                 className="w-full text-left py-2.5 border-b border-[#F1F5F9] hover:text-[#15472B] transition-colors cursor-pointer"
@@ -1087,7 +1156,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
             {/* Mobile Footer Banner */}
             <div
               onClick={() => {
-                if (onOpenShipping) onOpenShipping();
+                handleOpenShippingInternal();
                 setMobileMenuOpen(false);
               }}
               className="p-3 bg-[#E52E2E] text-white flex items-center justify-center gap-2 cursor-pointer font-bold text-[12.5px]"
