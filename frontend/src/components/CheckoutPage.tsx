@@ -569,7 +569,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         <p className="text-[13.5px] text-[#181818] truncate">{product.name}</p>
                         <p className="text-[12px] text-[#666666] tabular-nums flex items-center gap-1.5">
                           <span>{product.size} · Qty {quantity}</span>
-                          {(product.isDeal || product.dealBadge) && (
+                          {product.isDeal && (
                             <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[10px] font-bold px-1 py-0.2">
                               {product.dealBadge || `-${product.discountPercent}%`}
                             </span>
@@ -578,7 +578,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      {product.originalPrice && product.originalPrice > product.price && (
+                      {product.isDeal && product.originalPrice && product.originalPrice > product.price && (
                         <span className="block text-[11px] text-[#888888] line-through font-mono-data">
                           {formatPKR(product.originalPrice * quantity)}
                         </span>

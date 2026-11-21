@@ -165,7 +165,7 @@ export const CartDrawer: React.FC = () => {
                       {product.name}
                     </h4>
                     <div className="flex items-baseline gap-2 mt-0.5">
-                      {product.originalPrice && product.originalPrice > product.price ? (
+                      {product.isDeal && product.originalPrice && product.originalPrice > product.price ? (
                         <>
                           <span className="text-[12px] text-[#888888] line-through font-mono-data">
                             {formatPKR(product.originalPrice)}
@@ -179,7 +179,7 @@ export const CartDrawer: React.FC = () => {
                           {formatPKR(product.price)}
                         </p>
                       )}
-                      {(product.isDeal || product.dealBadge) && (
+                      {product.isDeal && (
                         <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[10px] font-bold px-1 py-0.2">
                           {product.dealBadge || `-${product.discountPercent}%`}
                         </span>

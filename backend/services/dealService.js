@@ -335,12 +335,21 @@ export function applyDealToProduct(product, deal) {
 
   if (!deal) {
     p.isDeal = false;
+    p.dealBadge = null;
+    p.discountPercent = null;
+    p.dealEndsAt = null;
+    p.dealStartsAt = null;
+    p.dealId = null;
+    p.dealStockLimit = null;
+    p.dealSoldCount = null;
+    p.dealRemainingStock = null;
+    p.originalPrice = null;
+    p.isSale = false;
     return p;
   }
 
   // Preserve true regular price as originalPrice
-  const original = p.price;
-  p.originalPrice = p.originalPrice && p.originalPrice > original ? p.originalPrice : original;
+  p.originalPrice = p.price;
   p.price = deal.dealPrice;
   p.discountPercent = deal.discountPercent;
   p.dealBadge = deal.dealBadge || `-${deal.discountPercent}%`;

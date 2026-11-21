@@ -137,22 +137,12 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = R
             const isBroken = brokenImages[product.id];
             const isWishlisted = wishlistIds.includes(product.id);
 
-            // Compute discount percentage if originalPrice exists or if deal
-            const hasDiscount =
-              Boolean(product.isDeal) ||
-              Boolean(product.originalPrice && product.originalPrice > product.price);
-            const discountPercent = product.discountPercent
-              ? product.discountPercent
-              : hasDiscount && product.originalPrice
-              ? Math.round(
-                  ((product.originalPrice - product.price) /
-                    product.originalPrice) *
-                    100
-                )
-              : product.isSale
-              ? 20
+            // Realistic: Deal discount & badge apply ONLY when product.isDeal === true
+            const isDealActive = Boolean(product.isDeal);
+            const badgeText = isDealActive
+              ? product.dealBadge || (product.discountPercent ? `-${product.discountPercent}%` : null)
               : null;
-            const badgeText = product.dealBadge || (discountPercent ? `-${discountPercent}%` : null);
+            const hasDiscount = isDealActive && Boolean(product.originalPrice && product.originalPrice > product.price);
 
             return (
               <article
@@ -326,7 +316,7 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = R
                         </span>
                       </>
                     ) : (
-                      <span className="text-[14.5px] font-extrabold text-[#E52E2E] font-mono-data">
+                      <span className="text-[14.5px] font-extrabold text-[#111111] font-mono-data">
                         Rs. {product.price.toLocaleString('en-PK')}
                       </span>
                     )}

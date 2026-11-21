@@ -101,8 +101,8 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = React
                     </button>
                   )}
 
-                  {/* Top-Left Deal Badge */}
-                  {(product.isDeal || product.dealBadge || (product.originalPrice && product.originalPrice > product.price)) && (
+                  {/* Top-Left Deal Badge (ONLY when deal is active) */}
+                  {product.isDeal && (
                     <div className="absolute top-3 left-3 z-10">
                       <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[11px] font-bold px-2 py-0.5 leading-none tracking-tight shadow-2xs">
                         {product.dealBadge || (product.discountPercent ? `-${product.discountPercent}%` : '-13%')}
@@ -168,7 +168,7 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = React
                   </div>
 
                   <div className="mt-3 pt-2.5 border-t border-[#F2EFEA] flex items-center justify-center gap-3 tabular-nums">
-                    {product.originalPrice && product.originalPrice > product.price ? (
+                    {product.isDeal && product.originalPrice && product.originalPrice > product.price ? (
                       <>
                         <span className="text-[12.5px] text-[#9CA3AF] line-through font-mono-data">
                           {formatPKR(product.originalPrice)}

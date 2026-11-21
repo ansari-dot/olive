@@ -228,7 +228,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                           Price:
                         </span>
                         <div>
-                          {product.originalPrice && product.originalPrice > product.price ? (
+                          {product.isDeal && product.originalPrice && product.originalPrice > product.price ? (
                             <>
                               <span className="text-[11px] text-[#888888] line-through block font-mono-data">
                                 {formatPKR(product.originalPrice)}
@@ -240,7 +240,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                           ) : (
                             <span className="font-mono-data">{formatPKR(product.price)}</span>
                           )}
-                          {(product.isDeal || product.dealBadge) && (
+                          {product.isDeal && (
                             <span className="inline-block mt-0.5 border border-[#D03B3B] bg-white text-[#D03B3B] text-[10px] font-bold px-1 py-0.2">
                               {product.dealBadge || `-${product.discountPercent}%`}
                             </span>

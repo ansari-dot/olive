@@ -329,20 +329,12 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
             {/* Main Large Image Container (Clean Transparent Background) */}
             <div className="relative flex-1 aspect-[3/3.65] bg-transparent border border-[#EEEEEE] overflow-hidden flex items-center justify-center p-4">
-              {product.isDeal || product.dealBadge ? (
+              {product.isDeal && (
                 <div className="absolute top-3 left-3 z-10">
                   <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[13px] font-bold px-2.5 py-1 leading-none tracking-tight shadow-2xs">
                     {product.dealBadge || `-${product.discountPercent}%`}
                   </span>
                 </div>
-              ) : product.isSale ? (
-                <span className="absolute top-0 left-0 z-10 bg-[#C46B3B] text-white text-[12px] font-medium leading-none px-3.5 py-2">
-                  Sale
-                </span>
-              ) : (
-                <span className="absolute top-0 left-0 z-10 bg-[#7E8F5B] text-white text-[12px] font-medium leading-none px-3.5 py-2">
-                  New
-                </span>
               )}
 
               {!brokenImages[mainImage] && mainImage ? (
@@ -383,7 +375,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
             {/* Price Row */}
             <div className="mt-4 flex flex-wrap items-baseline gap-3 text-[24px] font-medium tabular-nums">
-              {product.originalPrice && product.originalPrice > product.price ? (
+              {product.isDeal && product.originalPrice && product.originalPrice > product.price ? (
                 <>
                   <span className="text-[#888888] line-through text-[18px]">
                     {formatPKR(product.originalPrice)}
@@ -942,7 +934,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     onClick={() => onSelectProduct(rel)}
                     className="relative aspect-[3/3.55] w-full bg-transparent border border-[#EEEEEE] overflow-hidden cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15472B]"
                   >
-                    {(rel.isDeal || rel.dealBadge || (rel.originalPrice && rel.originalPrice > rel.price)) && (
+                    {rel.isDeal && (
                       <div className="absolute top-2.5 left-2.5 z-10">
                         <span className="border border-[#D03B3B] bg-white text-[#D03B3B] text-[11px] font-bold px-2 py-0.5 leading-none tracking-tight">
                           {rel.dealBadge || (rel.discountPercent ? `-${rel.discountPercent}%` : '-13%')}
@@ -971,7 +963,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                       <StarRating rating={rel.rating ?? 4} size="sm" />
                     </div>
                     <div className="mt-1.5 flex items-center justify-center gap-2 text-[13.5px] tabular-nums">
-                      {rel.originalPrice && rel.originalPrice > rel.price ? (
+                      {rel.isDeal && rel.originalPrice && rel.originalPrice > rel.price ? (
                         <>
                           <span className="text-[#888888] line-through">
                             {formatPKR(rel.originalPrice)}
