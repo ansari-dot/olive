@@ -16,7 +16,13 @@ function buildProductFilter(query, isPublic = true) {
   }
 
   // Category filter
-  if (query.category && query.category !== "All" && query.category !== "all") {
+  if (
+    query.category &&
+    query.category !== "All" &&
+    query.category !== "all" &&
+    query.category !== "All Categories" &&
+    query.category !== "All Collection"
+  ) {
     filter.category = query.category;
   }
 

@@ -12,6 +12,7 @@ export const ShopRoutePage: React.FC = () => {
   const category = searchParams.get('category') || 'All';
   const subcategory = searchParams.get('subcategory') || 'All';
   const brand = searchParams.get('brand') || 'All Brands';
+  const search = searchParams.get('search') || '';
 
   const handleClearBrand = () => {
     const nextParams = new URLSearchParams(searchParams);
@@ -21,12 +22,13 @@ export const ShopRoutePage: React.FC = () => {
 
   return (
     <ShopPage
-      key={`${category}-${subcategory}-${brand}-${searchParams.get('search') || ''}`}
+      key={`${category}-${subcategory}-${brand}-${search}`}
       wishlistIds={wishlistIds}
       onToggleWishlist={toggleWishlist}
       selectedBrand={brand}
       initialCategory={category}
       initialSubcategory={subcategory}
+      initialSearch={search}
       onClearBrand={handleClearBrand}
       onAddToCart={addToCart}
       onSelectProduct={(product: Product) => {

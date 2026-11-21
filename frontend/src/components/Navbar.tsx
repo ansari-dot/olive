@@ -11,7 +11,7 @@ import {
   Truck,
   Loader2,
 } from 'lucide-react';
-import { fetchProducts } from '../services/api';
+import { fetchProducts, fetchCategories } from '../services/api';
 import type { Product } from '../data/storeData';
 
 export type NavSection =
@@ -101,13 +101,12 @@ const CURRENCY_OPTIONS = [
 
 const LANGUAGE_OPTIONS = ['English', 'اردو (Urdu)'];
 
-const COLLECTION_OPTIONS = [
-  'All Collection',
+const DEFAULT_CATEGORY_FALLBACK = [
+  'Olive Products',
   'Ground Spices',
   'Whole Spices',
   'Herbs and Botanicals',
   'Seasonings and Spice Blends',
-  'Olive Products',
   'Edible and Specialty Oils',
   'Herbal and Botanical Oils',
   'Mushrooms and Mushroom Products',
@@ -117,18 +116,6 @@ const COLLECTION_OPTIONS = [
   'Nuts',
   'Dried Fruits',
   'Natural Sweeteners',
-  'Superfoods and Functional Ingredients',
-  'Salts and Mineral Ingredients',
-  'Vinegars',
-  'Pickles and Fermented Foods',
-  'Healthy Snacks',
-  'Chocolates and Cacao Products',
-  'Gourmet and Savoury Snacks',
-  'Biscuits and Cookies',
-  'Beverages and Drink Mixes',
-  'Instant Drink Mixes',
-  'Health Nutrition and Functional Foods',
-  'Nutritional Supplements',
 ];
 
 interface NavbarProps {
@@ -248,9 +235,10 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
   const [languageOpen, setLanguageOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('Language');
 
-  // Search Bar State
-  const [selectedCollection, setSelectedCollection] = useState('All Collection');
-  const [collectionMenuOpen, setCollectionMenuOpen] = useState(false);
+  // Search Bar & Dynamic Categories State
+  const [categoriesList, setCategoriesList] = useState<string[]>(DEFAULT_CATEGORY_FALLBACK);
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
@@ -262,13 +250,39 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchAbortRef = useRef<AbortController | null>(null);
 
+  // Fetch dynamic categories directly from backend CMS/MongoDB
+  useEffect(() => {
+    let isMounted = true;
+    fetchCategories()
+      .then((cats) => {
+        if (!isMounted || !Array.isArray(cats)) return;
+        const names = cats
+          .map((c) => c.name?.trim())
+          .filter(Boolean);
+        const unique = Array.from(new Set(names));
+        if (unique.length > 0) {
+          setCategoriesList(unique);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load categories in navbar:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const categoryOptions = useMemo(() => {
+    return ['All Categories', ...categoriesList];
+  }, [categoriesList]);
+
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
       if (searchBoxRef.current && !searchBoxRef.current.contains(target)) {
         setSearchFocused(false);
-        setCollectionMenuOpen(false);
+        setCategoryMenuOpen(false);
       }
       if (currencyMenuRef.current && !currencyMenuRef.current.contains(target)) {
         setCurrencyOpen(false);
@@ -302,7 +316,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
     const timer = setTimeout(async () => {
       try {
         const catFilter =
-          selectedCollection !== 'All Collection' ? selectedCollection : undefined;
+          selectedCategory !== 'All Categories' ? selectedCategory : undefined;
         const res = await fetchProducts(
           { search: q, category: catFilter, limit: 6 },
           { signal: controller.signal }
@@ -323,7 +337,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [searchQuery, selectedCollection]);
+  }, [searchQuery, selectedCategory]);
 
   const handleDropdownEnter = (name: string) => {
     if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
@@ -354,15 +368,24 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
     if (e) e.preventDefault();
     setSearchFocused(false);
     setMobileMenuOpen(false);
+    setCategoryMenuOpen(false);
+    const q = searchQuery.trim();
+    const hasCategory = selectedCategory && selectedCategory !== 'All Categories';
+
     if (onSearchSubmit) {
-      onSearchSubmit(searchQuery, selectedCollection);
-    } else {
-      let url = `/shop?search=${encodeURIComponent(searchQuery)}`;
-      if (selectedCollection && selectedCollection !== 'All Collection') {
-        url += `&category=${encodeURIComponent(selectedCollection)}`;
-      }
-      navigate(url);
+      onSearchSubmit(q, hasCategory ? selectedCategory : undefined);
+      return;
     }
+
+    if (!q && !hasCategory) {
+      navigate('/shop');
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (q) params.set('search', q);
+    if (hasCategory) params.set('category', selectedCategory);
+    navigate(`/shop?${params.toString()}`);
   };
 
   return (
@@ -511,38 +534,38 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
             ref={searchBoxRef}
             className="hidden sm:flex flex-1 max-w-[560px] xl:max-w-[680px] relative items-center border border-[#D1D5DB] rounded-xs h-[44px] bg-white transition-all focus-within:border-[#15472B] focus-within:ring-1 focus-within:ring-[#15472B]/20"
           >
-            {/* Category Dropdown (All Collection ▾) */}
+            {/* Category Dropdown (All Categories ▾) */}
             <div className="relative shrink-0">
               <button
                 type="button"
-                onClick={() => setCollectionMenuOpen((p) => !p)}
+                onClick={() => setCategoryMenuOpen((p) => !p)}
                 className="h-full px-3.5 py-2 inline-flex items-center gap-2 text-[12.5px] font-medium text-[#334155] hover:text-[#0F172A] whitespace-nowrap cursor-pointer select-none"
               >
-                <span className="max-w-[125px] truncate">{selectedCollection}</span>
+                <span className="max-w-[125px] truncate">{selectedCategory}</span>
                 <ChevronDown
                   className={`w-3.5 h-3.5 text-[#64748B] transition-transform duration-200 ${
-                    collectionMenuOpen ? 'rotate-180' : ''
+                    categoryMenuOpen ? 'rotate-180' : ''
                   }`}
                 />
               </button>
 
-              {collectionMenuOpen && (
+              {categoryMenuOpen && (
                 <div className="absolute left-0 top-full mt-2 w-64 max-h-[380px] overflow-y-auto bg-white border border-[#E2E8F0] shadow-xl rounded-xs z-50 py-1.5 divide-y divide-[#F1F5F9]">
-                  {COLLECTION_OPTIONS.map((col) => (
+                  {categoryOptions.map((cat) => (
                     <button
-                      key={col}
+                      key={cat}
                       type="button"
                       onClick={() => {
-                        setSelectedCollection(col);
-                        setCollectionMenuOpen(false);
+                        setSelectedCategory(cat);
+                        setCategoryMenuOpen(false);
                       }}
                       className={`w-full text-left px-3.5 py-2 text-[12px] hover:bg-[#F8FAFC] transition-colors cursor-pointer truncate ${
-                        selectedCollection === col
+                        selectedCategory === cat
                           ? 'font-bold text-[#15472B] bg-[#F0FDF4]'
                           : 'text-[#334155]'
                       }`}
                     >
-                      {col}
+                      {cat}
                     </button>
                   ))}
                 </div>
@@ -1028,7 +1051,19 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
             </div>
 
             {/* Mobile Search */}
-            <div className="p-3 border-b border-[#E2E8F0] bg-[#FAF8F5]">
+            <div className="p-3 border-b border-[#E2E8F0] bg-[#FAF8F5] space-y-2">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                aria-label="Select Category"
+                className="w-full bg-white border border-[#CBD5E1] rounded-xs px-2.5 py-1.5 text-[12px] text-[#334155] outline-none"
+              >
+                {categoryOptions.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
               <form onSubmit={handleSearchSubmit} className="flex items-center bg-white border border-[#CBD5E1] rounded-xs px-2.5 py-1.5">
                 <input
                   type="text"
@@ -1037,7 +1072,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full text-[12.5px] outline-none text-[#1E293B]"
                 />
-                <button type="submit" className="text-[#64748B] p-1">
+                <button type="submit" className="text-[#64748B] p-1 cursor-pointer" aria-label="Submit search">
                   <Search className="w-4 h-4" />
                 </button>
               </form>

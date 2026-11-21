@@ -17,6 +17,7 @@ interface ShopPageProps {
   selectedBrand?: string;
   initialCategory?: string;
   initialSubcategory?: string;
+  initialSearch?: string;
   onClearBrand?: () => void;
   onAddToCart: (product: Product) => void;
   onSelectProduct?: (product: Product) => void;
@@ -81,6 +82,7 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
   selectedBrand = 'All Brands',
   initialCategory = 'All',
   initialSubcategory = 'All',
+  initialSearch = '',
   onClearBrand,
   onAddToCart,
   onSelectProduct,
@@ -88,6 +90,7 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>(initialSubcategory);
+  const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
   const [catalogCategories, setCatalogCategories] = useState<CategoryItem[]>([]);
   const [selectedFlavour, setSelectedFlavour] = useState<string>('All');
   const [selectedOrigin, setSelectedOrigin] = useState<string>('All');
@@ -162,6 +165,7 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
     setError(null);
     try {
       const res = await fetchProducts({
+        search: searchQuery.trim() || undefined,
         category: selectedCategory !== 'All' ? selectedCategory : undefined,
         subcategory: selectedSubcategory !== 'All' ? selectedSubcategory : undefined,
         brand: selectedBrand !== 'All Brands' ? selectedBrand : undefined,
@@ -182,6 +186,7 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
       setLoading(false);
     }
   }, [
+    searchQuery,
     selectedCategory,
     selectedSubcategory,
     selectedBrand,
@@ -201,6 +206,7 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
   const origins = filterMeta?.origins || [];
 
   const hasActiveFilters =
+    Boolean(searchQuery.trim()) ||
     selectedBrand !== 'All Brands' ||
     selectedCategory !== 'All' ||
     selectedSubcategory !== 'All' ||
@@ -210,6 +216,7 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
 
   const resetAllFilters = () => {
     onClearBrand?.();
+    setSearchQuery('');
     setSelectedCategory('All');
     setSelectedSubcategory('All');
     setSelectedFlavour('All');
@@ -642,6 +649,21 @@ export const ShopPage: React.FC<ShopPageProps> = React.memo(({
                 <span className="text-[11px] uppercase tracking-[0.08em] text-[#888888] mr-1">
                   Active:
                 </span>
+                {searchQuery.trim() && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-[#FEF3C7] text-[#92400E] text-[12px] font-medium border border-[#FDE68A]">
+                    Search: &ldquo;{searchQuery}&rdquo;
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setCurrentPage(1);
+                      }}
+                      className="hover:text-red-700 font-bold cursor-pointer ml-0.5"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
                 {selectedCategory !== 'All' && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-[#EBF3EC] text-[#143320] text-[12px] font-medium">
                     Category: {selectedCategory}
