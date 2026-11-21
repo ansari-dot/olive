@@ -6,7 +6,7 @@ interface HeroSectionProps {
   onSlideAction?: (slide: HeroSlide) => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ slides, onSlideAction }) => {
+export const HeroSection: React.FC<HeroSectionProps> = React.memo(({ slides, onSlideAction }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
@@ -63,6 +63,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ slides, onSlideAction 
               <img
                 src={slide.image}
                 alt={slide.alt}
+                loading={idx === 0 ? 'eager' : 'lazy'}
+                fetchPriority={idx === 0 ? 'high' : 'low'}
+                decoding="async"
                 referrerPolicy="no-referrer"
                 onError={() => setFailedImages((prev) => ({ ...prev, [slide.id]: true }))}
                 className="absolute inset-0 w-full h-full object-cover object-center"
@@ -170,4 +173,4 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ slides, onSlideAction 
       </span>
     </section>
   );
-};
+});

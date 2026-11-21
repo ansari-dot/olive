@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check, Mail, Loader2 } from 'lucide-react';
 import { subscribeNewsletter } from '../services/api';
 
-export const NewsletterSection: React.FC = () => {
+export const NewsletterSection: React.FC = React.memo(() => {
   const [email, setEmail] = useState('');
   const [subscribedEmail, setSubscribedEmail] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -115,4 +115,4 @@ export const NewsletterSection: React.FC = () => {
       </div>
     </section>
   );
-};
+});

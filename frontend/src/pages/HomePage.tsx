@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, startTransition } from 'react';
 import { X, Plus, Minus, Trash2, Check, Loader2 } from 'lucide-react';
 import { Navbar, NavSection } from '../components/Navbar';
 import { HeroSection } from '../components/HeroSection';
@@ -13,17 +13,29 @@ import { TestimonialsSection } from '../components/TestimonialsSection';
 import { PartnerLogosStrip } from '../components/PartnerLogosStrip';
 import { NewsletterSection } from '../components/NewsletterSection';
 import { Footer } from '../components/Footer';
-import { ShopPage } from '../components/ShopPage';
-import { AboutUsPage } from '../components/AboutUsPage';
-import { BlogsPage } from '../components/BlogsPage';
-import { BlogDetailPage } from '../components/BlogDetailPage';
-import { ContactUsPage } from '../components/ContactUsPage';
-import { CartPage } from '../components/CartPage';
-import { CheckoutPage } from '../components/CheckoutPage';
-import { WishlistPage } from '../components/WishlistPage';
-import { OrderTrackingPage } from '../components/OrderTrackingPage';
-import { ShippingPolicyPage } from '../components/ShippingPolicyPage';
-import { ProductDetailPage } from '../components/ProductDetailPage';
+// Route-level code-splitting: Subpages lazy-loaded on demand to keep initial bundle ultra-fast
+const ShopPage = React.lazy(() => import('../components/ShopPage').then((m) => ({ default: m.ShopPage })));
+const AboutUsPage = React.lazy(() => import('../components/AboutUsPage').then((m) => ({ default: m.AboutUsPage })));
+const BlogsPage = React.lazy(() => import('../components/BlogsPage').then((m) => ({ default: m.BlogsPage })));
+const BlogDetailPage = React.lazy(() => import('../components/BlogDetailPage').then((m) => ({ default: m.BlogDetailPage })));
+const ContactUsPage = React.lazy(() => import('../components/ContactUsPage').then((m) => ({ default: m.ContactUsPage })));
+const CartPage = React.lazy(() => import('../components/CartPage').then((m) => ({ default: m.CartPage })));
+const CheckoutPage = React.lazy(() => import('../components/CheckoutPage').then((m) => ({ default: m.CheckoutPage })));
+const WishlistPage = React.lazy(() => import('../components/WishlistPage').then((m) => ({ default: m.WishlistPage })));
+const OrderTrackingPage = React.lazy(() => import('../components/OrderTrackingPage').then((m) => ({ default: m.OrderTrackingPage })));
+const ShippingPolicyPage = React.lazy(() => import('../components/ShippingPolicyPage').then((m) => ({ default: m.ShippingPolicyPage })));
+const ProductDetailPage = React.lazy(() => import('../components/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })));
+
+const PageSkeleton: React.FC = () => (
+  <div className="w-full min-h-[60vh] max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-pulse space-y-6">
+    <div className="h-8 bg-[#15472B]/10 w-1/4 rounded"></div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+        <div key={i} className="aspect-[3/4] bg-[#15472B]/5 rounded"></div>
+      ))}
+    </div>
+  </div>
+);
 import {
   BRANDS,
   HERO_SLIDES,
@@ -32,6 +44,7 @@ import {
 } from '../data/storeData';
 import {
   fetchProducts,
+  fetchHomeSections,
   fetchBlogs,
   createOrder,
   fetchCategories,
@@ -114,53 +127,63 @@ export const HomePage: React.FC = () => {
 
   const wishlistIds = useMemo(() => wishlist.map((p) => p.id), [wishlist]);
 
-  // Load home sections from live API
+  // Load home sections in a single consolidated request with in-flight deduplication
   useEffect(() => {
     let isMounted = true;
+    const abortController = new AbortController();
 
-    fetchProducts({ section: 'featured-grid', limit: 12 })
+    fetchHomeSections({ signal: abortController.signal })
       .then((res) => {
-        if (isMounted) setFeaturedGrid(res.products);
+        if (isMounted) {
+          setFeaturedGrid(res.featuredGrid);
+          setBestSellers(res.bestSellers);
+          setUniqueProducts(res.uniqueProducts);
+          if (res.shopProducts && res.shopProducts.length > 0) {
+            setAllProducts(res.shopProducts);
+          }
+        }
       })
-      .catch((err) => console.error('Failed to load featured grid products:', err));
+      .catch((err) => {
+        if (err?.name !== 'AbortError') {
+          console.error('Failed to load home sections:', err);
+        }
+      });
 
-    fetchProducts({ section: 'best-sellers', limit: 12 })
-      .then((res) => {
-        if (isMounted) setBestSellers(res.products);
-      })
-      .catch((err) => console.error('Failed to load best seller products:', err));
-
-    fetchProducts({ section: 'unique', limit: 12 })
-      .then((res) => {
-        if (isMounted) setUniqueProducts(res.products);
-      })
-      .catch((err) => console.error('Failed to load unique products:', err));
-
-    fetchBlogs()
+    fetchBlogs({ signal: abortController.signal })
       .then((data) => {
         if (isMounted) setBlogs(data);
       })
-      .catch((err) => console.error('Failed to load blogs:', err));
+      .catch((err) => {
+        if (err?.name !== 'AbortError') {
+          console.error('Failed to load blogs:', err);
+        }
+      });
 
-    fetchProducts({ limit: 60 })
-      .then((res) => {
-        if (isMounted) setAllProducts(res.products);
-      })
-      .catch((err) => console.error('Failed to load products catalogue:', err));
-
-    fetchCategories()
+    fetchCategories({ signal: abortController.signal })
       .then((cats) => {
         if (isMounted) setCatalogCategories(cats);
       })
-      .catch((err) => console.error('Failed to load categories catalogue:', err));
+      .catch((err) => {
+        if (err?.name !== 'AbortError') {
+          console.error('Failed to load categories:', err);
+        }
+      });
 
     return () => {
       isMounted = false;
+      abortController.abort();
     };
   }, []);
 
-  // Debounced search
+  const searchAbortRef = useRef<AbortController | null>(null);
+
+  // Debounced search with AbortController to immediately cancel stale requests
   useEffect(() => {
+    if (searchAbortRef.current) {
+      searchAbortRef.current.abort();
+      searchAbortRef.current = null;
+    }
+
     const q = searchQuery.trim();
     if (!q) {
       setSearchResults([]);
@@ -169,18 +192,28 @@ export const HomePage: React.FC = () => {
     }
 
     setSearching(true);
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+
     const timer = setTimeout(async () => {
       try {
-        const res = await fetchProducts({ search: q, limit: 6 });
+        const res = await fetchProducts({ search: q, limit: 6 }, { signal: controller.signal });
         setSearchResults(res.products);
-      } catch (err) {
-        console.error('Search failed:', err);
+      } catch (err: unknown) {
+        if ((err as Error)?.name !== 'AbortError') {
+          console.error('Search failed:', err);
+        }
       } finally {
-        setSearching(false);
+        if (!controller.signal.aborted) {
+          setSearching(false);
+        }
       }
-    }, 250);
+    }, 200);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [searchQuery]);
 
   useEffect(() => {
@@ -204,7 +237,7 @@ export const HomePage: React.FC = () => {
   const shippingFee = subtotal === 0 || subtotal >= 1200 ? 0 : 200;
   const orderTotal = subtotal + shippingFee;
 
-  const handleSelectNav = (nav: NavSection) => {
+  const handleSelectNav = useCallback((nav: NavSection) => {
     setActiveNav(nav);
     if (nav === 'SHOP') {
       setShopInitialCategory('All');
@@ -236,24 +269,24 @@ export const HomePage: React.FC = () => {
     setCurrentView('home');
     setSelectedBrand('All Brands');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleOpenProductDetail = (product: Product) => {
+  const handleOpenProductDetail = useCallback((product: Product) => {
     setSelectedProduct(product);
     setCurrentView('product');
     setSearchOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleOpenBlogDetail = (post: BlogPost) => {
+  const handleOpenBlogDetail = useCallback((post: BlogPost) => {
     setSelectedPost(post);
     setActiveNav('BLOGS');
     setCurrentView('blog-detail');
     setSearchOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleNavigateShopCategory = (
+  const handleNavigateShopCategory = useCallback((
     category?: string,
     subcategory?: string,
     brand?: string
@@ -264,9 +297,9 @@ export const HomePage: React.FC = () => {
     setActiveNav('SHOP');
     setCurrentView('shop');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleAddToCart = (product: Product, quantity = 1) => {
+  const handleAddToCart = useCallback((product: Product, quantity = 1) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -281,9 +314,9 @@ export const HomePage: React.FC = () => {
     setCheckoutStep('bag');
     setSearchOpen(false);
     setCartOpen(true);
-  };
+  }, []);
 
-  const handleBuyNow = (product: Product, quantity = 1) => {
+  const handleBuyNow = useCallback((product: Product, quantity = 1) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -299,9 +332,9 @@ export const HomePage: React.FC = () => {
     setSearchOpen(false);
     setCurrentView('checkout');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleUpdateQty = (productId: string, delta: number) => {
+  const handleUpdateQty = useCallback((productId: string, delta: number) => {
     setCart((prev) =>
       prev
         .map((item) =>
@@ -311,23 +344,23 @@ export const HomePage: React.FC = () => {
         )
         .filter((item) => item.quantity > 0)
     );
-  };
+  }, []);
 
-  const handleRemoveItem = (productId: string) => {
+  const handleRemoveItem = useCallback((productId: string) => {
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
-  };
+  }, []);
 
-  const handleToggleWishlist = (product: Product) => {
+  const handleToggleWishlist = useCallback((product: Product) => {
     setWishlist((prev) => {
       const exists = prev.some((item) => item.id === product.id);
       if (exists) {
         return prev.filter((item) => item.id !== product.id);
       }
       return [product, ...prev];
-    });
-  };
+});
+  }, []);
 
-  const handleMoveAllWishlistToCart = () => {
+  const handleMoveAllWishlistToCart = useCallback(() => {
     if (wishlist.length === 0) return;
     setCart((prev) => {
       const next = [...prev];
@@ -346,7 +379,7 @@ export const HomePage: React.FC = () => {
     });
     setCheckoutStep('bag');
     setCartOpen(true);
-  };
+  }, [wishlist]);
 
   const handleConfirmOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -396,13 +429,13 @@ export const HomePage: React.FC = () => {
     }
   };
 
-  const handleOpenTrackOrder = (orderId = '') => {
+  const handleOpenTrackOrder = useCallback((orderId = '') => {
     setCartOpen(false);
     setSearchOpen(false);
     setTrackingInitialOrderId(orderId.trim().toUpperCase());
     setCurrentView('order-tracking');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
   return (
     <div id="home" className="min-h-screen bg-white text-[#1C1C1C]">
@@ -620,6 +653,7 @@ export const HomePage: React.FC = () => {
         </>
       ) : (
         <div className="pt-6 sm:pt-8">
+          <React.Suspense fallback={<PageSkeleton />}>
           {currentView === 'shop' ? (
             <ShopPage
               key={`${shopInitialCategory}-${shopInitialSubcategory}-${selectedBrand}`}
@@ -768,6 +802,7 @@ export const HomePage: React.FC = () => {
               onNavigateShop={handleNavigateShopCategory}
             />
           ) : null}
+          </React.Suspense>
         </div>
       )}
 

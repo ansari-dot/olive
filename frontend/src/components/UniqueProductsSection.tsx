@@ -9,11 +9,12 @@ interface UniqueProductsSectionProps {
   onToggleWishlist?: (product: Product) => void;
   onAddToCart: (product: Product) => void;
   onSelectProduct: (product: Product) => void;
+  onViewAll?: () => void;
 }
 
 const formatPKR = (amount: number) => `Rs. ${amount.toLocaleString('en-PK')}`;
 
-export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = ({
+export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = React.memo(({
   products,
   wishlistIds = [],
   onToggleWishlist,
@@ -109,6 +110,8 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = ({
                       <img
                         src={product.image}
                         alt={product.name}
+                        loading="lazy"
+                        decoding="async"
                         referrerPolicy="no-referrer"
                         onError={() =>
                           setBrokenImages((prev) => ({ ...prev, [product.id]: true }))
@@ -175,4 +178,4 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = ({
       </div>
     </section>
   );
-};
+});

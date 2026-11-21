@@ -9,7 +9,7 @@ interface PartnerLogosStripProps {
   className?: string;
 }
 
-export const PartnerLogosStrip: React.FC<PartnerLogosStripProps> = ({
+export const PartnerLogosStrip: React.FC<PartnerLogosStripProps> = React.memo(({
   title = 'OUR PARTNERS',
   description = 'Certified single-estate olive groves, cold-press extraction mills, and wild mountain apiaries partnering across Pakistan.',
   showBadge = true,
@@ -180,4 +180,4 @@ export const PartnerLogosStrip: React.FC<PartnerLogosStripProps> = ({
       </div>
     </section>
   );
-};
+});

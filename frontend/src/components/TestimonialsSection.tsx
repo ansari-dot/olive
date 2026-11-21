@@ -77,7 +77,7 @@ const TESTIMONIAL_SETS: TestimonialCardData[][] = [
   ],
 ];
 
-export const TestimonialsSection: React.FC = () => {
+export const TestimonialsSection: React.FC = React.memo(() => {
   const [activeSet, setActiveSet] = useState(0);
   const currentReviews = TESTIMONIAL_SETS[activeSet];
 
@@ -181,6 +181,8 @@ export const TestimonialsSection: React.FC = () => {
                     <img
                       src={item.avatar}
                       alt={item.author}
+                      loading="lazy"
+                      decoding="async"
                       className={`w-12 h-12 rounded-full object-cover shadow-sm ${
                         isCenter ? 'ring-2 ring-white' : 'ring-1 ring-[#E5E7EB]'
                       }`}
@@ -220,4 +222,4 @@ export const TestimonialsSection: React.FC = () => {
       </div>
     </section>
   );
-};
+});

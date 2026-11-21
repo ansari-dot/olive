@@ -146,7 +146,7 @@ interface NavbarProps {
   onSearchSubmit?: (query: string, category?: string) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({
+export const Navbar: React.FC<NavbarProps> = React.memo(({
   activeNav,
   cartCount,
   wishlistCount,
@@ -187,6 +187,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const currencyMenuRef = useRef<HTMLDivElement>(null);
   const languageMenuRef = useRef<HTMLDivElement>(null);
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -207,8 +208,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Debounced search queries
+  // Debounced search queries with AbortController to cancel stale requests
   useEffect(() => {
+    if (searchAbortRef.current) {
+      searchAbortRef.current.abort();
+      searchAbortRef.current = null;
+    }
+
     const q = searchQuery.trim();
     if (q.length < 2) {
       setSearchResults([]);
@@ -217,20 +223,33 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
 
     setSearching(true);
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+
     const timer = setTimeout(async () => {
       try {
         const catFilter =
           selectedCollection !== 'All Collection' ? selectedCollection : undefined;
-        const res = await fetchProducts({ search: q, category: catFilter, limit: 6 });
+        const res = await fetchProducts(
+          { search: q, category: catFilter, limit: 6 },
+          { signal: controller.signal }
+        );
         setSearchResults(res.products);
-      } catch (err) {
-        console.error('Navbar search error:', err);
+      } catch (err: unknown) {
+        if ((err as Error)?.name !== 'AbortError') {
+          console.error('Navbar search error:', err);
+        }
       } finally {
-        setSearching(false);
+        if (!controller.signal.aborted) {
+          setSearching(false);
+        }
       }
-    }, 220);
+    }, 200);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [searchQuery, selectedCollection]);
 
   const handleDropdownEnter = (name: string) => {
@@ -1081,4 +1100,4 @@ export const Navbar: React.FC<NavbarProps> = ({
       )}
     </header>
   );
-};
+});

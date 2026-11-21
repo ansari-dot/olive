@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import storyBottleSketch from '../assets/images/story_olive_bottle_sketch_1794767970544.jpg';
 
-export const OurStorySection: React.FC = () => {
+export const OurStorySection: React.FC = React.memo(() => {
   const [expanded, setExpanded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
@@ -124,6 +124,8 @@ export const OurStorySection: React.FC = () => {
                 <img
                   src={storyBottleSketch}
                   alt="Pen-and-ink botanical illustration of an olive oil bottle surrounded by olive leaves and whole olives"
+                  loading="lazy"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                   onError={() => setImgError(true)}
                   className="w-full h-full object-contain mix-blend-multiply contrast-125 [clip-path:inset(2%_11%_2%_11%)]"
@@ -151,4 +153,4 @@ export const OurStorySection: React.FC = () => {
       </div>
     </section>
   );
-};
+});

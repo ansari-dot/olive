@@ -5,6 +5,73 @@ export const API_BASE_URL =
 
 const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
+// ----------------------------------------------------------------------
+// High-Performance In-Memory Request Cache & Deduplication Layer
+// ----------------------------------------------------------------------
+interface CacheRecord<T> {
+  data: T;
+  expiresAt: number;
+}
+
+const memoryCache = new Map<string, CacheRecord<unknown>>();
+const inFlightRequests = new Map<string, Promise<unknown>>();
+
+/**
+ * Clear in-memory cached responses. If pattern provided, only matching keys are purged.
+ */
+export function clearApiCache(pattern?: string | RegExp): void {
+  if (!pattern) {
+    memoryCache.clear();
+    return;
+  }
+  for (const key of memoryCache.keys()) {
+    if (typeof pattern === 'string' ? key.includes(pattern) : pattern.test(key)) {
+      memoryCache.delete(key);
+    }
+  }
+}
+
+/**
+ * Executes a network fetch with in-memory TTL caching and in-flight deduplication.
+ * Prevents redundant duplicate HTTP queries across components and rapid re-renders.
+ */
+async function fetchCached<T>(
+  cacheKey: string,
+  fetcher: () => Promise<T>,
+  ttlMs = 60000,
+  forceFresh = false
+): Promise<T> {
+  const now = Date.now();
+
+  if (!forceFresh) {
+    const cached = memoryCache.get(cacheKey) as CacheRecord<T> | undefined;
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+  }
+
+  const existingInFlight = inFlightRequests.get(cacheKey) as Promise<T> | undefined;
+  if (existingInFlight) {
+    return existingInFlight;
+  }
+
+  const promise = fetcher()
+    .then((result) => {
+      if (ttlMs > 0) {
+        memoryCache.set(cacheKey, { data: result, expiresAt: Date.now() + ttlMs });
+      }
+      inFlightRequests.delete(cacheKey);
+      return result;
+    })
+    .catch((err) => {
+      inFlightRequests.delete(cacheKey);
+      throw err;
+    });
+
+  inFlightRequests.set(cacheKey, promise);
+  return promise;
+}
+
 /**
  * Resolves image URL cleanly whether it is a remote URL, backend /uploads, or static /assets
  */
@@ -95,6 +162,12 @@ export interface FetchProductsParams {
   sort?: 'default' | 'popularity' | 'rating' | 'price-asc' | 'price-desc' | string;
   page?: number;
   limit?: number;
+}
+
+export interface FetchOptions {
+  signal?: AbortSignal;
+  forceFresh?: boolean;
+  ttlMs?: number;
 }
 
 export interface ProductsResponse {
@@ -233,14 +306,15 @@ export interface TrackOrderResponse {
 }
 
 // ----------------------------------------------------------------------
-// API Methods
+// API Methods with Integrated Caching & Deduplication
 // ----------------------------------------------------------------------
 
 /**
  * GET /api/products
  */
 export async function fetchProducts(
-  params: FetchProductsParams = {}
+  params: FetchProductsParams = {},
+  options?: FetchOptions
 ): Promise<ProductsResponse> {
   const qs = new URLSearchParams();
   if (params.section) qs.set('section', params.section);
@@ -256,21 +330,35 @@ export async function fetchProducts(
   if (params.page) qs.set('page', String(params.page));
   if (params.limit) qs.set('limit', String(params.limit));
 
-  const url = `${API_BASE_URL}/products${qs.toString() ? `?${qs.toString()}` : ''}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    const errorBody = await res.json().catch(() => ({}));
-    throw new Error(errorBody.message || `Failed to fetch products (${res.status})`);
-  }
-  const data = await res.json();
-  return {
-    products: Array.isArray(data.products)
-      ? data.products.map(normalizeProduct)
-      : [],
-    total: data.total || 0,
-    page: data.page || 1,
-    totalPages: data.totalPages || 1,
-  };
+  const queryStr = qs.toString();
+  const url = `${API_BASE_URL}/products${queryStr ? `?${queryStr}` : ''}`;
+  const cacheKey = `products:${queryStr}`;
+
+  // For live search queries, cache briefly (10s) and support abort signal
+  const isSearch = Boolean(params.search?.trim());
+  const ttl = options?.ttlMs ?? (isSearch ? 10000 : 60000);
+
+  return fetchCached(
+    cacheKey,
+    async () => {
+      const res = await fetch(url, { signal: options?.signal });
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({}));
+        throw new Error(errorBody.message || `Failed to fetch products (${res.status})`);
+      }
+      const data = await res.json();
+      return {
+        products: Array.isArray(data.products)
+          ? data.products.map(normalizeProduct)
+          : [],
+        total: data.total || 0,
+        page: data.page || 1,
+        totalPages: data.totalPages || 1,
+      };
+    },
+    ttl,
+    options?.forceFresh
+  );
 }
 
 export interface HomeSectionsData {
@@ -281,67 +369,100 @@ export interface HomeSectionsData {
 }
 
 /**
- * GET /api/home (returns aggregated section products)
+ * GET /api/home (returns aggregated section products in a single round-trip)
  */
-export async function fetchHomeSections(): Promise<HomeSectionsData> {
-  const res = await fetch(`${API_BASE_URL}/home`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch home sections (${res.status})`);
-  }
-  const data = await res.json();
-  return {
-    featuredGrid: Array.isArray(data.featuredGrid) ? data.featuredGrid.map(normalizeProduct) : [],
-    bestSellers: Array.isArray(data.bestSellersProducts)
-      ? data.bestSellersProducts.map(normalizeProduct)
-      : Array.isArray(data.bestSellers)
-      ? data.bestSellers.map(normalizeProduct)
-      : [],
-    uniqueProducts: Array.isArray(data.uniqueProducts) ? data.uniqueProducts.map(normalizeProduct) : [],
-    shopProducts: Array.isArray(data.shopProducts) ? data.shopProducts.map(normalizeProduct) : [],
-  };
+export async function fetchHomeSections(options?: FetchOptions): Promise<HomeSectionsData> {
+  const cacheKey = 'home_sections';
+  return fetchCached(
+    cacheKey,
+    async () => {
+      const res = await fetch(`${API_BASE_URL}/home`, { signal: options?.signal });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch home sections (${res.status})`);
+      }
+      const data = await res.json();
+      return {
+        featuredGrid: Array.isArray(data.featuredGrid) ? data.featuredGrid.map(normalizeProduct) : [],
+        bestSellers: Array.isArray(data.bestSellersProducts)
+          ? data.bestSellersProducts.map(normalizeProduct)
+          : Array.isArray(data.bestSellers)
+          ? data.bestSellers.map(normalizeProduct)
+          : [],
+        uniqueProducts: Array.isArray(data.uniqueProducts) ? data.uniqueProducts.map(normalizeProduct) : [],
+        shopProducts: Array.isArray(data.shopProducts) ? data.shopProducts.map(normalizeProduct) : [],
+      };
+    },
+    120000,
+    options?.forceFresh
+  );
 }
 
 /**
  * GET /api/products/filters
  */
-export async function fetchProductFilters(): Promise<ProductFiltersResponse> {
-  const res = await fetch(`${API_BASE_URL}/products/filters`);
-  if (!res.ok) {
-    throw new Error('Failed to load product filters');
-  }
-  return await res.json();
+export async function fetchProductFilters(options?: FetchOptions): Promise<ProductFiltersResponse> {
+  const cacheKey = 'product_filters';
+  return fetchCached(
+    cacheKey,
+    async () => {
+      const res = await fetch(`${API_BASE_URL}/products/filters`, { signal: options?.signal });
+      if (!res.ok) {
+        throw new Error('Failed to load product filters');
+      }
+      return await res.json();
+    },
+    300000,
+    options?.forceFresh
+  );
 }
 
 /**
  * GET /api/products/:idOrSlug
  */
 export async function fetchProductById(
-  idOrSlug: string
+  idOrSlug: string,
+  options?: FetchOptions
 ): Promise<ProductDetailResponse> {
-  const res = await fetch(`${API_BASE_URL}/products/${encodeURIComponent(idOrSlug)}`);
-  if (!res.ok) {
-    const errorBody = await res.json().catch(() => ({}));
-    throw new Error(
-      errorBody.message || `Product not found (${res.status})`
-    );
-  }
-  const data = await res.json();
-  return {
-    product: normalizeProduct(data.product),
-    reviews: Array.isArray(data.reviews)
-      ? data.reviews.map((r: any) => ({
-          id: r._id || r.id,
-          author: r.author,
-          rating: r.rating,
-          comment: r.comment,
-          date: r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently',
-          createdAt: r.createdAt,
-        }))
-      : [],
-    relatedProducts: Array.isArray(data.relatedProducts)
-      ? data.relatedProducts.map(normalizeProduct)
-      : [],
-  };
+  const cleanId = encodeURIComponent(idOrSlug.trim());
+  const cacheKey = `product:${cleanId}`;
+
+  return fetchCached(
+    cacheKey,
+    async () => {
+      const res = await fetch(`${API_BASE_URL}/products/${cleanId}`, { signal: options?.signal });
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({}));
+        throw new Error(
+          errorBody.message || `Product not found (${res.status})`
+        );
+      }
+      const data = await res.json();
+      return {
+        product: normalizeProduct(data.product),
+        reviews: Array.isArray(data.reviews)
+          ? data.reviews.map((r: any) => ({
+              id: r._id || r.id,
+              author: r.author,
+              rating: r.rating,
+              comment: r.comment,
+              date: r.createdAt
+                ? new Date(r.createdAt).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                : 'Recently',
+              createdAt: r.createdAt,
+            }))
+          : [],
+        relatedProducts: Array.isArray(data.relatedProducts)
+          ? data.relatedProducts.map(normalizeProduct)
+          : [],
+      };
+    },
+    60000,
+    options?.forceFresh
+  );
 }
 
 /**
@@ -357,8 +478,9 @@ export async function submitProductReview(
   rating: number;
   reviewsCount: number;
 }> {
+  const cleanId = encodeURIComponent(idOrSlug.trim());
   const res = await fetch(
-    `${API_BASE_URL}/products/${encodeURIComponent(idOrSlug)}/reviews`,
+    `${API_BASE_URL}/products/${cleanId}/reviews`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -369,6 +491,10 @@ export async function submitProductReview(
   if (!res.ok) {
     throw new Error(data.message || 'Failed to submit review');
   }
+
+  // Purge product detail cache so updated review and count load immediately
+  clearApiCache(`product:${cleanId}`);
+
   return {
     success: true,
     message: data.message || 'Review submitted successfully',
@@ -418,6 +544,11 @@ export async function createOrder(
   if (!res.ok) {
     throw new Error(data.message || 'Failed to place order');
   }
+
+  // Clear stock caches
+  clearApiCache('products');
+  clearApiCache('home_sections');
+
   return data;
 }
 
@@ -425,11 +556,13 @@ export async function createOrder(
  * GET /api/orders/track/:orderReference
  */
 export async function trackOrder(
-  orderReference: string
+  orderReference: string,
+  options?: FetchOptions
 ): Promise<TrackOrderResponse> {
   const cleanRef = orderReference.trim().toUpperCase();
   const res = await fetch(
-    `${API_BASE_URL}/orders/track/${encodeURIComponent(cleanRef)}`
+    `${API_BASE_URL}/orders/track/${encodeURIComponent(cleanRef)}`,
+    { signal: options?.signal }
   );
   const data = await res.json();
   if (!res.ok) {
@@ -441,27 +574,48 @@ export async function trackOrder(
 /**
  * GET /api/blogs
  */
-export async function fetchBlogs(): Promise<BlogPost[]> {
-  const res = await fetch(`${API_BASE_URL}/blogs`);
-  if (!res.ok) {
-    throw new Error('Failed to load blog posts');
-  }
-  const data = await res.json();
-  const list = Array.isArray(data) ? data : data.blogs || [];
-  return list.map(normalizeBlogPost);
+export async function fetchBlogs(options?: FetchOptions): Promise<BlogPost[]> {
+  const cacheKey = 'blogs_list';
+  return fetchCached(
+    cacheKey,
+    async () => {
+      const res = await fetch(`${API_BASE_URL}/blogs`, { signal: options?.signal });
+      if (!res.ok) {
+        throw new Error('Failed to load blog posts');
+      }
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : data.blogs || [];
+      return list.map(normalizeBlogPost);
+    },
+    180000,
+    options?.forceFresh
+  );
 }
 
 /**
  * GET /api/blogs/:idOrSlug
  */
-export async function fetchBlogById(idOrSlug: string): Promise<BlogPost> {
-  const res = await fetch(`${API_BASE_URL}/blogs/${encodeURIComponent(idOrSlug)}`);
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.message || `Blog post not found`);
-  }
-  const post = data.blog || data;
-  return normalizeBlogPost(post);
+export async function fetchBlogById(
+  idOrSlug: string,
+  options?: FetchOptions
+): Promise<BlogPost> {
+  const cleanId = encodeURIComponent(idOrSlug.trim());
+  const cacheKey = `blog:${cleanId}`;
+
+  return fetchCached(
+    cacheKey,
+    async () => {
+      const res = await fetch(`${API_BASE_URL}/blogs/${cleanId}`, { signal: options?.signal });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || `Blog post not found`);
+      }
+      const post = data.blog || data;
+      return normalizeBlogPost(post);
+    },
+    180000,
+    options?.forceFresh
+  );
 }
 
 /**
@@ -528,13 +682,21 @@ export interface CategoryItem {
 /**
  * GET /api/categories
  */
-export async function fetchCategories(): Promise<CategoryItem[]> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/categories`);
-    const data = await res.json();
-    if (!res.ok) return [];
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+export async function fetchCategories(options?: FetchOptions): Promise<CategoryItem[]> {
+  const cacheKey = 'categories_list';
+  return fetchCached(
+    cacheKey,
+    async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/categories`, { signal: options?.signal });
+        const data = await res.json();
+        if (!res.ok) return [];
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    },
+    300000,
+    options?.forceFresh
+  );
 }

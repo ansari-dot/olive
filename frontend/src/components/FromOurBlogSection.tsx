@@ -8,7 +8,7 @@ interface FromOurBlogSectionProps {
   onViewAllBlogs?: () => void;
 }
 
-export const FromOurBlogSection: React.FC<FromOurBlogSectionProps> = ({
+export const FromOurBlogSection: React.FC<FromOurBlogSectionProps> = React.memo(({
   posts,
   onSelectPost,
   onViewAllBlogs,
@@ -66,6 +66,8 @@ export const FromOurBlogSection: React.FC<FromOurBlogSectionProps> = ({
                     <img
                       src={post.image}
                       alt={post.alt}
+                      loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                       onError={() =>
                         setBrokenImages((prev) => ({ ...prev, [post.id]: true }))
@@ -177,4 +179,4 @@ export const FromOurBlogSection: React.FC<FromOurBlogSectionProps> = ({
       )}
     </section>
   );
-};
+});

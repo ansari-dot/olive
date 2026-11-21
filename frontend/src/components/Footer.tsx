@@ -14,7 +14,7 @@ interface FooterProps {
   onOpenAccount: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({
+export const Footer: React.FC<FooterProps> = React.memo(({
   onNavigateHome,
   onNavigateAbout,
   onNavigateShop,
@@ -226,4 +226,4 @@ export const Footer: React.FC<FooterProps> = ({
       </div>
     </footer>
   );
-};
+});

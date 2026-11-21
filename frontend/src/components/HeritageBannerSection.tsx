@@ -5,7 +5,7 @@ interface HeritageBannerSectionProps {
   title?: string;
 }
 
-export const HeritageBannerSection: React.FC<HeritageBannerSectionProps> = ({
+export const HeritageBannerSection: React.FC<HeritageBannerSectionProps> = React.memo(({
   onShopNow,
   title = 'ORGANIC & COLD-PRESSED HARVESTS',
 }) => {
@@ -36,6 +36,8 @@ export const HeritageBannerSection: React.FC<HeritageBannerSectionProps> = ({
             <img
               src="/assets/images/nobg/card_oil_decanter_3_1794769257286_nobg.png"
               alt="Potohar Estate Cold-Pressed Oil"
+              loading="lazy"
+              decoding="async"
               className="absolute -left-2 sm:left-2 bottom-0 w-[110px] sm:w-[160px] lg:w-[190px] h-auto max-h-[92%] object-contain -rotate-[12deg] drop-shadow-[0_16px_22px_rgba(0,0,0,0.45)] pointer-events-none transition-transform duration-500 hover:rotate-[-8deg]"
             />
           </div>
@@ -68,6 +70,8 @@ export const HeritageBannerSection: React.FC<HeritageBannerSectionProps> = ({
             <img
               src="/assets/images/nobg/featured_card_estate_cruet_1794769569072_nobg.png"
               alt="Pak Veda Estate Cruet"
+              loading="lazy"
+              decoding="async"
               className="absolute right-12 lg:right-16 bottom-0 w-[95px] sm:w-[125px] lg:w-[145px] h-auto max-h-[96%] object-contain drop-shadow-[0_16px_22px_rgba(0,0,0,0.45)] pointer-events-none transition-transform duration-500 hover:scale-105"
             />
 
@@ -75,6 +79,8 @@ export const HeritageBannerSection: React.FC<HeritageBannerSectionProps> = ({
             <img
               src="/assets/images/nobg/unique_sidr_honeycomb_jar_1794820496427_nobg.png"
               alt="Raw Himalayan Sidr Honey"
+              loading="lazy"
+              decoding="async"
               className="absolute right-0 bottom-0 w-[70px] sm:w-[90px] lg:w-[105px] h-auto max-h-[80%] object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.4)] pointer-events-none transition-transform duration-500 hover:scale-105"
             />
           </div>
@@ -82,4 +88,4 @@ export const HeritageBannerSection: React.FC<HeritageBannerSectionProps> = ({
       </div>
     </section>
   );
-};
+});

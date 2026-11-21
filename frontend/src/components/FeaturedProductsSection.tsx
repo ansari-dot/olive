@@ -65,7 +65,7 @@ export const getCleanImage = (imgUrl?: string, category?: string) => {
   return '/assets/images/nobg/featured_card_teardrop_oil_1794769568371_nobg.png';
 };
 
-export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = ({
+export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = React.memo(({
   products,
   wishlistIds = [],
   onToggleWishlist,
@@ -271,6 +271,8 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = (
                       <img
                         src={getCleanImage(product.image, product.category)}
                         alt={product.name}
+                        loading="lazy"
+                        decoding="async"
                         referrerPolicy="no-referrer"
                         onError={() =>
                           setBrokenImages((prev) => ({
@@ -378,4 +380,4 @@ export const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = (
       </div>
     </section>
   );
-};
+});

@@ -11,7 +11,7 @@ interface PromoBannerSectionProps {
   };
 }
 
-export const PromoBannerSection: React.FC<PromoBannerSectionProps> = ({
+export const PromoBannerSection: React.FC<PromoBannerSectionProps> = React.memo(({
   onShopNow,
   title = 'LATEST & SPECIAL BRANDS',
   subtitle = 'Cold-Pressed Potohar Extra Virgin Olive Oils & Wild Karakoram Botanicals',
@@ -49,6 +49,8 @@ export const PromoBannerSection: React.FC<PromoBannerSectionProps> = ({
             <img
               src="/assets/images/nobg/featured_card_teardrop_oil_1794769568371_nobg.png"
               alt="Potohar Extra Virgin Olive Oil"
+              loading="lazy"
+              decoding="async"
               className="absolute -left-2 sm:left-2 bottom-0 w-[110px] sm:w-[160px] lg:w-[190px] h-auto max-h-[92%] object-contain -rotate-[14deg] drop-shadow-[0_16px_22px_rgba(0,0,0,0.4)] pointer-events-none transition-transform duration-500 hover:rotate-[-10deg]"
             />
 
@@ -99,6 +101,8 @@ export const PromoBannerSection: React.FC<PromoBannerSectionProps> = ({
             <img
               src="/assets/images/nobg/card_oil_cruet_1_1794769256413_nobg.png"
               alt="Artisanal Cruet Extra Virgin Olive Oil"
+              loading="lazy"
+              decoding="async"
               className="absolute right-12 lg:right-16 bottom-0 w-[95px] sm:w-[125px] lg:w-[145px] h-auto max-h-[96%] object-contain drop-shadow-[0_16px_22px_rgba(0,0,0,0.4)] pointer-events-none transition-transform duration-500 hover:scale-105"
             />
 
@@ -106,6 +110,8 @@ export const PromoBannerSection: React.FC<PromoBannerSectionProps> = ({
             <img
               src="/assets/images/nobg/shop_card_amber_bottle_1794770042120_nobg.png"
               alt="Himalayan Sidr Botanical Infusion"
+              loading="lazy"
+              decoding="async"
               className="absolute right-0 bottom-0 w-[70px] sm:w-[90px] lg:w-[105px] h-auto max-h-[80%] object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.35)] pointer-events-none transition-transform duration-500 hover:scale-105"
             />
           </div>
@@ -113,4 +119,5 @@ export const PromoBannerSection: React.FC<PromoBannerSectionProps> = ({
       </div>
     </section>
   );
-};
+});
+

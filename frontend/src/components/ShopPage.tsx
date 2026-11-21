@@ -75,7 +75,7 @@ const StarRatingLeft: React.FC<{ rating?: number }> = ({ rating = 5 }) => (
   </div>
 );
 
-export const ShopPage: React.FC<ShopPageProps> = ({
+export const ShopPage: React.FC<ShopPageProps> = React.memo(({
   wishlistIds = [],
   onToggleWishlist,
   selectedBrand = 'All Brands',
@@ -854,6 +854,8 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                           <img
                             src={getCleanImage(product.image, product.category)}
                             alt={product.name}
+                            loading="lazy"
+                            decoding="async"
                             referrerPolicy="no-referrer"
                             onError={() =>
                               setBrokenImages((prev) => ({ ...prev, [product.id]: true }))
@@ -945,4 +947,4 @@ export const ShopPage: React.FC<ShopPageProps> = ({
       </div>
     </main>
   );
-};
+});
