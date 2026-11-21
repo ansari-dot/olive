@@ -184,6 +184,9 @@ productSchema.index({ price: 1 });
 productSchema.index({ popularity: -1 });
 productSchema.index({ rating: -1 });
 productSchema.index({ isActive: 1 });
+productSchema.index({ isActive: 1, category: 1, popularity: -1 });
+productSchema.index({ isActive: 1, isSale: 1 });
+productSchema.index({ isActive: 1, createdAt: -1 });
 productSchema.index({ name: "text", description: "text", category: "text", subcategory: "text" });
 
 const Product = mongoose.models.Product || mongoose.model("Product", productSchema);

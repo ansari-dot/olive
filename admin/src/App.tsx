@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
+import {
   LayoutDashboard,
   Truck,
   Package,
@@ -48,30 +57,55 @@ type AdminTab =
 
 interface NavItem {
   id: AdminTab;
+  path: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'orders', label: 'Orders & Dispatch', icon: Truck },
-  { id: 'products', label: 'Products & Stock', icon: Package },
-  { id: 'categories', label: 'Categories & Origins', icon: Layers },
-  { id: 'sections', label: 'Homepage Sections', icon: LayoutGrid },
-  { id: 'deals', label: 'Flash Deals', icon: Flame },
-  { id: 'coupons', label: 'Harvest Coupons', icon: TicketPercent },
-  { id: 'blogs', label: 'Orchard Journal', icon: BookOpen },
-  { id: 'reviews', label: 'Reviews', icon: Star },
-  { id: 'inquiries', label: 'Care Inquiries', icon: Inbox },
-  { id: 'newsletter', label: 'Newsletter', icon: Mail },
+  { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'orders', path: '/orders', label: 'Orders & Dispatch', icon: Truck },
+  { id: 'products', path: '/products', label: 'Products & Stock', icon: Package },
+  { id: 'categories', path: '/categories', label: 'Categories & Origins', icon: Layers },
+  { id: 'sections', path: '/sections', label: 'Homepage Sections', icon: LayoutGrid },
+  { id: 'deals', path: '/deals', label: 'Flash Deals', icon: Flame },
+  { id: 'coupons', path: '/coupons', label: 'Harvest Coupons', icon: TicketPercent },
+  { id: 'blogs', path: '/blogs', label: 'Orchard Journal', icon: BookOpen },
+  { id: 'reviews', path: '/reviews', label: 'Reviews', icon: Star },
+  { id: 'inquiries', path: '/inquiries', label: 'Care Inquiries', icon: Inbox },
+  { id: 'newsletter', path: '/newsletter', label: 'Newsletter', icon: Mail },
 ];
+
+/**
+ * Route wrapper that resolves orderReference from URL path (/orders/:orderReference)
+ * or query params (/orders?ref=ORD-XXX) for deep linking into OrdersView.
+ */
+const OrdersRouteWrapper: React.FC = () => {
+  const { orderReference } = useParams<{ orderReference?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const refFromQuery = searchParams.get('ref');
+  const activeOrderRef = orderReference || refFromQuery || null;
+
+  return (
+    <OrdersView
+      initialOrderReference={activeOrderRef}
+      onClearInitialOrder={() => {
+        if (refFromQuery) {
+          searchParams.delete('ref');
+          setSearchParams(searchParams, { replace: true });
+        }
+      }}
+    />
+  );
+};
 
 export const App: React.FC = () => {
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
-  const [selectedOrderRef, setSelectedOrderRef] = useState<string | null>(null);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Authenticate session via secure HttpOnly cookie
@@ -86,12 +120,7 @@ export const App: React.FC = () => {
   const handleSignOut = () => {
     logoutAdmin();
     setAdmin(null);
-    setActiveTab('dashboard');
-  };
-
-  const handleOpenOrder = (orderReference: string) => {
-    setSelectedOrderRef(orderReference);
-    setActiveTab('orders');
+    navigate('/dashboard');
   };
 
   if (bootstrapping) {
@@ -111,7 +140,10 @@ export const App: React.FC = () => {
     return <LoginView onSuccess={(user) => setAdmin(user)} />;
   }
 
-  const activeNav = NAV_ITEMS.find((n) => n.id === activeTab) ?? NAV_ITEMS[0];
+  // Derive current active tab from pathname
+  const currentPath = location.pathname;
+  const activeNav =
+    NAV_ITEMS.find((n) => currentPath.startsWith(n.path)) ?? NAV_ITEMS[0];
 
   const renderSidebarContent = () => (
     <div className="flex flex-col h-full bg-white border-r border-[#E2E8F0]">
@@ -129,13 +161,13 @@ export const App: React.FC = () => {
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = currentPath.startsWith(item.path);
           return (
             <button
               key={item.id}
               type="button"
               onClick={() => {
-                setActiveTab(item.id);
+                navigate(item.path);
                 setMobileNavOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-[13px] font-medium transition-colors cursor-pointer text-left ${
@@ -230,27 +262,30 @@ export const App: React.FC = () => {
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1440px] w-full mx-auto">
-          {activeTab === 'dashboard' && (
-            <DashboardView
-              onOpenOrder={handleOpenOrder}
-              onNavigateTab={(tab) => setActiveTab(tab)}
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="/dashboard"
+              element={
+                <DashboardView
+                  onOpenOrder={(orderRef) => navigate(`/orders?ref=${orderRef}`)}
+                  onNavigateTab={(tab) => navigate(`/${tab}`)}
+                />
+              }
             />
-          )}
-          {activeTab === 'orders' && (
-            <OrdersView
-              initialOrderReference={selectedOrderRef}
-              onClearInitialOrder={() => setSelectedOrderRef(null)}
-            />
-          )}
-          {activeTab === 'products' && <ProductsView />}
-          {activeTab === 'categories' && <CategoriesView />}
-          {activeTab === 'sections' && <HomepageSectionsView />}
-          {activeTab === 'deals' && <DealsView />}
-          {activeTab === 'coupons' && <CouponsView />}
-          {activeTab === 'blogs' && <BlogsView />}
-          {activeTab === 'reviews' && <ReviewsView />}
-          {activeTab === 'inquiries' && <InquiriesView />}
-          {activeTab === 'newsletter' && <NewsletterView />}
+            <Route path="/orders" element={<OrdersRouteWrapper />} />
+            <Route path="/orders/:orderReference" element={<OrdersRouteWrapper />} />
+            <Route path="/products" element={<ProductsView />} />
+            <Route path="/categories" element={<CategoriesView />} />
+            <Route path="/sections" element={<HomepageSectionsView />} />
+            <Route path="/deals" element={<DealsView />} />
+            <Route path="/coupons" element={<CouponsView />} />
+            <Route path="/blogs" element={<BlogsView />} />
+            <Route path="/reviews" element={<ReviewsView />} />
+            <Route path="/inquiries" element={<InquiriesView />} />
+            <Route path="/newsletter" element={<NewsletterView />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         </main>
       </div>
     </div>

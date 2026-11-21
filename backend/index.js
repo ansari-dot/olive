@@ -4,12 +4,14 @@ import "./config/env.js";
 import mongoose from "mongoose";
 import app from "./app.js";
 import { env } from "./config/env.js";
+import { startBackgroundSupervisor, stopBackgroundSupervisor } from "./workers/backgroundSupervisor.js";
 
 const PORT = env.PORT;
 
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   warmupCache();
+  startBackgroundSupervisor(60_000);
 });
 
 // Pre-populate server cache so first real visitor gets instant responses.
@@ -50,6 +52,7 @@ async function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`\n[${signal}] graceful shutdown initiated`);
+  stopBackgroundSupervisor();
 
   const forceKill = setTimeout(() => {
     console.error("Forcing exit after 15s timeout");

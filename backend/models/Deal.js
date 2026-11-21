@@ -98,5 +98,6 @@ dealSchema.virtual("status").get(function () {
 
 // Composite index to swiftly query active running deals
 dealSchema.index({ product: 1, isActive: 1, startsAt: 1, endsAt: 1 });
+dealSchema.index({ isActive: 1, startsAt: 1, endsAt: 1 });
 
 export default mongoose.models.Deal || mongoose.model("Deal", dealSchema);

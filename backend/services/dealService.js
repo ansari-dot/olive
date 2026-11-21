@@ -5,6 +5,27 @@ import { invalidateCache } from "../middlewares/cache.js";
 import { ApiError } from "../utils/ApiError.js";
 
 /**
+ * Fetches all currently active running deals with populated product details
+ */
+export async function getActiveDeals() {
+  const now = new Date();
+  return await Deal.find({
+    isActive: true,
+    startsAt: { $lte: now },
+    endsAt: { $gte: now },
+    $expr: {
+      $or: [
+        { $eq: ["$dealStockLimit", 0] },
+        { $lt: ["$dealSoldCount", "$dealStockLimit"] },
+      ],
+    },
+  })
+    .populate("product", "name price image slug category stock soldCount size")
+    .sort({ endsAt: 1 })
+    .lean();
+}
+
+/**
  * Ensures no overlapping active/scheduled deals exist for the same product
  */
 export async function validateNoOverlappingDeal(productId, startsAt, endsAt, excludeDealId = null) {

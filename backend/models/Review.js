@@ -59,6 +59,7 @@ const reviewSchema = new mongoose.Schema(
 );
 
 reviewSchema.index({ product: 1, isApproved: 1, createdAt: -1 });
+reviewSchema.index({ isApproved: 1, createdAt: -1 });
 reviewSchema.index({ product: 1, email: 1 });
 reviewSchema.index({ email: 1 });
 reviewSchema.index({ createdAt: -1 });

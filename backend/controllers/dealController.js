@@ -1,39 +1,20 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 import {
   createDeal as createDealService,
   updateDeal as updateDealService,
   toggleDealActive as toggleDealActiveService,
   deleteDeal as deleteDealService,
   listAdminDeals as listAdminDealsService,
-  getActiveDealsMap,
+  getActiveDeals as getActiveDealsService,
 } from "../services/dealService.js";
-import Deal from "../models/Deal.js";
 
 /**
  * Public: Get all currently active running deals with populated product details
  */
-export const getActiveDeals = asyncHandler(async (req, res) => {
-  const now = new Date();
-  const deals = await Deal.find({
-    isActive: true,
-    startsAt: { $lte: now },
-    endsAt: { $gte: now },
-    $expr: {
-      $or: [
-        { $eq: ["$dealStockLimit", 0] },
-        { $lt: ["$dealSoldCount", "$dealStockLimit"] },
-      ],
-    },
-  })
-    .populate("product", "name price image slug category stock soldCount size")
-    .sort({ endsAt: 1 })
-    .lean();
-
-  res.json({
-    success: true,
-    count: deals.length,
-    deals,
-  });
+export const getActiveDeals = asyncHandler(async (_req, res) => {
+  const deals = await getActiveDealsService();
+  return ApiResponse.success(res, { deals, count: deals.length });
 });
 
 /**
@@ -41,11 +22,7 @@ export const getActiveDeals = asyncHandler(async (req, res) => {
  */
 export const getAdminDeals = asyncHandler(async (req, res) => {
   const deals = await listAdminDealsService(req.query);
-  res.json({
-    success: true,
-    count: deals.length,
-    deals,
-  });
+  return ApiResponse.success(res, { deals, count: deals.length });
 });
 
 /**
@@ -53,11 +30,7 @@ export const getAdminDeals = asyncHandler(async (req, res) => {
  */
 export const createDeal = asyncHandler(async (req, res) => {
   const deal = await createDealService(req.body);
-  res.status(201).json({
-    success: true,
-    message: "Deal created successfully",
-    deal,
-  });
+  return ApiResponse.created(res, { deal }, "Deal created successfully");
 });
 
 /**
@@ -65,29 +38,25 @@ export const createDeal = asyncHandler(async (req, res) => {
  */
 export const updateDeal = asyncHandler(async (req, res) => {
   const deal = await updateDealService(req.params.id, req.body);
-  res.json({
-    success: true,
-    message: "Deal updated successfully",
-    deal,
-  });
+  return ApiResponse.success(res, { deal }, "Deal updated successfully");
 });
 
 /**
- * Admin: Toggle deal active state
+ * Admin: Toggle deal active/disabled
  */
 export const toggleDeal = asyncHandler(async (req, res) => {
   const deal = await toggleDealActiveService(req.params.id, req.body.isActive);
-  res.json({
-    success: true,
-    message: `Deal ${deal.isActive ? "activated" : "disabled"} successfully`,
-    deal,
-  });
+  return ApiResponse.success(
+    res,
+    { deal },
+    `Deal ${deal.isActive ? "activated" : "disabled"} successfully`
+  );
 });
 
 /**
  * Admin: Delete a deal
  */
 export const deleteDeal = asyncHandler(async (req, res) => {
-  const result = await deleteDealService(req.params.id);
-  res.json(result);
+  await deleteDealService(req.params.id);
+  return ApiResponse.success(res, {}, "Deal deleted successfully");
 });

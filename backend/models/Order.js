@@ -263,6 +263,12 @@ orderSchema.index({ "shipment.status": 1 });
 orderSchema.index({ "shipment.provider": 1 });
 orderSchema.index({ createdAt: -1 });
 
+// High-performance compound indexes for admin searches and reports
+orderSchema.index({ orderStatus: 1, createdAt: -1 });
+orderSchema.index({ paymentStatus: 1, createdAt: -1 });
+orderSchema.index({ "shippingAddress.city": 1, createdAt: -1 });
+orderSchema.index({ "shipment.provider": 1, createdAt: -1 });
+
 const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
 
 export default Order;
