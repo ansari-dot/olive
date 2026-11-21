@@ -470,6 +470,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
         >
           <option value="all">All Payment Methods</option>
           <option value="Cash on Delivery">Cash on Delivery</option>
+          <option value="PayFast (Sandbox)">PayFast (Sandbox)</option>
           <option value="Bank Transfer (IBFT)">Bank Transfer (IBFT)</option>
         </select>
 
@@ -482,8 +483,10 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
         >
           <option value="all">All Payment States</option>
           <option value="pending_cod">Pending COD</option>
+          <option value="pending_payfast">Pending PayFast</option>
           <option value="awaiting_ibft">Awaiting IBFT</option>
           <option value="paid">Paid</option>
+          <option value="failed">Failed</option>
           <option value="refunded">Refunded</option>
         </select>
 
@@ -1093,8 +1096,10 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                       className="border border-[#CBD5E1] bg-white px-3 py-2 text-[13px]"
                     >
                       <option value="pending_cod">Pending COD</option>
+                      <option value="pending_payfast">Pending PayFast</option>
                       <option value="awaiting_ibft">Awaiting IBFT</option>
                       <option value="paid">Paid / Verified</option>
+                      <option value="failed">Failed</option>
                       <option value="refunded">Refunded</option>
                     </select>
                     <input

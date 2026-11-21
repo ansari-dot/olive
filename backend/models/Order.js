@@ -13,8 +13,10 @@ export const ORDER_STATUSES = [
 export const PAYMENT_STATUSES = [
   "pending_cod",
   "awaiting_ibft",
+  "pending_payfast",
   "paid",
   "refunded",
+  "failed",
 ];
 
 const orderItemSchema = new mongoose.Schema(
@@ -167,7 +169,12 @@ const orderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["Cash on Delivery", "Bank Transfer (IBFT)"],
+      enum: [
+        "Cash on Delivery",
+        "PayFast (Sandbox)",
+        "PayFast",
+        "Bank Transfer (IBFT)",
+      ],
       required: true,
     },
     paymentStatus: {

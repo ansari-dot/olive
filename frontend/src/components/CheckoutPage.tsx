@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, CreditCard, ShieldCheck, ExternalLink } from 'lucide-react';
 import { CartPageItem } from './CartPage';
-import { validateCoupon, createOrder } from '../services/api';
+import {
+  validateCoupon,
+  createOrder,
+  simulatePayfastSuccess,
+  PayfastCheckoutInfo,
+} from '../services/api';
 
 interface CheckoutPageProps {
   items: CartPageItem[];
@@ -15,7 +20,7 @@ interface CheckoutPageProps {
     area: string;
     address: string;
     notes: string;
-    paymentMethod: 'Cash on Delivery' | 'Bank Transfer (IBFT)';
+    paymentMethod: 'Cash on Delivery' | 'PayFast (Sandbox)' | 'Bank Transfer (IBFT)';
     discountAmount: number;
     finalTotal: number;
     orderReference?: string;
@@ -58,8 +63,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<
-    'Cash on Delivery' | 'Bank Transfer (IBFT)'
+    'Cash on Delivery' | 'PayFast (Sandbox)'
   >('Cash on Delivery');
+
+  // PayFast sandbox state
+  const [payfastInfo, setPayfastInfo] = useState<PayfastCheckoutInfo | null>(null);
+  const [payfastSimulating, setPayfastSimulating] = useState(false);
+  const [payfastSettled, setPayfastSettled] = useState(false);
 
   // Promo code state
   const [promoInput, setPromoInput] = useState('');
@@ -153,13 +163,21 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           productId: it.product.mongoId || it.product.id,
           quantity: it.quantity,
         })),
-        paymentMethod: paymentMethod === 'Cash on Delivery' ? ('Cash on Delivery' as const) : ('Bank Transfer (IBFT)' as const),
+        paymentMethod:
+          paymentMethod === 'Cash on Delivery'
+            ? ('Cash on Delivery' as const)
+            : ('PayFast (Sandbox)' as const),
         couponCode: appliedPromo || undefined,
       };
 
       const res = await createOrder(orderPayload);
       const orderRef = res.order.orderReference;
       const courierCode = res.order.courierTrackingCode || `TCS-${orderRef.replace(/[^0-9]/g, '')}`;
+
+      if (res.payfast) {
+        setPayfastInfo(res.payfast);
+      }
+      setPayfastSettled(false);
 
       // Notify parent to clear cart or update order count
       if (onPlaceOrder) {
@@ -293,15 +311,87 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               </div>
             </div>
 
-            {confirmedOrder.paymentMethod.includes('Bank Transfer') && (
-              <div className="bg-[#FAF9F5] border border-[#D5CBB8] p-5 text-[13.5px] space-y-2">
-                <p className="font-semibold text-[#181818]">Meezan Bank IBFT Instructions:</p>
-                <p className="text-[#444444]">Bank: <strong>Meezan Bank Limited</strong></p>
-                <p className="text-[#444444]">Account Title: <strong>Zaitoon Pakistan Pvt Ltd</strong></p>
-                <p className="text-[#444444]">Account Number / IBAN: <strong>PK82MEZN0001090105892341</strong></p>
-                <p className="text-[#666666] text-[12px] pt-1">
-                  Please mention order reference <strong>{confirmedOrder.orderId}</strong> in your transfer description.
+            {confirmedOrder.paymentMethod.includes('PayFast') && (
+              <div className="bg-[#FAF9F5] border border-[#15472B]/30 p-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-[#15472B]" />
+                    <h4 className="text-[14px] font-semibold text-[#181818]">
+                      PayFast Sandbox Payment Gateway
+                    </h4>
+                  </div>
+                  <span
+                    className={`text-[10.5px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${
+                      payfastSettled
+                        ? 'bg-[#ECFDF5] text-[#047857] border-[#A7F3D0]'
+                        : 'bg-[#FEF3C7] text-[#B45309] border-[#FDE68A]'
+                    }`}
+                  >
+                    {payfastSettled ? 'Payment Settled (Paid)' : 'Sandbox Mode Active'}
+                  </span>
+                </div>
+
+                <p className="text-[12.5px] text-[#555555]">
+                  This checkout is operating in PayFast Sandbox mode. You can test the payment by opening the PayFast portal or by clicking the simulation button below. Later, your production credentials can be set in the backend with zero code changes.
                 </p>
+
+                {payfastSettled ? (
+                  <div className="bg-[#ECFDF5] border border-[#A7F3D0] p-4 text-[#065F46] flex items-center gap-2.5 text-[13px]">
+                    <Check className="w-4 h-4 shrink-0 text-[#047857]" />
+                    <span>
+                      <strong>Payment Captured!</strong> Order {confirmedOrder.orderId} marked as Paid in PayFast Sandbox.
+                    </span>
+                  </div>
+                ) : payfastInfo ? (
+                  <div className="space-y-3">
+                    <form
+                      action={payfastInfo.payment_url}
+                      method="POST"
+                      target="_blank"
+                      className="flex flex-col sm:flex-row gap-3"
+                    >
+                      {Object.entries(payfastInfo.fields).map(([k, v]) => (
+                        <input key={k} type="hidden" name={k} value={v} />
+                      ))}
+                      <button
+                        type="submit"
+                        className="bg-[#15472B] hover:bg-[#0F3620] text-white text-[12px] font-semibold uppercase tracking-[0.08em] px-5 py-3 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <span>Open PayFast Sandbox Portal</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={payfastSimulating}
+                        onClick={async () => {
+                          setPayfastSimulating(true);
+                          try {
+                            await simulatePayfastSuccess(confirmedOrder.orderId);
+                            setPayfastSettled(true);
+                          } catch (err) {
+                            alert(err instanceof Error ? err.message : 'Simulation failed');
+                          } finally {
+                            setPayfastSimulating(false);
+                          }
+                        }}
+                        className="border border-[#181818] bg-white hover:bg-[#181818] hover:text-white text-[#181818] text-[12px] font-semibold uppercase tracking-[0.08em] px-5 py-3 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        {payfastSimulating ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Simulating Payment...</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-3.5 h-3.5 text-[#15472B]" />
+                            <span>Simulate Instant Sandbox Payment</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  </div>
+                ) : null}
               </div>
             )}
 
@@ -546,17 +636,22 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     <input
                       type="radio"
                       name="payment-method"
-                      value="Bank Transfer (IBFT)"
-                      checked={paymentMethod === 'Bank Transfer (IBFT)'}
-                      onChange={() => setPaymentMethod('Bank Transfer (IBFT)')}
+                      value="PayFast (Sandbox)"
+                      checked={paymentMethod === 'PayFast (Sandbox)'}
+                      onChange={() => setPaymentMethod('PayFast (Sandbox)')}
                       className="mt-1 accent-[#15472B]"
                     />
                     <div>
-                      <span className="block text-[14px] font-medium text-[#181818]">
-                        Direct Bank Transfer (IBFT)
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="block text-[14px] font-medium text-[#181818]">
+                          PayFast (Debit / Credit Card &amp; Wallet)
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0] px-1.5 py-0.5 rounded">
+                          Sandbox Active
+                        </span>
+                      </div>
                       <span className="block text-[12.5px] text-[#666666] mt-0.5">
-                        Transfer directly to Zaitoon Pakistan’s Meezan Bank account; IBFT details are shared immediately upon confirmation.
+                        Pay securely with Visa, MasterCard, UnionPay, or Digital Wallet via PayFast Sandbox (test mode active).
                       </span>
                     </div>
                   </label>

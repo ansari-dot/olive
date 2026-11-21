@@ -21,7 +21,7 @@ export const CheckoutRoutePage: React.FC = () => {
     area: string;
     address: string;
     notes: string;
-    paymentMethod: 'Cash on Delivery' | 'Bank Transfer (IBFT)';
+    paymentMethod: 'Cash on Delivery' | 'PayFast (Sandbox)' | 'Bank Transfer (IBFT)';
     discountAmount: number;
     finalTotal: number;
     orderReference?: string;

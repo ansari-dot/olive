@@ -315,8 +315,15 @@ export interface CreateOrderPayload {
     productId: string;
     quantity: number;
   }[];
-  paymentMethod: 'Cash on Delivery' | 'Bank Transfer (IBFT)';
+  paymentMethod: 'Cash on Delivery' | 'PayFast (Sandbox)' | 'Bank Transfer (IBFT)';
   couponCode?: string;
+}
+
+export interface PayfastCheckoutInfo {
+  payment_url: string;
+  fields: Record<string, string>;
+  orderReference: string;
+  isSandbox: boolean;
 }
 
 export interface BankDetails {
@@ -346,6 +353,7 @@ export interface CreateOrderResponse {
     createdAt: string;
     items: any[];
   };
+  payfast?: PayfastCheckoutInfo | null;
   bankDetails?: BankDetails | null;
 }
 
@@ -655,6 +663,26 @@ export async function createOrder(
   clearApiCache('products');
   clearApiCache('home_sections');
 
+  return data;
+}
+
+/**
+ * POST /api/payments/payfast/simulate-success/:orderReference
+ * Sandbox helper to simulate instant PayFast payment settlement in development
+ */
+export async function simulatePayfastSuccess(orderReference: string): Promise<any> {
+  const cleanRef = orderReference.trim().toUpperCase();
+  const res = await fetch(
+    `${API_BASE_URL}/payments/payfast/simulate-success/${encodeURIComponent(cleanRef)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Payment simulation failed');
+  }
   return data;
 }
 

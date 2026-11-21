@@ -82,9 +82,15 @@ export type OrderStatus =
   | 'cancelled'
   | 'returned';
 
-export type PaymentMethod = 'Cash on Delivery' | 'Bank Transfer (IBFT)';
+export type PaymentMethod = 'Cash on Delivery' | 'PayFast (Sandbox)' | 'PayFast' | 'Bank Transfer (IBFT)';
 
-export type PaymentStatus = 'pending_cod' | 'awaiting_ibft' | 'paid' | 'refunded';
+export type PaymentStatus =
+  | 'pending_cod'
+  | 'pending_payfast'
+  | 'awaiting_ibft'
+  | 'paid'
+  | 'failed'
+  | 'refunded';
 
 export interface OrderItem {
   product: string;

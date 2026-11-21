@@ -15,6 +15,7 @@ import {
   queueOrderConfirmationEmail,
   queueShipmentDispatchedEmail,
 } from "./emailService.js";
+import { buildPayfastPayloadForOrder } from "./payfastService.js";
 import { invalidateCache } from "../middlewares/cache.js";
 import { escapeRegex } from "../utils/security.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -60,8 +61,16 @@ export async function createOrder(payload, idempotencyKey = null) {
   if (cleanIdempotencyKey) {
     const existingOrder = await Order.findOne({ idempotencyKey: cleanIdempotencyKey });
     if (existingOrder) {
+      let payfastData = null;
+      if (
+        existingOrder.paymentMethod === "PayFast (Sandbox)" ||
+        existingOrder.paymentMethod === "PayFast"
+      ) {
+        payfastData = buildPayfastPayloadForOrder(existingOrder);
+      }
       return {
         order: existingOrder,
+        payfast: payfastData,
         bankDetails:
           existingOrder.paymentMethod === "Bank Transfer (IBFT)"
             ? IBFT_BANK_DETAILS
@@ -86,10 +95,15 @@ export async function createOrder(payload, idempotencyKey = null) {
 
   if (
     !paymentMethod ||
-    !["Cash on Delivery", "Bank Transfer (IBFT)"].includes(paymentMethod)
+    ![
+      "Cash on Delivery",
+      "PayFast (Sandbox)",
+      "PayFast",
+      "Bank Transfer (IBFT)",
+    ].includes(paymentMethod)
   ) {
     throw ApiError.badRequest(
-      "Payment method must be 'Cash on Delivery' or 'Bank Transfer (IBFT)'"
+      "Payment method must be 'Cash on Delivery' or 'PayFast (Sandbox)'"
     );
   }
 
@@ -183,7 +197,11 @@ export async function createOrder(payload, idempotencyKey = null) {
   const orderReference = await generateUniqueOrderReference();
   const courierTrackingCode = `TCS-${orderReference.replace("ZP-", "")}90`;
   const paymentStatus =
-    paymentMethod === "Bank Transfer (IBFT)" ? "awaiting_ibft" : "pending_cod";
+    paymentMethod === "Bank Transfer (IBFT)"
+      ? "awaiting_ibft"
+      : paymentMethod.includes("PayFast")
+      ? "pending_payfast"
+      : "pending_cod";
 
   const now = new Date();
   const initialHistory = [
@@ -282,8 +300,17 @@ export async function createOrder(payload, idempotencyKey = null) {
   invalidateCache("/api/products");
   invalidateCache("/api/deals");
 
+  let payfastData = null;
+  if (
+    paymentMethod === "PayFast (Sandbox)" ||
+    paymentMethod === "PayFast"
+  ) {
+    payfastData = buildPayfastPayloadForOrder(order);
+  }
+
   return {
     order,
+    payfast: payfastData,
     bankDetails:
       paymentMethod === "Bank Transfer (IBFT)" ? IBFT_BANK_DETAILS : null,
   };

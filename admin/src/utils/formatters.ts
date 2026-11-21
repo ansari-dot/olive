@@ -73,8 +73,10 @@ export const PAYMENT_STATUS_META: Record<
   { label: string; colorClass: string }
 > = {
   pending_cod: { label: 'Pending COD', colorClass: 'text-[#D97706]' },
+  pending_payfast: { label: 'Pending PayFast', colorClass: 'text-[#D97706]' },
   awaiting_ibft: { label: 'Awaiting IBFT', colorClass: 'text-[#C46B3B]' },
   paid: { label: 'Paid', colorClass: 'text-[#16A34A]' },
+  failed: { label: 'Failed', colorClass: 'text-[#DC2626]' },
   refunded: { label: 'Refunded', colorClass: 'text-[#64748B]' },
 };
 
