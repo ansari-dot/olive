@@ -91,6 +91,41 @@ export const env = {
     // Hit PayFast's /eng/query/validate to double-check the IPN payload.
     VERIFY_POSTBACK: process.env.PAYFAST_VERIFY_POSTBACK === "true",
   },
+
+  SMTP: {
+    HOST: process.env.SMTP_HOST || "",
+    PORT: parseInt(process.env.SMTP_PORT, 10) || 587,
+    USER: process.env.SMTP_USER || "",
+    PASS: process.env.SMTP_PASS || "",
+    FROM: process.env.SMTP_FROM || "orders@zaitoonpakistan.pk",
+    SECURE: process.env.SMTP_SECURE === "true",
+  },
+
+  COURIER: {
+    ACTIVE_PROVIDER: process.env.COURIER_ACTIVE_PROVIDER || "mock",
+    WEBHOOK_SECRET: process.env.COURIER_WEBHOOK_SECRET || "zaitoon-courier-webhook-secret-2026",
+    TCS: {
+      API_KEY: process.env.TCS_API_KEY || "",
+      API_URL: process.env.TCS_API_URL || "https://apis.tcsexpress.com",
+      CLIENT_ID: process.env.TCS_CLIENT_ID || "",
+      COST_CENTER_CODE: process.env.TCS_COST_CENTER_CODE || "",
+    },
+    LEOPARDS: {
+      API_KEY: process.env.LEOPARDS_API_KEY || "",
+      API_PASSWORD: process.env.LEOPARDS_API_PASSWORD || "",
+      API_URL: process.env.LEOPARDS_API_URL || "https://merchantapi.leopardscourier.com",
+    },
+    TRAX: {
+      API_KEY: process.env.TRAX_API_KEY || "",
+      API_URL: process.env.TRAX_API_URL || "https://sonic.pk/api",
+    },
+    MNP: {
+      USERNAME: process.env.MNP_USERNAME || "",
+      PASSWORD: process.env.MNP_PASSWORD || "",
+      ACCOUNT_NO: process.env.MNP_ACCOUNT_NO || "",
+      API_URL: process.env.MNP_API_URL || "https://cod.mulphilog.com/api",
+    },
+  },
 };
 
 export default env;

@@ -99,6 +99,9 @@ router.delete("/deals/:id", dealController.deleteDeal);
 // ====================================================================
 router.get("/orders", orderController.getAdminOrders);
 router.get("/orders/:orderReference", orderController.getAdminOrder);
+router.post("/orders/:orderReference/shipment", orderController.initiateShipment);
+router.post("/orders/:orderReference/sync-tracking", orderController.syncCourierStatus);
+router.post("/orders/:orderReference/return", orderController.processReturn);
 router.patch("/orders/:orderReference/status", orderController.updateOrderStatus);
 router.patch("/orders/:orderReference/tracking", orderController.updateOrderTracking);
 router.patch("/orders/:orderReference/payment", orderController.updateOrderPayment);

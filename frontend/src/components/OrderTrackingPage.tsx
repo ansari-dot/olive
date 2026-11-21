@@ -38,7 +38,9 @@ interface TrackingDetails {
   city: string;
   paymentLabel: string;
   totalLabel: string;
+  courierName: string;
   courierCode: string;
+  trackingUrl?: string;
   etaText: string;
   currentStep: 1 | 2 | 3 | 4;
   statusSummary: string;
@@ -103,9 +105,11 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
         city: data.city || 'Pakistan',
         paymentLabel: `${count} ${count === 1 ? 'item' : 'items'} · ${data.paymentMethod}`,
         totalLabel: formatPKR(data.total),
+        courierName: data.courierName || 'TCS Express Pakistan',
         courierCode:
           data.courierTrackingCode ||
           `TCS-${data.orderReference.replace(/[^0-9]/g, '') || '4821'}`,
+        trackingUrl: data.trackingUrl || '',
         etaText:
           data.etaText ||
           data.estimatedDelivery ||
@@ -315,11 +319,23 @@ export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({
                 </h4>
                 <div className="flex justify-between">
                   <span className="text-[#666666]">Courier Partner:</span>
-                  <span className="font-semibold text-[#1F1F1F]">TCS Express Pakistan</span>
+                  <span className="font-semibold text-[#1F1F1F]">{tracked.courierName}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-[#666666]">Tracking Number:</span>
-                  <span className="font-mono font-bold text-[#15472B]">{tracked.courierCode}</span>
+                  {tracked.trackingUrl ? (
+                    <a
+                      href={tracked.trackingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-mono font-bold text-[#15472B] hover:underline flex items-center gap-1"
+                    >
+                      <span>{tracked.courierCode}</span>
+                      <ArrowRight className="w-3 h-3 inline" />
+                    </a>
+                  ) : (
+                    <span className="font-mono font-bold text-[#15472B]">{tracked.courierCode}</span>
+                  )}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#666666]">Origin Dispatch:</span>

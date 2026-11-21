@@ -3,7 +3,18 @@ import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Coupon from "../models/Coupon.js";
 import { validateCoupon } from "./couponService.js";
-import { getActiveDealForProduct, incrementDealSoldAtomic } from "./dealService.js";
+import { getActiveDealForProduct } from "./dealService.js";
+import {
+  reserveOrderInventory,
+  rollbackInventory,
+  restoreOrderInventory,
+  restockReturnedUnits,
+} from "./inventoryService.js";
+import { getCourierAdapter } from "./courier/courierFactory.js";
+import {
+  queueOrderConfirmationEmail,
+  queueShipmentDispatchedEmail,
+} from "./emailService.js";
 import { invalidateCache } from "../middlewares/cache.js";
 import { escapeRegex } from "../utils/security.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -30,9 +41,37 @@ export async function generateUniqueOrderReference() {
 
 export const makeOrderCode = generateUniqueOrderReference;
 
-export async function createOrder(payload) {
+/**
+ * Creates a new order with atomic inventory reservation and idempotency guarantee.
+ *
+ * @param {Object} payload - Order data from client
+ * @param {string|null} idempotencyKey - Optional idempotency key from header or body
+ */
+export async function createOrder(payload, idempotencyKey = null) {
   const { customer, shippingAddress, items, paymentMethod, couponCode } = payload;
 
+  // 1. Idempotency Check: Prevent duplicate order processing
+  const cleanIdempotencyKey = (
+    idempotencyKey ||
+    payload.idempotencyKey ||
+    payload.idempotency_key
+  )?.trim() || null;
+
+  if (cleanIdempotencyKey) {
+    const existingOrder = await Order.findOne({ idempotencyKey: cleanIdempotencyKey });
+    if (existingOrder) {
+      return {
+        order: existingOrder,
+        bankDetails:
+          existingOrder.paymentMethod === "Bank Transfer (IBFT)"
+            ? IBFT_BANK_DETAILS
+            : null,
+        isDuplicate: true,
+      };
+    }
+  }
+
+  // 2. Strict Input Validation
   if (!customer?.name || !customer?.phone) {
     throw ApiError.badRequest("Customer name and phone number are required");
   }
@@ -54,7 +93,7 @@ export async function createOrder(payload) {
     );
   }
 
-  // 1. Authoritative lookup & stock validation from MongoDB
+  // 3. Authoritative Price & Product Lookup directly from MongoDB (Zero Client Trust)
   const resolvedItems = [];
   let subtotal = 0;
 
@@ -81,18 +120,14 @@ export async function createOrder(payload) {
       throw ApiError.badRequest(`Product "${dbProduct.name}" is currently unavailable`);
     }
 
-    if (dbProduct.stock < qty) {
-      throw ApiError.badRequest(
-        `Insufficient stock for "${dbProduct.name}". Available: ${dbProduct.stock}, requested: ${qty}`
-      );
-    }
-
+    // Server-side authoritative deal resolver
     const activeDeal = await getActiveDealForProduct(dbProduct._id);
     const effectivePrice = activeDeal ? activeDeal.dealPrice : dbProduct.price;
 
     const lineTotal = effectivePrice * qty;
     subtotal += lineTotal;
 
+    // Snapshot of historical prices at order time
     resolvedItems.push({
       product: dbProduct._id,
       slug: dbProduct.slug,
@@ -109,7 +144,7 @@ export async function createOrder(payload) {
     });
   }
 
-  // 2. Coupon validation if provided (excluding deal items)
+  // 4. Coupon validation if provided (excluding deal items)
   let discountAmount = 0;
   let appliedCouponCode = null;
 
@@ -140,7 +175,7 @@ export async function createOrder(payload) {
     }
   }
 
-  // 3. Shipping fee & total calculation
+  // 5. Shipping fee & total calculation
   const effectiveSubtotal = Math.max(0, subtotal - discountAmount);
   const shippingFee = effectiveSubtotal >= 1200 || effectiveSubtotal === 0 ? 0 : 200;
   const total = effectiveSubtotal + shippingFee;
@@ -150,7 +185,6 @@ export async function createOrder(payload) {
   const paymentStatus =
     paymentMethod === "Bank Transfer (IBFT)" ? "awaiting_ibft" : "pending_cod";
 
-  // 4. Initial status and tracking stage
   const now = new Date();
   const initialHistory = [
     {
@@ -163,63 +197,87 @@ export async function createOrder(payload) {
     {
       stage: 2,
       orderStatus: "cold_packed",
-      note: "Cold-Packed & Sealed — Cushioned in insulated light-shielded bottle sleeves",
+      note: "Cold-Packed & Sealed — Cushioned in insulated light-shielded sleeves",
       updatedBy: "System",
       timestamp: now,
     },
   ];
 
-  // 5. Create Order
-  const order = await Order.create({
-    orderReference,
-    courierName: "TCS Express",
-    courierTrackingCode,
-    customer: {
-      name: customer.name.trim(),
-      phone: customer.phone.trim(),
-      email: customer.email ? customer.email.trim().toLowerCase() : "",
-    },
-    shippingAddress: {
-      city: shippingAddress.city.trim(),
-      area: shippingAddress.area ? shippingAddress.area.trim() : "",
-      address: shippingAddress.address.trim(),
-      notes: shippingAddress.notes ? shippingAddress.notes.trim() : "",
-    },
-    items: resolvedItems,
-    paymentMethod,
-    paymentStatus,
-    couponCode: appliedCouponCode,
-    subtotal,
-    discountAmount,
-    shippingFee,
-    total,
-    orderStatus: "cold_packed",
-    trackingStage: 2,
-    statusSummary: "Cold-Packed & Sealed — Preparing Parcel at Islamabad Hub",
-    estimatedDelivery: "2–3 working days via TCS Express",
-    statusHistory: initialHistory,
-  });
+  // 6. ATOMIC INVENTORY RESERVATION (Prevents negative inventory, concurrent exhaustion, deal stock overshoot)
+  const reservation = await reserveOrderInventory(resolvedItems);
 
-  // 6. Atomically deduct stock & increment soldCount & dealSoldCount
-  for (const item of resolvedItems) {
-    await Product.findByIdAndUpdate(item.product, {
-      $inc: {
-        stock: -item.quantity,
-        soldCount: item.quantity,
+  // 7. Create Order Document with Compensation Rollback Guard
+  let order;
+  try {
+    const orderDocData = {
+      orderReference,
+      inventoryState: "deducted",
+      courierName: "TCS Express",
+      courierTrackingCode,
+      shipment: {
+        provider: "mock",
+        trackingNumber: courierTrackingCode,
+        trackingUrl: "",
+        labelUrl: "",
+        parcelWeightKg: 0.5,
+        codAmount: paymentMethod === "Cash on Delivery" ? total : 0,
+        status: "unshipped",
+        shipmentAttempts: [],
       },
-    });
-    if (item.dealId) {
-      await incrementDealSoldAtomic(item.dealId, item.quantity);
+      returnDetails: {
+        status: "none",
+      },
+      customer: {
+        name: customer.name.trim(),
+        phone: customer.phone.trim(),
+        email: customer.email ? customer.email.trim().toLowerCase() : "",
+      },
+      shippingAddress: {
+        city: shippingAddress.city.trim(),
+        area: shippingAddress.area ? shippingAddress.area.trim() : "",
+        address: shippingAddress.address.trim(),
+        notes: shippingAddress.notes ? shippingAddress.notes.trim() : "",
+      },
+      items: resolvedItems,
+      paymentMethod,
+      paymentStatus,
+      couponCode: appliedCouponCode,
+      subtotal,
+      discountAmount,
+      shippingFee,
+      total,
+      orderStatus: "cold_packed",
+      trackingStage: 2,
+      statusSummary: "Cold-Packed & Sealed — Preparing Parcel at Islamabad Hub",
+      estimatedDelivery: "2–3 working days via TCS Express",
+      statusHistory: initialHistory,
+    };
+
+    if (cleanIdempotencyKey) {
+      orderDocData.idempotencyKey = cleanIdempotencyKey;
+    }
+
+    order = await Order.create(orderDocData);
+  } catch (createErr) {
+    // If order creation document fails, ROLLBACK reserved stock immediately!
+    await rollbackInventory(reservation.reservedItems);
+    throw createErr;
+  }
+
+  // 8. Increment coupon usage atomically
+  if (appliedCouponCode) {
+    try {
+      await Coupon.findOneAndUpdate(
+        { code: appliedCouponCode },
+        { $inc: { usedCount: 1 } }
+      );
+    } catch {
+      // non-blocking
     }
   }
 
-  // 7. Increment coupon usedCount
-  if (appliedCouponCode) {
-    await Coupon.findOneAndUpdate(
-      { code: appliedCouponCode },
-      { $inc: { usedCount: 1 } }
-    );
-  }
+  // 9. Transactional Email Outbox Queueing (Non-blocking, never rolls back order)
+  queueOrderConfirmationEmail(order);
 
   invalidateCache("/api/products");
   invalidateCache("/api/deals");
@@ -262,7 +320,7 @@ export async function trackOrder(orderReference) {
     },
     {
       stage: 3,
-      title: "In Transit via TCS Express",
+      title: `In Transit via ${order.courierName || "Courier Express"}`,
       detail:
         "Linehaul parcel travelling to your destination city dispatch hub.",
       completed: order.trackingStage >= 3,
@@ -279,7 +337,10 @@ export async function trackOrder(orderReference) {
   return {
     orderReference: order.orderReference,
     courierName: order.courierName,
-    courierTrackingCode: order.courierTrackingCode,
+    courierTrackingCode: order.shipment?.trackingNumber || order.courierTrackingCode,
+    trackingUrl: order.shipment?.trackingUrl || "",
+    labelUrl: order.shipment?.labelUrl || "",
+    shipmentStatus: order.shipment?.status || "unshipped",
     customerName: order.customer.name,
     city: order.shippingAddress.city,
     address: order.shippingAddress.address,
@@ -297,6 +358,7 @@ export async function trackOrder(orderReference) {
     estimatedDelivery: order.estimatedDelivery,
     timeline,
     statusHistory: order.statusHistory,
+    returnDetails: order.returnDetails,
     createdAt: order.createdAt,
   };
 }
@@ -304,11 +366,36 @@ export async function trackOrder(orderReference) {
 export async function listAdminOrders(query = {}) {
   const filter = {};
 
-  if (query.orderStatus) filter.orderStatus = query.orderStatus;
-  if (query.paymentMethod) filter.paymentMethod = query.paymentMethod;
-  if (query.paymentStatus) filter.paymentStatus = query.paymentStatus;
-  if (query.city && typeof query.city === "string") {
+  if (query.orderStatus && query.orderStatus !== "all") {
+    filter.orderStatus = query.orderStatus;
+  }
+  if (query.paymentMethod && query.paymentMethod !== "all") {
+    filter.paymentMethod = query.paymentMethod;
+  }
+  if (query.paymentStatus && query.paymentStatus !== "all") {
+    filter.paymentStatus = query.paymentStatus;
+  }
+  if (query.courierProvider && query.courierProvider !== "all") {
+    filter["shipment.provider"] = query.courierProvider.toLowerCase();
+  }
+  if (query.shipmentStatus && query.shipmentStatus !== "all") {
+    filter["shipment.status"] = query.shipmentStatus;
+  }
+  if (query.city && typeof query.city === "string" && query.city !== "all") {
     filter["shippingAddress.city"] = new RegExp(escapeRegex(query.city.trim()), "i");
+  }
+
+  // Date range filter
+  if (query.startDate || query.endDate) {
+    filter.createdAt = {};
+    if (query.startDate) {
+      filter.createdAt.$gte = new Date(query.startDate);
+    }
+    if (query.endDate) {
+      const end = new Date(query.endDate);
+      end.setHours(23, 59, 59, 999);
+      filter.createdAt.$lte = end;
+    }
   }
 
   if (query.search && typeof query.search === "string" && query.search.trim()) {
@@ -317,6 +404,7 @@ export async function listAdminOrders(query = {}) {
     filter.$or = [
       { orderReference: regex },
       { courierTrackingCode: regex },
+      { "shipment.trackingNumber": regex },
       { "customer.name": regex },
       { "customer.phone": regex },
       { "customer.email": regex },
@@ -361,15 +449,17 @@ export async function updateOrderStatus(orderReference, { orderStatus, note }, a
     out_for_delivery: 4,
     delivered: 4,
     cancelled: 0,
+    returned: 0,
   };
 
   const summaryMap = {
     confirmed: "Order Confirmed — Harvest Batch Verified at Islamabad Hub",
     cold_packed: "Cold-Packed & Sealed — Preparing Parcel at Islamabad Hub",
-    dispatched: "In Transit via TCS Express — Linehaul En Route",
-    out_for_delivery: "Out for Delivery — TCS Rider En Route",
+    dispatched: `In Transit via ${order.courierName || "Courier Express"} — Linehaul En Route`,
+    out_for_delivery: `Out for Delivery — ${order.courierName || "Courier"} Rider En Route`,
     delivered: "Delivered — Signed by Recipient",
     cancelled: "Order Cancelled",
+    returned: "Order Returned — Received at Hub",
   };
 
   if (!stageMap.hasOwnProperty(orderStatus)) {
@@ -383,6 +473,10 @@ export async function updateOrderStatus(orderReference, { orderStatus, note }, a
   // Auto-mark COD paid on delivery if not already paid
   if (orderStatus === "delivered" && order.paymentMethod === "Cash on Delivery") {
     order.paymentStatus = "paid";
+    if (order.shipment) {
+      order.shipment.status = "delivered";
+      order.shipment.deliveredAt = new Date();
+    }
   }
 
   const historyEntry = {
@@ -399,13 +493,186 @@ export async function updateOrderStatus(orderReference, { orderStatus, note }, a
   return order;
 }
 
+/**
+ * Initiates an official consignment shipment with selected courier provider.
+ */
+export async function initiateShipment(orderReference, payload = {}, adminUser) {
+  const cleanRef = orderReference.trim().toUpperCase();
+  const order = await Order.findOne({ orderReference: cleanRef });
+  if (!order) throw ApiError.notFound(`Order ${cleanRef} not found`);
+
+  if (order.orderStatus === "cancelled") {
+    throw ApiError.badRequest("Cannot dispatch a cancelled order");
+  }
+  if (order.orderStatus === "delivered") {
+    throw ApiError.badRequest("Order has already been marked delivered");
+  }
+
+  const providerName = (
+    payload.provider ||
+    order.shipment?.provider ||
+    "tcs"
+  ).toLowerCase();
+
+  const parcelWeightKg = Math.max(0.1, Number(payload.parcelWeightKg) || 0.5);
+  const codAmount =
+    order.paymentMethod === "Cash on Delivery" && order.paymentStatus !== "paid"
+      ? order.total
+      : 0;
+
+  const adapter = getCourierAdapter(providerName);
+
+  let shipmentResult;
+  try {
+    shipmentResult = await adapter.createShipment({
+      order,
+      parcelWeightKg,
+      codAmount,
+      remarks: payload.remarks || order.shippingAddress.notes || "",
+    });
+  } catch (err) {
+    order.shipment.shipmentAttempts.push({
+      provider: providerName,
+      action: "createShipment",
+      requestPayload: { parcelWeightKg, codAmount },
+      responsePayload: null,
+      error: err.message,
+      timestamp: new Date(),
+    });
+    await order.save();
+    throw ApiError.badRequest(`Courier Booking Failed: ${err.message}`);
+  }
+
+  const courierCompanyNames = {
+    tcs: "TCS Express",
+    leopards: "Leopards Courier",
+    trax: "Trax Logistics",
+    mnp: "M&P Express Logistics",
+    mock: "Express Delivery (Sandbox)",
+  };
+
+  const displayName = courierCompanyNames[providerName] || "Courier Express";
+
+  order.shipment.provider = providerName;
+  order.shipment.trackingNumber = shipmentResult.trackingNumber;
+  order.shipment.trackingUrl = shipmentResult.trackingUrl || "";
+  order.shipment.labelUrl = shipmentResult.labelUrl || "";
+  order.shipment.parcelWeightKg = parcelWeightKg;
+  order.shipment.codAmount = codAmount;
+  order.shipment.status = "manifested";
+  order.shipment.dispatchedAt = new Date();
+  order.shipment.shipmentAttempts.push({
+    provider: providerName,
+    action: "createShipment",
+    requestPayload: { parcelWeightKg, codAmount },
+    responsePayload: shipmentResult.rawResponse,
+    error: null,
+    timestamp: new Date(),
+  });
+
+  order.courierName = displayName;
+  order.courierTrackingCode = shipmentResult.trackingNumber;
+  order.orderStatus = "dispatched";
+  order.trackingStage = 3;
+  order.statusSummary = `In Transit via ${displayName} — Tracking ID: ${shipmentResult.trackingNumber}`;
+  if (shipmentResult.estimatedDelivery) {
+    order.estimatedDelivery = shipmentResult.estimatedDelivery;
+  }
+
+  order.statusHistory.push({
+    stage: 3,
+    orderStatus: "dispatched",
+    note: `Shipment booked with ${displayName} (Tracking ID: ${shipmentResult.trackingNumber})`,
+    updatedBy: adminUser?.name || "Admin",
+    timestamp: new Date(),
+  });
+
+  await order.save();
+
+  // Queue shipment dispatched email non-blockingly
+  queueShipmentDispatchedEmail(order);
+
+  return order;
+}
+
+/**
+ * Synchronize real-time tracking status from courier provider.
+ */
+export async function syncCourierStatus(orderReference, adminUser = null) {
+  const cleanRef = orderReference.trim().toUpperCase();
+  const order = await Order.findOne({ orderReference: cleanRef });
+  if (!order) throw ApiError.notFound(`Order ${cleanRef} not found`);
+
+  const trackingNumber =
+    order.shipment?.trackingNumber || order.courierTrackingCode;
+
+  if (!trackingNumber) {
+    throw ApiError.badRequest("No tracking code assigned to this order");
+  }
+
+  const adapter = getCourierAdapter(order.shipment?.provider || "mock");
+  const trackResult = await adapter.trackShipment(trackingNumber);
+
+  // Status mapping
+  const statusMap = {
+    manifested: "cold_packed",
+    in_transit: "dispatched",
+    out_for_delivery: "out_for_delivery",
+    delivered: "delivered",
+    returned: "returned",
+  };
+
+  const newStatus = statusMap[trackResult.status] || order.orderStatus;
+  const stageHierarchy = {
+    confirmed: 1,
+    cold_packed: 2,
+    dispatched: 3,
+    out_for_delivery: 4,
+    delivered: 5,
+  };
+
+  // Monotonic progression: Never downgrade order status automatically
+  const currentLevel = stageHierarchy[order.orderStatus] || 0;
+  const newLevel = stageHierarchy[newStatus] || 0;
+
+  if (newLevel > currentLevel) {
+    order.orderStatus = newStatus;
+    order.trackingStage = Math.min(4, newLevel);
+    if (order.shipment) {
+      order.shipment.status = trackResult.status;
+      if (trackResult.status === "delivered") {
+        order.shipment.deliveredAt = new Date();
+        if (order.paymentMethod === "Cash on Delivery") {
+          order.paymentStatus = "paid";
+        }
+      }
+    }
+    order.statusHistory.push({
+      stage: order.trackingStage,
+      orderStatus: order.orderStatus,
+      note: `Synced from ${order.courierName}: ${trackResult.events?.[0]?.message || trackResult.status}`,
+      updatedBy: adminUser?.name || "Courier Webhook / Sync",
+      timestamp: new Date(),
+    });
+
+    await order.save();
+  }
+
+  return { order, trackResult };
+}
+
 export async function updateOrderTracking(orderReference, payload, adminUser) {
   const cleanRef = orderReference.trim().toUpperCase();
   const order = await Order.findOne({ orderReference: cleanRef });
   if (!order) throw ApiError.notFound(`Order ${cleanRef} not found`);
 
   if (payload.courierName) order.courierName = payload.courierName.trim();
-  if (payload.courierTrackingCode) order.courierTrackingCode = payload.courierTrackingCode.trim();
+  if (payload.courierTrackingCode) {
+    order.courierTrackingCode = payload.courierTrackingCode.trim();
+    if (order.shipment) {
+      order.shipment.trackingNumber = order.courierTrackingCode;
+    }
+  }
   if (payload.estimatedDelivery) order.estimatedDelivery = payload.estimatedDelivery.trim();
 
   order.statusHistory.push({
@@ -442,6 +709,9 @@ export async function updateOrderPayment(orderReference, payload, adminUser) {
   return order;
 }
 
+/**
+ * Cancels an order safely and restores product stock atomically.
+ */
 export async function cancelOrder(orderReference, { cancelReason }, adminUser) {
   const cleanRef = orderReference.trim().toUpperCase();
   const order = await Order.findOne({ orderReference: cleanRef });
@@ -468,27 +738,82 @@ export async function cancelOrder(orderReference, { cancelReason }, adminUser) {
     timestamp: new Date(),
   });
 
+  // Atomically RESTORE product inventory and deal quotas
+  await restoreOrderInventory(order, order.cancelReason, adminUser?.name || "Admin");
+
   await order.save();
-
-  // Atomically RESTORE Product stock & decrement soldCount
-  for (const item of order.items) {
-    await Product.findByIdAndUpdate(item.product, {
-      $inc: {
-        stock: item.quantity,
-        soldCount: -item.quantity,
-      },
-    });
-  }
-
-  // Atomically decrement Coupon usedCount
-  if (order.couponCode) {
-    await Coupon.findOneAndUpdate(
-      { code: order.couponCode },
-      { $inc: { usedCount: -1 } }
-    );
-  }
-
-  invalidateCache("/api/products");
-
   return order;
+}
+
+/**
+ * Handles return inspection, approval and inventory restocking.
+ */
+export async function processReturn(orderReference, payload, adminUser) {
+  const cleanRef = orderReference.trim().toUpperCase();
+  const order = await Order.findOne({ orderReference: cleanRef });
+  if (!order) throw ApiError.notFound(`Order ${cleanRef} not found`);
+
+  const { action, reason, inspectionNotes, restockQuantity } = payload;
+
+  if (action === "request") {
+    order.returnDetails.status = "requested";
+    order.returnDetails.reason = reason || "Customer requested return";
+    order.statusHistory.push({
+      stage: order.trackingStage,
+      orderStatus: order.orderStatus,
+      note: `Return requested: ${order.returnDetails.reason}`,
+      updatedBy: adminUser?.name || "Customer",
+      timestamp: new Date(),
+    });
+    await order.save();
+    return order;
+  }
+
+  if (action === "inspect") {
+    order.returnDetails.status = "inspected";
+    order.returnDetails.inspectedBy = adminUser?.name || "Admin";
+    order.returnDetails.inspectedAt = new Date();
+    order.returnDetails.auditNote = inspectionNotes || "Goods physical condition inspected";
+    order.statusHistory.push({
+      stage: order.trackingStage,
+      orderStatus: order.orderStatus,
+      note: `Return inspected by ${order.returnDetails.inspectedBy}: ${order.returnDetails.auditNote}`,
+      updatedBy: adminUser?.name || "Admin",
+      timestamp: new Date(),
+    });
+    await order.save();
+    return order;
+  }
+
+  if (action === "approve_and_restock") {
+    await restockReturnedUnits(order, restockQuantity, inspectionNotes, adminUser);
+    order.orderStatus = "returned";
+    order.trackingStage = 0;
+    order.statusSummary = "Order Returned & Goods Restocked in Warehouse";
+    order.statusHistory.push({
+      stage: 0,
+      orderStatus: "returned",
+      note: `Return approved & restocked (${order.returnDetails.restockedQuantity} units) by ${adminUser?.name || "Admin"}`,
+      updatedBy: adminUser?.name || "Admin",
+      timestamp: new Date(),
+    });
+    await order.save();
+    return order;
+  }
+
+  if (action === "reject") {
+    order.returnDetails.status = "rejected";
+    order.returnDetails.auditNote = inspectionNotes || "Return rejected after inspection";
+    order.statusHistory.push({
+      stage: order.trackingStage,
+      orderStatus: order.orderStatus,
+      note: `Return rejected: ${order.returnDetails.auditNote}`,
+      updatedBy: adminUser?.name || "Admin",
+      timestamp: new Date(),
+    });
+    await order.save();
+    return order;
+  }
+
+  throw ApiError.badRequest(`Invalid return action: ${action}`);
 }

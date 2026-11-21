@@ -79,7 +79,8 @@ export type OrderStatus =
   | 'dispatched'
   | 'out_for_delivery'
   | 'delivered'
-  | 'cancelled';
+  | 'cancelled'
+  | 'returned';
 
 export type PaymentMethod = 'Cash on Delivery' | 'Bank Transfer (IBFT)';
 
@@ -92,8 +93,51 @@ export interface OrderItem {
   size: string;
   image: string;
   price: number;
+  originalPrice?: number;
+  isDeal?: boolean;
+  dealId?: string;
+  discountPercent?: number;
   quantity: number;
   lineTotal: number;
+}
+
+export interface ShipmentAttempt {
+  provider?: string;
+  action?: string;
+  requestPayload?: any;
+  responsePayload?: any;
+  error?: string | null;
+  timestamp?: string;
+}
+
+export interface ShipmentDetails {
+  provider?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  labelUrl?: string;
+  parcelWeightKg?: number;
+  codAmount?: number;
+  status?:
+    | 'unshipped'
+    | 'manifested'
+    | 'in_transit'
+    | 'out_for_delivery'
+    | 'delivered'
+    | 'returned'
+    | 'cancelled';
+  dispatchedAt?: string | null;
+  deliveredAt?: string | null;
+  shipmentAttempts?: ShipmentAttempt[];
+}
+
+export interface ReturnDetails {
+  status?: 'none' | 'requested' | 'inspected' | 'approved' | 'restocked' | 'rejected';
+  reason?: string;
+  inspectedBy?: string;
+  inspectedAt?: string | null;
+  restockedAt?: string | null;
+  restockedQuantity?: number;
+  auditNote?: string;
 }
 
 export interface OrderStatusHistoryEntry {
@@ -107,8 +151,12 @@ export interface OrderStatusHistoryEntry {
 export interface AdminOrder {
   _id: string;
   orderReference: string;
+  idempotencyKey?: string | null;
+  inventoryState?: 'reserved' | 'deducted' | 'restored' | 'failed';
   courierName: string;
   courierTrackingCode?: string;
+  shipment?: ShipmentDetails;
+  returnDetails?: ReturnDetails;
   customer: {
     name: string;
     phone: string;

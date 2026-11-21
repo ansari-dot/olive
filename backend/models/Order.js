@@ -7,6 +7,7 @@ export const ORDER_STATUSES = [
   "out_for_delivery",
   "delivered",
   "cancelled",
+  "returned",
 ];
 
 export const PAYMENT_STATUSES = [
@@ -49,6 +50,66 @@ const statusHistorySchema = new mongoose.Schema(
   { _id: false }
 );
 
+const shipmentAttemptSchema = new mongoose.Schema(
+  {
+    provider: { type: String, default: "" },
+    action: { type: String, default: "createShipment" },
+    requestPayload: { type: mongoose.Schema.Types.Mixed, default: null },
+    responsePayload: { type: mongoose.Schema.Types.Mixed, default: null },
+    error: { type: String, default: null },
+    timestamp: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const shipmentSchema = new mongoose.Schema(
+  {
+    provider: { type: String, default: "mock", trim: true },
+    trackingNumber: { type: String, default: "", trim: true },
+    trackingUrl: { type: String, default: "", trim: true },
+    labelUrl: { type: String, default: "", trim: true },
+    parcelWeightKg: { type: Number, default: 0.5, min: 0.1 },
+    codAmount: { type: Number, default: 0, min: 0 },
+    status: {
+      type: String,
+      enum: [
+        "unshipped",
+        "manifested",
+        "in_transit",
+        "out_for_delivery",
+        "delivered",
+        "returned",
+        "cancelled",
+      ],
+      default: "unshipped",
+    },
+    dispatchedAt: { type: Date, default: null },
+    deliveredAt: { type: Date, default: null },
+    shipmentAttempts: {
+      type: [shipmentAttemptSchema],
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
+const returnDetailsSchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ["none", "requested", "inspected", "approved", "restocked", "rejected"],
+      default: "none",
+    },
+    reason: { type: String, default: "" },
+    inspectedBy: { type: String, default: "" },
+    inspectedAt: { type: Date, default: null },
+    restockedAt: { type: Date, default: null },
+    restockedQuantity: { type: Number, default: 0 },
+    auditNote: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
   {
     orderReference: {
@@ -57,6 +118,18 @@ const orderSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       uppercase: true,
+    },
+    idempotencyKey: {
+      type: String,
+      sparse: true,
+      unique: true,
+      trim: true,
+    },
+    inventoryState: {
+      type: String,
+      enum: ["reserved", "deducted", "restored", "failed"],
+      default: "deducted",
+      index: true,
     },
     courierName: {
       type: String,
@@ -67,6 +140,14 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true,
+    },
+    shipment: {
+      type: shipmentSchema,
+      default: () => ({}),
+    },
+    returnDetails: {
+      type: returnDetailsSchema,
+      default: () => ({}),
     },
     customer: {
       name: { type: String, required: true, trim: true },
@@ -170,6 +251,9 @@ orderSchema.index({ "shippingAddress.city": 1 });
 orderSchema.index({ orderStatus: 1 });
 orderSchema.index({ paymentStatus: 1 });
 orderSchema.index({ trackingStage: 1 });
+orderSchema.index({ "shipment.trackingNumber": 1 });
+orderSchema.index({ "shipment.status": 1 });
+orderSchema.index({ "shipment.provider": 1 });
 orderSchema.index({ createdAt: -1 });
 
 const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);

@@ -3,10 +3,18 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 // Public: POST /api/orders (Guest checkout)
 export const createOrder = asyncHandler(async (req, res) => {
-  const result = await orderService.createOrder(req.body);
+  const idempotencyKey =
+    req.headers["x-idempotency-key"] ||
+    req.body.idempotencyKey ||
+    req.body.idempotency_key ||
+    null;
+
+  const result = await orderService.createOrder(req.body, idempotencyKey);
   res.status(201).json({
     success: true,
-    message: "Harvest order placed successfully",
+    message: result.isDuplicate
+      ? "Existing order retrieved"
+      : "Harvest order placed successfully",
     ...result,
   });
 });
@@ -32,6 +40,49 @@ export const getAdminOrder = asyncHandler(async (req, res) => {
   const order = await orderService.getAdminOrderByRef(req.params.orderReference);
   res.json({
     success: true,
+    order,
+    data: order,
+  });
+});
+
+// Admin: POST /api/admin/orders/:orderReference/shipment (Generate Courier Shipment)
+export const initiateShipment = asyncHandler(async (req, res) => {
+  const order = await orderService.initiateShipment(
+    req.params.orderReference,
+    req.body,
+    req.admin
+  );
+  res.json({
+    success: true,
+    message: `Shipment successfully booked with ${order.courierName}`,
+    order,
+    data: order,
+  });
+});
+
+// Admin: POST /api/admin/orders/:orderReference/sync-tracking
+export const syncCourierStatus = asyncHandler(async (req, res) => {
+  const result = await orderService.syncCourierStatus(
+    req.params.orderReference,
+    req.admin
+  );
+  res.json({
+    success: true,
+    message: "Courier tracking synchronized",
+    ...result,
+  });
+});
+
+// Admin: POST /api/admin/orders/:orderReference/return
+export const processReturn = asyncHandler(async (req, res) => {
+  const order = await orderService.processReturn(
+    req.params.orderReference,
+    req.body,
+    req.admin
+  );
+  res.json({
+    success: true,
+    message: `Return action "${req.body.action}" completed`,
     order,
     data: order,
   });

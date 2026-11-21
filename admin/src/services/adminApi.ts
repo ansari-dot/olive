@@ -409,6 +409,10 @@ export async function fetchAdminOrders(params?: {
   search?: string;
   page?: number;
   limit?: number;
+  startDate?: string;
+  endDate?: string;
+  courierProvider?: string;
+  shipmentStatus?: string;
 }): Promise<{ orders: AdminOrder[]; total: number; page: number; totalPages: number }> {
   const qs = new URLSearchParams();
   if (params?.orderStatus && params.orderStatus !== 'all') {
@@ -423,6 +427,14 @@ export async function fetchAdminOrders(params?: {
   if (params?.city && params.city !== 'all') {
     qs.set('city', params.city);
   }
+  if (params?.courierProvider && params.courierProvider !== 'all') {
+    qs.set('courierProvider', params.courierProvider);
+  }
+  if (params?.shipmentStatus && params.shipmentStatus !== 'all') {
+    qs.set('shipmentStatus', params.shipmentStatus);
+  }
+  if (params?.startDate) qs.set('startDate', params.startDate);
+  if (params?.endDate) qs.set('endDate', params.endDate);
   if (params?.search) qs.set('search', params.search);
   if (params?.page) qs.set('page', String(params.page));
   if (params?.limit) qs.set('limit', String(params.limit));
@@ -438,6 +450,58 @@ export async function fetchAdminOrders(params?: {
 
 export async function fetchAdminOrderDetail(orderReference: string): Promise<AdminOrder> {
   const res = await request<unknown>(`/admin/orders/${encodeURIComponent(orderReference)}`);
+  return unwrapOne<AdminOrder>(res, ['order']);
+}
+
+export async function initiateCourierShipment(
+  orderReference: string,
+  payload: {
+    provider: string;
+    parcelWeightKg: number;
+    remarks?: string;
+  }
+): Promise<AdminOrder> {
+  const res = await request<unknown>(
+    `/admin/orders/${encodeURIComponent(orderReference)}/shipment`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+  return unwrapOne<AdminOrder>(res, ['order']);
+}
+
+export async function syncAdminOrderTracking(
+  orderReference: string
+): Promise<{ order: AdminOrder; trackResult: any }> {
+  const res = await request<any>(
+    `/admin/orders/${encodeURIComponent(orderReference)}/sync-tracking`,
+    {
+      method: 'POST',
+    }
+  );
+  return {
+    order: unwrapOne<AdminOrder>(res, ['order']),
+    trackResult: res.trackResult,
+  };
+}
+
+export async function processAdminOrderReturn(
+  orderReference: string,
+  payload: {
+    action: 'request' | 'inspect' | 'approve_and_restock' | 'reject';
+    reason?: string;
+    inspectionNotes?: string;
+    restockQuantity?: number;
+  }
+): Promise<AdminOrder> {
+  const res = await request<unknown>(
+    `/admin/orders/${encodeURIComponent(orderReference)}/return`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
   return unwrapOne<AdminOrder>(res, ['order']);
 }
 

@@ -61,6 +61,11 @@ export const ORDER_STATUS_META: Record<
     colorClass: 'text-[#DC2626]',
     stage: 0,
   },
+  returned: {
+    label: 'Returned',
+    colorClass: 'text-[#9333EA]',
+    stage: 0,
+  },
 };
 
 export const PAYMENT_STATUS_META: Record<

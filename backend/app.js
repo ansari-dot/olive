@@ -48,6 +48,7 @@ import payfastRoutes from "./routes/payfastRoutes.js";
 import consultationRoutes from "./routes/consultationRoutes.js";
 import aboutTeamRoutes from "./routes/aboutTeamRoutes.js";
 import originRoutes from "./routes/originRoutes.js";
+import courierWebhookRoutes from "./routes/courierWebhookRoutes.js";
 
 const app = express();
 
@@ -110,6 +111,7 @@ app.use("/api/deals", cache(60), dealRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/promo", couponRoutes); // alias
 app.use("/api/orders", orderRoutes);
+app.use("/api/webhooks/courier", courierWebhookRoutes);
 app.use("/api/blogs", cache(300), blogRoutes);
 app.use("/api/contact", contactLeadRoutes);
 app.use("/api/contacts", contactLeadRoutes); // alias
