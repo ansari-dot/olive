@@ -11,7 +11,7 @@ import {
   Truck,
   Loader2,
 } from 'lucide-react';
-import { fetchProducts, fetchCategories } from '../services/api';
+import { fetchProducts, fetchCategories, type CategoryItem } from '../services/api';
 import type { Product } from '../data/storeData';
 
 export type NavSection =
@@ -25,6 +25,50 @@ export interface NavDepartment {
   name: string;
   categories: { name: string; tag?: string }[];
 }
+
+export interface ShopMenuColumn {
+  title: string;
+  items: { label: string; cat: string; sub?: string }[];
+}
+
+export const DEFAULT_SHOP_COLUMNS: ShopMenuColumn[] = [
+  {
+    title: 'Spices & Seasonings',
+    items: [
+      { label: 'Basic Ground Spices', cat: 'Ground Spices', sub: 'Basic Ground Spices' },
+      { label: 'Aromatic Ground Spices', cat: 'Ground Spices', sub: 'Aromatic Ground Spices' },
+      { label: 'Specialty Ground Spices', cat: 'Ground Spices', sub: 'Specialty Ground Spices' },
+      { label: 'Whole Aromatic Spices', cat: 'Whole Spices', sub: 'Whole Aromatic Spices' },
+      { label: 'Whole Seeds & Peppercorns', cat: 'Whole Spices', sub: 'Whole Seeds and Peppercorns' },
+      { label: 'Traditional Pakistani Masalas', cat: 'Seasonings and Spice Blends', sub: 'Traditional Pakistani Spice Blends' },
+      { label: 'International Seasonings', cat: 'Seasonings and Spice Blends', sub: 'International Seasonings' },
+    ],
+  },
+  {
+    title: 'Cold-Pressed Oils',
+    items: [
+      { label: 'Early Harvest EVOO', cat: 'Olive Products', sub: 'Early Harvest Extra Virgin Olive Oil (EVOO)' },
+      { label: 'Monovarietal EVOO (Koroneiki & Picual)', cat: 'Olive Products', sub: 'Monovarietal Extra Virgin Olive Oil (EVOO)' },
+      { label: 'Multivarietal EVOO', cat: 'Olive Products', sub: 'Multivarietal Extra Virgin Olive Oil (EVOO)' },
+      { label: 'Cold-Pressed Seed Oils (Kalonji)', cat: 'Edible and Specialty Oils', sub: 'Seed Oils' },
+      { label: 'Nut & Fruit Oils (Almond & Walnut)', cat: 'Edible and Specialty Oils', sub: 'Nut and Fruit Oils' },
+      { label: 'Traditional Herbal & Hair Oils', cat: 'Herbal and Botanical Oils', sub: 'Traditional Herbal Oils' },
+      { label: 'Table Olives & Tapenade', cat: 'Olive Products', sub: 'Table olives' },
+    ],
+  },
+  {
+    title: 'Botanicals & Honey',
+    items: [
+      { label: 'Himalayan Shilajit Resin', cat: 'Extracts and Concentrates', sub: 'Shilajit Products' },
+      { label: 'Functional Mushrooms (Lion’s Mane)', cat: 'Mushrooms and Mushroom Products', sub: 'Mushroom Powders' },
+      { label: 'Wild Mountain Raw Sidr Honey', cat: 'Natural Sweeteners', sub: 'Natural Honey' },
+      { label: 'Artisanal Loose Leaf Teas', cat: 'Tea and Herbal Infusions', sub: 'Traditional Teas' },
+      { label: 'Culinary Herbs & Botanicals', cat: 'Herbs and Botanicals', sub: 'Culinary Herbs' },
+      { label: 'Organic Sun-Dried Fruits & Dates', cat: 'Dried Fruits', sub: 'Dates' },
+      { label: 'Himalayan Pink Rock Salt', cat: 'Salts and Mineral Ingredients', sub: 'Himalayan Salts' },
+    ],
+  },
+];
 
 export const DEPARTMENTS_NAV: NavDepartment[] = [
   {
@@ -220,10 +264,10 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
     }
   };
 
-  const displayProducts =
-    featuredProducts && featuredProducts.length > 0
-      ? featuredProducts.slice(0, 2)
-      : [];
+  // Dynamic State: Categories taxonomy and Latest Products from backend/MongoDB
+  const [rawCategories, setRawCategories] = useState<CategoryItem[]>([]);
+  const [latestProducts, setLatestProducts] = useState<Product[]>([]);
+
   // Mobile drawer state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileExpandedTab, setMobileExpandedTab] = useState<string | null>(null);
@@ -250,12 +294,15 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchAbortRef = useRef<AbortController | null>(null);
 
-  // Fetch dynamic categories directly from backend CMS/MongoDB
+  // Fetch dynamic categories & latest products directly from backend CMS/MongoDB
   useEffect(() => {
     let isMounted = true;
+
+    // 1. Categories taxonomy
     fetchCategories()
       .then((cats) => {
         if (!isMounted || !Array.isArray(cats)) return;
+        setRawCategories(cats);
         const names = cats
           .map((c) => c.name?.trim())
           .filter(Boolean);
@@ -267,10 +314,95 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
       .catch((err) => {
         console.error('Failed to load categories in navbar:', err);
       });
+
+    // 2. Latest products added from admin panel/MongoDB
+    fetchProducts({ sort: 'newest', limit: 3 })
+      .then((res) => {
+        if (isMounted && res && Array.isArray(res.products)) {
+          setLatestProducts(res.products);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load latest products in navbar:', err);
+      });
+
     return () => {
       isMounted = false;
     };
   }, []);
+
+  // Compute products to display in "LATEST PRODUCTS" column of SHOP mega menu
+  const displayProducts = useMemo(() => {
+    if (latestProducts.length > 0) return latestProducts.slice(0, 2);
+    if (featuredProducts && featuredProducts.length > 0) return featuredProducts.slice(0, 2);
+    return [];
+  }, [latestProducts, featuredProducts]);
+
+  // Compute dynamic 3 columns for SHOP mega menu from backend categories
+  const dynamicShopColumns = useMemo(() => {
+    if (!rawCategories || rawCategories.length === 0) {
+      return DEFAULT_SHOP_COLUMNS;
+    }
+
+    const col1: { label: string; cat: string; sub?: string }[] = [];
+    const col2: { label: string; cat: string; sub?: string }[] = [];
+    const col3: { label: string; cat: string; sub?: string }[] = [];
+
+    for (const cat of rawCategories) {
+      const dept = (cat.department || '').toLowerCase();
+      const name = (cat.name || '').toLowerCase();
+
+      let target = 3;
+      if (
+        dept.includes('spice') ||
+        dept.includes('seasoning') ||
+        name.includes('spice') ||
+        name.includes('seasoning') ||
+        name.includes('masala')
+      ) {
+        target = 1;
+      } else if (
+        dept.includes('oil') ||
+        dept.includes('olive') ||
+        dept.includes('vinegar') ||
+        name.includes('oil') ||
+        name.includes('olive')
+      ) {
+        target = 2;
+      } else {
+        target = 3;
+      }
+
+      if (Array.isArray(cat.subcategories) && cat.subcategories.length > 0) {
+        for (const sub of cat.subcategories) {
+          const item = { label: sub.name, cat: cat.name, sub: sub.name };
+          if (target === 1) col1.push(item);
+          else if (target === 2) col2.push(item);
+          else col3.push(item);
+        }
+      } else {
+        const item = { label: cat.name, cat: cat.name };
+        if (target === 1) col1.push(item);
+        else if (target === 2) col2.push(item);
+        else col3.push(item);
+      }
+    }
+
+    return [
+      {
+        title: 'Spices & Seasonings',
+        items: col1.length > 0 ? col1.slice(0, 7) : DEFAULT_SHOP_COLUMNS[0].items,
+      },
+      {
+        title: 'Cold-Pressed Oils',
+        items: col2.length > 0 ? col2.slice(0, 7) : DEFAULT_SHOP_COLUMNS[1].items,
+      },
+      {
+        title: 'Botanicals & Honey',
+        items: col3.length > 0 ? col3.slice(0, 7) : DEFAULT_SHOP_COLUMNS[2].items,
+      },
+    ];
+  }, [rawCategories]);
 
   const categoryOptions = useMemo(() => {
     return ['All Categories', ...categoriesList];
@@ -868,94 +1000,30 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                 onMouseLeave={handleDropdownLeave}
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-7 lg:gap-8 xl:gap-9 text-left">
-                  {/* Column 1: Spices & Seasonings */}
-                  <div>
-                    <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] text-[#111827]">
-                      Spices &amp; Seasonings
-                    </h4>
-                    <div className="w-9 h-[2.5px] bg-[#E52E2E] mt-1.5 mb-3.5" />
-                    <ul className="space-y-1.5">
-                      {[
-                        { label: 'Basic Ground Spices', cat: 'Ground Spices', sub: 'Basic Ground Spices' },
-                        { label: 'Aromatic Ground Spices', cat: 'Ground Spices', sub: 'Aromatic Ground Spices' },
-                        { label: 'Specialty Ground Spices', cat: 'Ground Spices', sub: 'Specialty Ground Spices' },
-                        { label: 'Whole Aromatic Spices', cat: 'Whole Spices', sub: 'Whole Aromatic Spices' },
-                        { label: 'Whole Seeds & Peppercorns', cat: 'Whole Spices', sub: 'Whole Seeds and Peppercorns' },
-                        { label: 'Traditional Pakistani Masalas', cat: 'Seasonings and Spice Blends', sub: 'Traditional Pakistani Spice Blends' },
-                        { label: 'International Seasonings', cat: 'Seasonings and Spice Blends', sub: 'International Seasonings' },
-                      ].map((item) => (
-                        <li key={item.label}>
-                          <button
-                            type="button"
-                            onClick={() => handleCategoryClick(item.cat, item.sub)}
-                            className="w-full text-left py-1 text-[13px] text-[#4B5563] hover:text-[#E52E2E] hover:translate-x-1 transition-all cursor-pointer font-normal truncate block"
-                          >
-                            {item.label}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  {/* Dynamic Category Columns (Columns 1, 2, 3) */}
+                  {dynamicShopColumns.map((col) => (
+                    <div key={col.title}>
+                      <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] text-[#111827]">
+                        {col.title}
+                      </h4>
+                      <div className="w-9 h-[2.5px] bg-[#E52E2E] mt-1.5 mb-3.5" />
+                      <ul className="space-y-1.5">
+                        {col.items.map((item) => (
+                          <li key={`${item.cat}-${item.sub || item.label}`}>
+                            <button
+                              type="button"
+                              onClick={() => handleCategoryClick(item.cat, item.sub)}
+                              className="w-full text-left py-1 text-[13px] text-[#4B5563] hover:text-[#E52E2E] hover:translate-x-1 transition-all cursor-pointer font-normal truncate block"
+                            >
+                              {item.label}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
 
-                  {/* Column 2: Cold-Pressed Oils & Olives */}
-                  <div>
-                    <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] text-[#111827]">
-                      Cold-Pressed Oils
-                    </h4>
-                    <div className="w-9 h-[2.5px] bg-[#E52E2E] mt-1.5 mb-3.5" />
-                    <ul className="space-y-1.5">
-                      {[
-                        { label: 'Early Harvest EVOO', cat: 'Olive Products', sub: 'Early Harvest Extra Virgin Olive Oil (EVOO)' },
-                        { label: 'Monovarietal EVOO (Koroneiki & Picual)', cat: 'Olive Products', sub: 'Monovarietal Extra Virgin Olive Oil (EVOO)' },
-                        { label: 'Multivarietal EVOO', cat: 'Olive Products', sub: 'Multivarietal Extra Virgin Olive Oil (EVOO)' },
-                        { label: 'Cold-Pressed Seed Oils (Kalonji)', cat: 'Edible and Specialty Oils', sub: 'Seed Oils' },
-                        { label: 'Nut & Fruit Oils (Almond & Walnut)', cat: 'Edible and Specialty Oils', sub: 'Nut and Fruit Oils' },
-                        { label: 'Traditional Herbal & Hair Oils', cat: 'Herbal and Botanical Oils', sub: 'Traditional Herbal Oils' },
-                        { label: 'Table Olives & Tapenade', cat: 'Olive Products', sub: 'Table olives' },
-                      ].map((item) => (
-                        <li key={item.label}>
-                          <button
-                            type="button"
-                            onClick={() => handleCategoryClick(item.cat, item.sub)}
-                            className="w-full text-left py-1 text-[13px] text-[#4B5563] hover:text-[#E52E2E] hover:translate-x-1 transition-all cursor-pointer font-normal truncate block"
-                          >
-                            {item.label}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Column 3: Botanicals & Pantry */}
-                  <div>
-                    <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] text-[#111827]">
-                      Botanicals &amp; Honey
-                    </h4>
-                    <div className="w-9 h-[2.5px] bg-[#E52E2E] mt-1.5 mb-3.5" />
-                    <ul className="space-y-1.5">
-                      {[
-                        { label: 'Himalayan Shilajit Resin', cat: 'Extracts and Concentrates', sub: 'Shilajit Products' },
-                        { label: 'Functional Mushrooms (Lion’s Mane)', cat: 'Mushrooms and Mushroom Products', sub: 'Mushroom Powders' },
-                        { label: 'Wild Mountain Raw Sidr Honey', cat: 'Natural Sweeteners', sub: 'Natural Honey' },
-                        { label: 'Artisanal Loose Leaf Teas', cat: 'Tea and Herbal Infusions', sub: 'Traditional Teas' },
-                        { label: 'Culinary Herbs & Botanicals', cat: 'Herbs and Botanicals', sub: 'Culinary Herbs' },
-                        { label: 'Organic Sun-Dried Fruits & Dates', cat: 'Dried Fruits', sub: 'Dates' },
-                        { label: 'Himalayan Pink Rock Salt', cat: 'Salts and Mineral Ingredients', sub: 'Himalayan Salts' },
-                      ].map((item) => (
-                        <li key={item.label}>
-                          <button
-                            type="button"
-                            onClick={() => handleCategoryClick(item.cat, item.sub)}
-                            className="w-full text-left py-1 text-[13px] text-[#4B5563] hover:text-[#E52E2E] hover:translate-x-1 transition-all cursor-pointer font-normal truncate block"
-                          >
-                            {item.label}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Column 4: LATEST PRODUCTS matching reference image */}
+                  {/* Column 4: LATEST PRODUCTS (Dynamic from Admin Panel / MongoDB) */}
                   <div>
                     <h4 className="text-[13px] font-extrabold uppercase tracking-[0.06em] text-[#111827]">
                       Latest Products
@@ -965,7 +1033,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                       <div className="space-y-3">
                         {displayProducts.map((prod) => (
                           <div
-                            key={prod.id}
+                            key={prod.id || prod.mongoId}
                             onClick={() => {
                               setOpenDropdown(null);
                               handleSelectProductInternal(prod);
@@ -973,24 +1041,37 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
                             className="flex items-center gap-3.5 p-2 rounded-xs hover:bg-[#FAF8F5] transition-colors cursor-pointer group border border-transparent hover:border-[#F1ECE4]"
                           >
                             <img
-                              src={prod.image}
+                              src={prod.image || '/assets/images/product_olive_oil_1794763960228.jpg'}
                               alt={prod.name}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/assets/images/product_olive_oil_1794763960228.jpg';
+                              }}
                               className="w-[66px] h-[66px] object-cover rounded-2xs bg-[#FAF5F0] border border-[#EAE5DE] shrink-0"
                             />
                             <div className="min-w-0 flex-1">
                               <p className="text-[12.5px] font-semibold text-[#1F2937] group-hover:text-[#15472B] line-clamp-2 leading-snug">
                                 {prod.name}
                               </p>
-                              <div className="flex items-center gap-0.5 my-1" aria-label="5 out of 5 stars">
-                                {[1, 2, 3, 4, 5].map((s) => (
-                                  <svg
-                                    key={s}
-                                    viewBox="0 0 16 16"
-                                    className="w-3 h-3 text-[#F59E0B] fill-[#F59E0B]"
-                                  >
-                                    <path d="M8 1.4L9.95 5.35L14.3 5.98L11.15 9.05L11.89 13.38L8 11.33L4.11 13.38L4.85 9.05L1.7 5.98L6.05 5.35L8 1.4Z" />
-                                  </svg>
-                                ))}
+                              <div
+                                className="flex items-center gap-0.5 my-1"
+                                aria-label={`${prod.rating !== undefined ? prod.rating : 5} out of 5 stars`}
+                              >
+                                {[1, 2, 3, 4, 5].map((s) => {
+                                  const isFilled = s <= Math.round(prod.rating !== undefined ? prod.rating : 5);
+                                  return (
+                                    <svg
+                                      key={s}
+                                      viewBox="0 0 16 16"
+                                      className={`w-3 h-3 ${
+                                        isFilled
+                                          ? 'text-[#F59E0B] fill-[#F59E0B]'
+                                          : 'text-[#D1D5DB] fill-[#D1D5DB]'
+                                      }`}
+                                    >
+                                      <path d="M8 1.4L9.95 5.35L14.3 5.98L11.15 9.05L11.89 13.38L8 11.33L4.11 13.38L4.85 9.05L1.7 5.98L6.05 5.35L8 1.4Z" />
+                                    </svg>
+                                  );
+                                })}
                               </div>
                               <div className="flex items-baseline gap-2">
                                 <span className="text-[13px] font-bold text-[#E52E2E] font-mono-data">
