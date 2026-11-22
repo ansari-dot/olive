@@ -279,8 +279,12 @@ export const App: React.FC = () => {
 
           {/* Right Controls: Location Status Pill, Bell Notification, User Avatar */}
           <div className="flex items-center gap-3.5">
-            <div className="hidden sm:flex items-center gap-2 bg-[#EAF3EC] border border-[#D5E6D8] px-3.5 py-1.5 rounded-full text-[12px] font-medium text-[#15472B]">
-              <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse" />
+            <div className="hidden sm:flex items-center gap-2 bg-[#EAF2EC] px-3.5 py-1.5 rounded-full text-[12px] font-medium text-[#15472B]">
+              <div className="w-4 h-4 rounded-xs bg-[#15472B] flex items-center justify-center text-white shrink-0">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+              </div>
               <span>Nationwide COD &amp; IBFT</span>
               <span className="text-[#94A3B8]">·</span>
               <span>Islamabad Hub</span>
@@ -290,21 +294,21 @@ export const App: React.FC = () => {
             <button
               type="button"
               aria-label="View notifications"
-              className="w-8 h-8 rounded-full bg-white hover:bg-[#F1F5F9] border border-transparent hover:border-[#E2E8F0] flex items-center justify-center text-[#475569] relative transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-full bg-white hover:bg-[#F1F5F9] flex items-center justify-center text-[#475569] relative transition-colors cursor-pointer"
             >
               <Bell className="w-4 h-4" />
               <span className="w-2 h-2 rounded-full bg-[#EF4444] absolute top-1.5 right-1.5 ring-2 ring-white" />
             </button>
 
             {/* Header User Badge */}
-            <div className="w-8 h-8 rounded-full bg-[#0E291C] text-white text-[11.5px] font-bold flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-full bg-[#0E291C] text-white text-[11px] font-bold flex items-center justify-center shadow-xs">
               ZA
             </div>
           </div>
         </header>
 
         {/* Main Workspace */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1520px] w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-7 max-w-[1600px] w-full mx-auto">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route
