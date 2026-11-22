@@ -33,7 +33,11 @@ import {
   updateProductStock,
   uploadAdminImage,
 } from '../services/adminApi';
+<<<<<<< HEAD
 import type { AdminProduct, AdminReview, BrandName } from '../types/admin';
+=======
+import type { AdminProduct, BrandName, ProductVariant } from '../types/admin';
+>>>>>>> 21a32c4 (create the branding)
 import { formatPKR } from '../utils/formatters';
 
 const BRAND_OPTIONS: BrandName[] = [
@@ -70,6 +74,7 @@ const EMPTY_FORM: Partial<AdminProduct> = {
   originalPrice: undefined,
   stock: 36,
   size: '500 ml Dark Glass',
+  variants: [],
   description: '',
   detailedDescription: '',
   ingredients: '',
@@ -216,8 +221,12 @@ export const ProductsView: React.FC = () => {
   const openCreateModal = () => {
     refreshTaxonomies();
     setEditingId(null);
+<<<<<<< HEAD
     setForm(EMPTY_FORM);
     setNewGalleryUrl('');
+=======
+    setForm({ ...EMPTY_FORM, variants: [] });
+>>>>>>> 21a32c4 (create the branding)
     setModalOpen(true);
   };
 
@@ -226,6 +235,7 @@ export const ProductsView: React.FC = () => {
     setEditingId(prod._id);
     setForm({
       ...prod,
+<<<<<<< HEAD
       sections: prod.sections?.length ? prod.sections : ['shop', 'featured-grid'],
       galleryImages: prod.galleryImages?.length ? prod.galleryImages : [],
       extractionMethod: prod.extractionMethod || 'First Cold-Press (< 27°C), Unfiltered',
@@ -235,6 +245,10 @@ export const ProductsView: React.FC = () => {
       harvestDate: prod.harvestDate || '',
       storageInstructions: prod.storageInstructions || '',
       isOrganic: Boolean(prod.isOrganic),
+=======
+      sections: prod.sections?.length ? prod.sections : ['shop'],
+      variants: prod.variants?.length ? prod.variants : [],
+>>>>>>> 21a32c4 (create the branding)
     });
     setNewGalleryUrl('');
     setModalOpen(true);
@@ -314,6 +328,7 @@ export const ProductsView: React.FC = () => {
         price: Number(form.price || 0),
         originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
         stock: Number(form.stock ?? 0),
+<<<<<<< HEAD
         extractionMethod: form.extractionMethod?.trim() || 'First Cold-Press (< 27°C), Unfiltered',
         acidityLevel: form.acidityLevel?.trim() || '< 0.3% Free Fatty Acidity',
         flavour: form.flavour?.trim() || undefined,
@@ -324,6 +339,19 @@ export const ProductsView: React.FC = () => {
         isActive: form.isActive !== undefined ? Boolean(form.isActive) : true,
         isSale: Boolean(form.isSale),
         isNew: Boolean(form.isNew),
+=======
+        variants: (form.variants ?? [])
+          .map((variant) => ({
+            ...variant,
+            label: variant.label.trim(),
+            sku: variant.sku?.trim().toUpperCase() || undefined,
+            price: Number(variant.price || 0),
+            originalPrice: variant.originalPrice ? Number(variant.originalPrice) : undefined,
+            stock: Number(variant.stock ?? 0),
+            isActive: variant.isActive !== false,
+          }))
+          .filter((variant) => variant.label && variant.price > 0),
+>>>>>>> 21a32c4 (create the branding)
       };
 
       if (editingId) {
@@ -352,6 +380,32 @@ export const ProductsView: React.FC = () => {
     } finally {
       setSavingStockId(null);
     }
+  };
+
+  const addVariant = () => {
+    setForm((prev) => ({
+      ...prev,
+      variants: [
+        ...(prev.variants ?? []),
+        { label: '', price: 0, originalPrice: undefined, stock: 0, sku: '', isActive: true },
+      ],
+    }));
+  };
+
+  const updateVariant = (index: number, patch: Partial<ProductVariant>) => {
+    setForm((prev) => ({
+      ...prev,
+      variants: (prev.variants ?? []).map((variant, variantIndex) =>
+        variantIndex === index ? { ...variant, ...patch } : variant
+      ),
+    }));
+  };
+
+  const removeVariant = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      variants: (prev.variants ?? []).filter((_, variantIndex) => variantIndex !== index),
+    }));
   };
 
   const handleDelete = async (prod: AdminProduct) => {
@@ -936,6 +990,7 @@ export const ProductsView: React.FC = () => {
                 </div>
               )}
 
+<<<<<<< HEAD
               {/* Section 1: Basic Information */}
               <div className="space-y-4">
                 <h4 className="text-[12px] font-bold uppercase tracking-wider text-[#15472B] border-b border-[#E2E8F0] pb-1.5">
@@ -946,6 +1001,205 @@ export const ProductsView: React.FC = () => {
                     <label className="block text-[12px] font-semibold text-[#334155]">
                       Product Name <span className="text-red-500">*</span>
                     </label>
+=======
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
+                    Price (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={form.price ?? 0}
+                    onChange={(e) => setForm((p) => ({ ...p, price: Number(e.target.value) }))}
+                    className="w-full border border-[#CBD5E1] px-3 py-2 font-mono-data"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
+                    Original Price
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.originalPrice ?? ''}
+                    onChange={(e) =>
+                      setForm((p) => ({
+                        ...p,
+                        originalPrice: e.target.value ? Number(e.target.value) : undefined,
+                      }))
+                    }
+                    className="w-full border border-[#CBD5E1] px-3 py-2 font-mono-data"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
+                    Stock
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={form.stock ?? 0}
+                    onChange={(e) => setForm((p) => ({ ...p, stock: Number(e.target.value) }))}
+                    className="w-full border border-[#CBD5E1] px-3 py-2 font-mono-data"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
+                    Origin
+                  </label>
+                  <input
+                    type="text"
+                    value={form.origin ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, origin: e.target.value }))}
+                    placeholder="Potohar / Swat"
+                    className="w-full border border-[#CBD5E1] px-3 py-2"
+                  />
+                </div>
+              </div>
+
+              <div className="border border-[#E2E8F0] bg-[#F8FAFC] p-3.5 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase font-semibold text-[#475569]">
+                      Size &amp; Price Variants
+                    </p>
+                    <p className="text-[11px] text-[#64748B] mt-0.5">
+                      Add options such as S, XL or 250 ml. Leave empty to use the default price above.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addVariant}
+                    className="inline-flex items-center gap-1 border border-[#15472B] text-[#15472B] px-3 py-1.5 text-[11px] font-semibold cursor-pointer whitespace-nowrap"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Size
+                  </button>
+                </div>
+
+                {(form.variants ?? []).map((variant, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-2 items-end bg-white border border-[#E2E8F0] p-2.5"
+                  >
+                    <div>
+                      <label className="block text-[10px] uppercase font-semibold text-[#64748B] mb-1">
+                        Size
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={variant.label}
+                        onChange={(e) => updateVariant(index, { label: e.target.value })}
+                        placeholder="XL"
+                        className="w-full border border-[#CBD5E1] px-2 py-1.5"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-semibold text-[#64748B] mb-1">
+                        Price
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={1}
+                        value={variant.price || ''}
+                        onChange={(e) => updateVariant(index, { price: Number(e.target.value) })}
+                        className="w-full border border-[#CBD5E1] px-2 py-1.5 font-mono-data"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-semibold text-[#64748B] mb-1">
+                        Original
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={variant.originalPrice ?? ''}
+                        onChange={(e) =>
+                          updateVariant(index, {
+                            originalPrice: e.target.value ? Number(e.target.value) : undefined,
+                          })
+                        }
+                        className="w-full border border-[#CBD5E1] px-2 py-1.5 font-mono-data"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-semibold text-[#64748B] mb-1">
+                        Stock
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        value={variant.stock ?? 0}
+                        onChange={(e) => updateVariant(index, { stock: Number(e.target.value) })}
+                        className="w-full border border-[#CBD5E1] px-2 py-1.5 font-mono-data"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-semibold text-[#64748B] mb-1">
+                        Variant SKU
+                      </label>
+                      <input
+                        type="text"
+                        value={variant.sku ?? ''}
+                        onChange={(e) => updateVariant(index, { sku: e.target.value })}
+                        placeholder="ZP-XL"
+                        className="w-full border border-[#CBD5E1] px-2 py-1.5 font-mono-data"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeVariant(index)}
+                      aria-label={`Remove size variant ${variant.label || index + 1}`}
+                      className="p-2 border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
+                    Flavour (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.flavour ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, flavour: e.target.value }))}
+                    placeholder="Basil, Pepper, Cardamom, Ginger"
+                    className="w-full border border-[#CBD5E1] px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
+                    Acidity Level
+                  </label>
+                  <input
+                    type="text"
+                    value={form.acidityLevel ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, acidityLevel: e.target.value }))}
+                    className="w-full border border-[#CBD5E1] px-3 py-2"
+                  />
+                </div>
+              </div>
+
+              {/* Image Upload + URL */}
+              <div className="border border-[#E2E8F0] p-3.5 bg-[#F8FAFC] space-y-2.5">
+                <label className="block text-[11px] uppercase font-semibold text-[#475569]">
+                  Product Studio Image (Upload or URL)
+                </label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex items-center gap-2 border border-[#0F172A] bg-white px-3.5 py-2 text-[12px] font-medium cursor-pointer">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
+>>>>>>> 21a32c4 (create the branding)
                     <input
                       type="text"
                       required

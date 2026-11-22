@@ -119,6 +119,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const [activeThumbIndex, setActiveThumbIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariantLabels, setSelectedVariantLabels] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'description' | 'additional' | 'reviews'>('description');
   const [copiedNotice, setCopiedNotice] = useState<string | null>(null);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
@@ -149,6 +150,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       .then((data: ProductDetailResponse) => {
         if (!isMounted) return;
         setProduct(data.product);
+        const firstVariant = data.product.variants?.find((variant) => variant.isActive);
+        setSelectedVariantLabels(firstVariant?.label ? [firstVariant.label] : []);
         if (data.relatedProducts && data.relatedProducts.length > 0) {
           setRelatedList(data.relatedProducts);
         }
@@ -184,7 +187,53 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     };
   }, [initialProduct.id, initialProduct.slug]);
 
+<<<<<<< HEAD
   // Strictly only show user-uploaded main image and real gallery images (no dummy/invented images)
+=======
+  const activeVariants = useMemo(
+    () => (product.variants || []).filter((variant) => variant.isActive),
+    [product.variants]
+  );
+
+  const selectedVariants = activeVariants.filter((variant) =>
+    selectedVariantLabels.includes(variant.label)
+  );
+  const selectedVariant = selectedVariants[0];
+
+  const displayProduct = useMemo<Product>(() => {
+    if (!selectedVariant) return product;
+    return {
+      ...product,
+      variantKey: `${product.mongoId || product.id}::${selectedVariant.label}`,
+      size: selectedVariant.label,
+      price: selectedVariant.price,
+      originalPrice: selectedVariant.originalPrice,
+      stock: selectedVariant.stock,
+    } as Product;
+  }, [product, selectedVariant]);
+
+  const selectedVariantProducts = useMemo<Product[]>(
+    () =>
+      selectedVariants.map((variant) => ({
+        ...product,
+        variantKey: `${product.mongoId || product.id}::${variant.label}`,
+        size: variant.label,
+        price: variant.price,
+        originalPrice: variant.originalPrice,
+        stock: variant.stock,
+      })),
+    [product, selectedVariants]
+  );
+
+  const toggleVariant = (label: string) => {
+    setSelectedVariantLabels((current) =>
+      current.includes(label)
+        ? current.filter((item) => item !== label)
+        : [...current, label]
+    );
+  };
+
+>>>>>>> 21a32c4 (create the branding)
   const thumbnails = useMemo(() => {
     const mainImg = product.image ? resolveImageUrl(product.image) : '';
     const rawGallery = Array.isArray(product.galleryImages) && product.galleryImages.length > 0
@@ -203,7 +252,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const mainImage = thumbnails[activeThumbIndex] || (product.image ? resolveImageUrl(product.image) : '');
 
   const handleCopyShare = (platform: string) => {
-    const shareText = `${product.name} — Zaitoon Pakistan (${formatPKR(product.price)})`;
+    const shareText = `${product.name} — Zaitoon Pakistan (${formatPKR(displayProduct.price)})`;
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(shareText).catch(() => {});
     }
@@ -374,12 +423,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
 
             {/* Price Row */}
+<<<<<<< HEAD
             <div className="mt-4 flex flex-wrap items-baseline gap-3 text-[24px] font-medium tabular-nums">
               {product.isDeal && product.originalPrice && product.originalPrice > product.price ? (
+=======
+            <div className="mt-4 flex items-baseline gap-3 text-[22px] font-medium tabular-nums">
+              {displayProduct.originalPrice ? (
+>>>>>>> 21a32c4 (create the branding)
                 <>
                   <span className="text-[#888888] line-through text-[18px]">
-                    {formatPKR(product.originalPrice)}
+                    {formatPKR(displayProduct.originalPrice)}
                   </span>
+<<<<<<< HEAD
                   <span className="text-[#D03B3B] font-bold">{formatPKR(product.price)}</span>
                   <span className="text-[12px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                     Save {formatPKR(product.originalPrice - product.price)} (
@@ -394,12 +449,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </>
               ) : (
                 <span className="text-[#181818] font-bold">{formatPKR(product.price)}</span>
+=======
+                  <span className="text-[#C46B3B]">{formatPKR(displayProduct.price)}</span>
+                </>
+              ) : (
+                <span className="text-[#181818]">{formatPKR(displayProduct.price)}</span>
+>>>>>>> 21a32c4 (create the branding)
               )}
               <span className="text-[12px] font-normal uppercase tracking-[0.06em] text-[#7E8F5B]">
                 Tax Included · Nationwide COD
               </span>
             </div>
 
+<<<<<<< HEAD
             {/* Flash Deal Countdown Banner */}
             {product.isDeal && !countdown.isExpired && (
               <div className="mt-4 p-4 rounded-xl border border-red-200 bg-linear-to-r from-red-50/70 via-white to-red-50/40 shadow-xs">
@@ -463,6 +525,33 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                     </span>
                   </div>
                 )}
+=======
+            {activeVariants.length > 0 && (
+              <div className="mt-5">
+                <p className="text-[11px] uppercase tracking-[0.08em] font-semibold text-[#555555] mb-2">
+                  Select Size(s)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {activeVariants.map((variant) => (
+                    <button
+                      key={variant.label}
+                      type="button"
+                      disabled={variant.stock <= 0}
+                      onClick={() => toggleVariant(variant.label)}
+                      className={`min-w-[72px] border px-3 py-2 text-[12.5px] transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
+                        selectedVariantLabels.includes(variant.label)
+                          ? 'border-[#15472B] bg-[#15472B] text-white'
+                          : 'border-[#D4D4D4] bg-white text-[#333333] hover:border-[#15472B]'
+                      } ${variant.stock <= 0 ? 'opacity-60' : ''}`}
+                    >
+                      <span className="block font-semibold">{variant.label}</span>
+                      <span className="block text-[10.5px] mt-0.5">
+                        {formatPKR(variant.price)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+>>>>>>> 21a32c4 (create the branding)
               </div>
             )}
 
@@ -473,6 +562,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
             {/* Key Quality Callouts - Dynamic from Admin Panel */}
             <div className="mt-5 grid grid-cols-2 gap-3 text-[12.5px] text-[#333333]">
+<<<<<<< HEAD
               {product.origin && (
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
@@ -515,6 +605,29 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   <span className="text-[#15472B] font-semibold">100% Certified Organic</span>
                 </div>
               )}
+=======
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                <span>Single-Estate Harvest: {product.origin || 'Potohar, Pakistan'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                <span>Acidity Level: {product.acidityLevel || '< 0.3% FFA'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                <span>Cold Extraction: {product.extractionMethod || 'Mechanical Press < 27°C'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#15472B]" />
+                <span>
+                  {selectedVariantLabels.length > 1 ? 'Sizes' : 'Size'}:{' '}
+                  {selectedVariantLabels.length > 0
+                    ? selectedVariantLabels.join(', ')
+                    : displayProduct.size}
+                </span>
+              </div>
+>>>>>>> 21a32c4 (create the branding)
             </div>
 
             {/* Quantity Selector + Add to Cart + Buy Now Actions */}
@@ -543,8 +656,20 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
               <button
                 type="button"
-                onClick={() => onAddToCart(product, quantity)}
-                className="flex-1 h-[48px] bg-[#181818] hover:bg-[#15472B] text-white text-[12px] font-semibold uppercase tracking-[0.09em] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                onClick={() => {
+                  const productsToAdd =
+                    activeVariants.length > 0 ? selectedVariantProducts : [displayProduct];
+                  productsToAdd
+                    .filter((item) => item.stock > 0)
+                    .forEach((item) => onAddToCart(item, quantity));
+                }}
+                disabled={
+                  (activeVariants.length > 0
+                    ? selectedVariantProducts.length === 0 ||
+                      selectedVariantProducts.every((item) => item.stock <= 0)
+                    : displayProduct.stock <= 0)
+                }
+                className="flex-1 h-[48px] bg-[#181818] hover:bg-[#15472B] text-white text-[12px] font-semibold uppercase tracking-[0.09em] flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span>Add to Bag</span>
@@ -553,8 +678,26 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {onBuyNow && (
                 <button
                   type="button"
-                  onClick={() => onBuyNow(product, quantity)}
-                  className="flex-1 h-[48px] bg-[#C46B3B] hover:bg-[#a6572e] text-white text-[12px] font-semibold uppercase tracking-[0.09em] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  onClick={() => {
+                    const productsToBuy =
+                      activeVariants.length > 0 ? selectedVariantProducts : [displayProduct];
+                    productsToBuy
+                      .filter((item) => item.stock > 0)
+                      .forEach((item, index, availableItems) => {
+                        if (index === availableItems.length - 1) {
+                          onBuyNow(item, quantity);
+                        } else {
+                          onAddToCart(item, quantity);
+                        }
+                      });
+                  }}
+                  disabled={
+                    (activeVariants.length > 0
+                      ? selectedVariantProducts.length === 0 ||
+                        selectedVariantProducts.every((item) => item.stock <= 0)
+                      : displayProduct.stock <= 0)
+                  }
+                  className="flex-1 h-[48px] bg-[#C46B3B] hover:bg-[#a6572e] text-white text-[12px] font-semibold uppercase tracking-[0.09em] flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <span>Buy Now (COD)</span>
                 </button>
@@ -762,9 +905,35 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                   </div>
                 )}
                 <div className="py-3 grid grid-cols-3 gap-4">
+<<<<<<< HEAD
                   <span className="font-medium text-[#181818]">Purity Standard</span>
                   <span className="col-span-2 text-[#15472B] font-medium">
                     {product.isOrganic ? '100% Certified Organic Harvest' : 'Pure Single-Origin Harvest'}
+=======
+                  <span className="font-medium text-[#181818]">Pack Size</span>
+                  <span className="col-span-2 text-[#555555]">{displayProduct.size}</span>
+                </div>
+                <div className="py-3 grid grid-cols-3 gap-4">
+                  <span className="font-medium text-[#181818]">Brand / Estate</span>
+                  <span className="col-span-2 text-[#555555]">{product.brand}</span>
+                </div>
+                <div className="py-3 grid grid-cols-3 gap-4">
+                  <span className="font-medium text-[#181818]">Origin</span>
+                  <span className="col-span-2 text-[#555555]">
+                    {product.origin ?? 'Potohar Olive Belt, Pakistan'}
+                  </span>
+                </div>
+                <div className="py-3 grid grid-cols-3 gap-4">
+                  <span className="font-medium text-[#181818]">Extraction</span>
+                  <span className="col-span-2 text-[#555555]">
+                    {product.extractionMethod || 'First Cold-Press (< 27°C), Unfiltered'}
+                  </span>
+                </div>
+                <div className="py-3 grid grid-cols-3 gap-4">
+                  <span className="font-medium text-[#181818]">Acidity Level</span>
+                  <span className="col-span-2 text-[#555555] tabular-nums">
+                    {product.acidityLevel || '< 0.3% Free Fatty Acidity'}
+>>>>>>> 21a32c4 (create the branding)
                   </span>
                 </div>
               </div>

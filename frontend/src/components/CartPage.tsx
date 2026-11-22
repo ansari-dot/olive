@@ -231,8 +231,13 @@ export const CartPage: React.FC<CartPageProps> = ({
                 <div className="divide-y divide-[#EEEEEE]">
                   {items.map(({ product, quantity }) => (
                     <div
+<<<<<<< HEAD
                       key={product.id}
                       className="py-5 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center"
+=======
+                      key={product.variantKey || product.id}
+                      className="py-6 grid grid-cols-1 md:grid-cols-12 gap-4 md:items-center"
+>>>>>>> 21a32c4 (create the branding)
                     >
                       {/* Product Thumbnail & Title */}
                       <div className="sm:col-span-6 flex items-center gap-4">
@@ -298,7 +303,9 @@ export const CartPage: React.FC<CartPageProps> = ({
                         <div className="inline-flex items-center border border-[#E0E0E0] bg-white">
                           <button
                             type="button"
-                            onClick={() => onUpdateQty(product.id, -1)}
+                            onClick={() =>
+                              onUpdateQty(product.variantKey || product.id, -1)
+                            }
                             aria-label={`Decrease quantity of ${product.name}`}
                             className="p-1.5 sm:p-2 hover:bg-[#F5F5F5] text-[#333333] transition-colors cursor-pointer"
                           >
@@ -309,7 +316,9 @@ export const CartPage: React.FC<CartPageProps> = ({
                           </span>
                           <button
                             type="button"
-                            onClick={() => onUpdateQty(product.id, 1)}
+                            onClick={() =>
+                              onUpdateQty(product.variantKey || product.id, 1)
+                            }
                             aria-label={`Increase quantity of ${product.name}`}
                             className="p-1.5 sm:p-2 hover:bg-[#F5F5F5] text-[#333333] transition-colors cursor-pointer"
                           >
@@ -325,7 +334,9 @@ export const CartPage: React.FC<CartPageProps> = ({
                         </span>
                         <button
                           type="button"
-                          onClick={() => onRemoveItem(product.id)}
+                          onClick={() =>
+                            onRemoveItem(product.variantKey || product.id)
+                          }
                           aria-label={`Remove ${product.name}`}
                           className="p-1.5 text-[#999999] hover:text-[#C46B3B] transition-colors cursor-pointer"
                           title="Remove item"

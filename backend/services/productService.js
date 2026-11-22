@@ -146,7 +146,15 @@ export async function findOutOfStockItems(items = []) {
   const out = [];
   for (const it of items) {
     const prod = await Product.findById(it.productId || it.product);
-    if (!prod || prod.stock < (it.quantity || it.qty || 1)) {
+    const qty = it.quantity || it.qty || 1;
+    const requestedSize = typeof it.size === "string" ? it.size.trim().toLowerCase() : "";
+    const variant = requestedSize
+      ? prod?.variants?.find(
+          (entry) => String(entry.label).trim().toLowerCase() === requestedSize
+        )
+      : null;
+    const availableStock = variant ? variant.stock : prod?.stock;
+    if (!prod || availableStock < qty) {
       out.push(it);
     }
   }
@@ -156,9 +164,28 @@ export async function findOutOfStockItems(items = []) {
 export async function decrementStockAtomic(items = []) {
   for (const it of items) {
     const qty = it.quantity || it.qty || 1;
-    await Product.findByIdAndUpdate(it.productId || it.product, {
-      $inc: { stock: -qty, soldCount: qty },
-    });
+    const productId = it.productId || it.product;
+    const product = await Product.findById(productId);
+    if (!product) continue;
+    const requestedSize =
+      typeof it.size === "string" ? it.size.trim().toLowerCase() : "";
+    const variantIndex = requestedSize
+      ? product.variants?.findIndex(
+          (entry) => String(entry.label).trim().toLowerCase() === requestedSize
+        )
+      : -1;
+    if (variantIndex >= 0) {
+      product.variants[variantIndex].stock = Math.max(
+        0,
+        (product.variants[variantIndex].stock || 0) - qty
+      );
+      product.soldCount = (product.soldCount || 0) + qty;
+      await product.save();
+    } else {
+      await Product.findByIdAndUpdate(productId, {
+        $inc: { stock: -qty, soldCount: qty },
+      });
+    }
   }
 }
 
@@ -428,6 +455,7 @@ const ALLOWED_PRODUCT_FIELDS = [
   "originalPrice",
   "stock",
   "size",
+  "variants",
   "description",
   "detailedDescription",
   "ingredients",

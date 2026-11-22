@@ -135,11 +135,33 @@ export async function createOrder(payload, idempotencyKey = null) {
       throw ApiError.badRequest(`Product "${dbProduct.name}" is currently unavailable`);
     }
 
+<<<<<<< HEAD
     // Server-side authoritative deal resolver
     const activeDeal = await getActiveDealForProduct(dbProduct._id);
     const effectivePrice = activeDeal ? activeDeal.dealPrice : dbProduct.price;
 
     const lineTotal = effectivePrice * qty;
+=======
+    const requestedSize = typeof item.size === "string" ? item.size.trim() : "";
+    const variant = requestedSize
+      ? dbProduct.variants?.find(
+          (entry) =>
+            entry.isActive !== false &&
+            String(entry.label).trim().toLowerCase() === requestedSize.toLowerCase()
+        )
+      : null;
+    const availableStock = variant ? variant.stock : dbProduct.stock;
+    const resolvedPrice = variant ? variant.price : dbProduct.price;
+    const resolvedSize = variant ? variant.label : dbProduct.size;
+
+    if (availableStock < qty) {
+      throw ApiError.badRequest(
+        `Insufficient stock for "${dbProduct.name}" (${resolvedSize}). Available: ${availableStock}, requested: ${qty}`
+      );
+    }
+
+    const lineTotal = resolvedPrice * qty;
+>>>>>>> 21a32c4 (create the branding)
     subtotal += lineTotal;
 
     // Snapshot of historical prices at order time
@@ -147,13 +169,17 @@ export async function createOrder(payload, idempotencyKey = null) {
       product: dbProduct._id,
       slug: dbProduct.slug,
       name: dbProduct.name,
-      size: dbProduct.size,
+      size: resolvedSize,
       image: dbProduct.image,
+<<<<<<< HEAD
       price: effectivePrice,
       originalPrice: dbProduct.price,
       isDeal: Boolean(activeDeal),
       dealId: activeDeal ? activeDeal._id : undefined,
       discountPercent: activeDeal ? activeDeal.discountPercent : 0,
+=======
+      price: resolvedPrice,
+>>>>>>> 21a32c4 (create the branding)
       quantity: qty,
       lineTotal,
     });
@@ -225,6 +251,7 @@ export async function createOrder(payload, idempotencyKey = null) {
   // 6. ATOMIC INVENTORY RESERVATION (Prevents negative inventory, concurrent exhaustion, deal stock overshoot)
   const reservation = await reserveOrderInventory(resolvedItems);
 
+<<<<<<< HEAD
   // 7. Create Order Document with Compensation Rollback Guard
   let order;
   try {
@@ -309,6 +336,31 @@ export async function createOrder(payload, idempotencyKey = null) {
     payfastData = buildPayfastPayloadForOrder(order, {
       clientUrl: payload?.clientUrl,
     });
+=======
+  // 6. Atomically deduct stock & increment soldCount
+  for (const item of resolvedItems) {
+    const product = await Product.findById(item.product);
+    if (!product) continue;
+
+    const variantIndex = product.variants?.findIndex(
+      (entry) => String(entry.label).trim().toLowerCase() === item.size.toLowerCase()
+    );
+    if (variantIndex >= 0) {
+      product.variants[variantIndex].stock = Math.max(
+        0,
+        (product.variants[variantIndex].stock || 0) - item.quantity
+      );
+      product.soldCount = (product.soldCount || 0) + item.quantity;
+      await product.save();
+    } else {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: {
+          stock: -item.quantity,
+          soldCount: item.quantity,
+        },
+      });
+    }
+>>>>>>> 21a32c4 (create the branding)
   }
 
   return {

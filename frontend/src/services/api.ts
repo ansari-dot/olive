@@ -122,6 +122,19 @@ export function normalizeProduct(raw: any): Product {
     isOrganic: Boolean(raw.isOrganic),
     popularity: raw.popularity !== undefined ? Number(raw.popularity) : 80,
     size: raw.size || '',
+    variants: Array.isArray(raw.variants)
+      ? raw.variants
+          .filter((variant: any) => variant && typeof variant === 'object')
+          .map((variant: any) => ({
+            label: String(variant.label || ''),
+            price: Number(variant.price) || 0,
+            originalPrice: variant.originalPrice ? Number(variant.originalPrice) : undefined,
+            stock: Number(variant.stock) || 0,
+            sku: variant.sku ? String(variant.sku) : undefined,
+            isActive: variant.isActive !== false,
+          }))
+          .filter((variant: { label: string }) => variant.label)
+      : [],
     description: raw.description || '',
     detailedDescription: raw.detailedDescription || undefined,
     ingredients: raw.ingredients || undefined,

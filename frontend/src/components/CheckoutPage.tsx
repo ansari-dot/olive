@@ -180,6 +180,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
         },
         items: items.map((it) => ({
           productId: it.product.mongoId || it.product.id,
+          size: it.product.size,
           quantity: it.quantity,
         })),
         paymentMethod:
@@ -794,7 +795,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               {/* Line Items */}
               <div className="space-y-4 max-h-[300px] overflow-y-auto pr-1">
                 {items.map(({ product, quantity }) => (
-                  <div key={product.id} className="flex items-center justify-between gap-3.5">
+                  <div
+                    key={product.variantKey || product.id}
+                    className="flex items-center justify-between gap-3.5"
+                  >
                     <div className="flex items-center gap-3 min-w-0">
                       <img
                         src={product.image}

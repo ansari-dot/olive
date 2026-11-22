@@ -19,6 +19,15 @@ export type BrandName =
   | 'Verdant Grove'
   | string;
 
+export interface ProductVariant {
+  label: string;
+  price: number;
+  originalPrice?: number;
+  stock: number;
+  sku?: string;
+  isActive: boolean;
+}
+
 export interface AdminProduct {
   _id: string;
   slug: string;
@@ -40,6 +49,7 @@ export interface AdminProduct {
   isActive: boolean;
   popularity: number;
   size: string;
+  variants?: ProductVariant[];
   description: string;
   detailedDescription?: string;
   ingredients?: string;
