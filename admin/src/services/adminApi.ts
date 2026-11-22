@@ -10,6 +10,7 @@ import type {
   AdminProduct,
   AdminReview,
   AdminSectionsResponse,
+  HeroBannerDoc,
   AdminUser,
   DashboardStats,
   InquiryStatus,
@@ -302,7 +303,18 @@ export async function uploadAdminImage(file: File): Promise<string> {
   return url;
 }
 
-// Homepage Sections Merchandising
+// Homepage Sections Merchandising & Hero Banner
+export async function fetchHeroBanner(): Promise<HeroBannerDoc | null> {
+  return await request<HeroBannerDoc | null>('/hero-banner');
+}
+
+export async function updateHeroBanner(payload: Partial<HeroBannerDoc>): Promise<HeroBannerDoc> {
+  return await request<HeroBannerDoc>('/hero-banner', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function fetchAdminSections(): Promise<AdminSectionsResponse> {
   return await request<AdminSectionsResponse>('/admin/sections');
 }

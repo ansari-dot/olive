@@ -310,35 +310,36 @@ export const CategoriesView: React.FC = () => {
   }, [categories]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* =========================================================================
-          TOP HEADER & SUB-TABS
+          TOP HEADER
           ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#E2E8F0]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-bold text-[#0F172A] tracking-tight">
+          <h2 className="text-[25px] font-bold text-[#0F172A] tracking-tight">
             Categories &amp; Origins
-          </h1>
+          </h2>
           <p className="text-[13px] text-[#64748B] mt-0.5">
             Manage your store's taxonomy, category hierarchy, and regional harvest terroirs.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={activeSubTab === 'categories' ? loadCategories : loadOrigins}
-            className="p-2 border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-[#475569] rounded transition-colors cursor-pointer"
+            disabled={loadingCats || loadingOrigins}
+            className="p-2 border border-[#E5E9E4] bg-white hover:border-[#0F172A] rounded-xl text-[#334155] cursor-pointer shadow-2xs transition-colors"
             title="Refresh data"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${(loadingCats || loadingOrigins) ? 'animate-spin text-[#15472B]' : ''}`} />
           </button>
 
           {activeSubTab === 'categories' ? (
             <button
               type="button"
               onClick={() => openCategoryModal()}
-              className="bg-[#15472B] hover:bg-[#0D2F1C] text-white text-[12.5px] font-semibold uppercase tracking-wider px-4 py-2.5 rounded shadow-sm transition-all cursor-pointer flex items-center gap-2"
+              className="bg-[#0E291C] hover:bg-[#15472B] text-white text-[12.5px] font-semibold px-4 py-2 rounded-xl shadow-2xs transition-colors cursor-pointer flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>Add Category</span>
@@ -347,7 +348,7 @@ export const CategoriesView: React.FC = () => {
             <button
               type="button"
               onClick={() => openOriginModal()}
-              className="bg-[#15472B] hover:bg-[#0D2F1C] text-white text-[12.5px] font-semibold uppercase tracking-wider px-4 py-2.5 rounded shadow-sm transition-all cursor-pointer flex items-center gap-2"
+              className="bg-[#0E291C] hover:bg-[#15472B] text-white text-[12.5px] font-semibold px-4 py-2 rounded-xl shadow-2xs transition-colors cursor-pointer flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>Add Origin</span>
@@ -359,14 +360,14 @@ export const CategoriesView: React.FC = () => {
       {/* =========================================================================
           SUB-TAB NAVIGATION PILLS
           ========================================================================= */}
-      <div className="flex items-center gap-2 border-b border-[#E2E8F0]">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => setActiveSubTab('categories')}
-          className={`flex items-center gap-2 px-5 py-3 text-[13px] font-semibold border-b-2 transition-colors cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 text-[12.5px] font-semibold rounded-xl transition-all cursor-pointer ${
             activeSubTab === 'categories'
-              ? 'border-[#15472B] text-[#15472B]'
-              : 'border-transparent text-[#64748B] hover:text-[#0F172A]'
+              ? 'bg-[#0E291C] text-white shadow-2xs'
+              : 'bg-white border border-[#E5E9E4] text-[#64748B] hover:bg-[#F8FAF7]'
           }`}
         >
           <Layers className="w-4 h-4" />
@@ -376,10 +377,10 @@ export const CategoriesView: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveSubTab('origins')}
-          className={`flex items-center gap-2 px-5 py-3 text-[13px] font-semibold border-b-2 transition-colors cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 text-[12.5px] font-semibold rounded-xl transition-all cursor-pointer ${
             activeSubTab === 'origins'
-              ? 'border-[#15472B] text-[#15472B]'
-              : 'border-transparent text-[#64748B] hover:text-[#0F172A]'
+              ? 'bg-[#0E291C] text-white shadow-2xs'
+              : 'bg-white border border-[#E5E9E4] text-[#64748B] hover:bg-[#F8FAF7]'
           }`}
         >
           <MapPin className="w-4 h-4" />
@@ -391,50 +392,105 @@ export const CategoriesView: React.FC = () => {
           TAB 1: CATEGORIES MANAGEMENT
           ========================================================================= */}
       {activeSubTab === 'categories' && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Summary Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-[#E2E8F0] p-4 rounded shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                Total Categories
-              </span>
-              <p className="text-[24px] font-bold text-[#0F172A] mt-1 tabular-nums">
-                {categories.length}
-              </p>
+            <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between min-h-[144px]">
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-[#0F3520] flex items-center justify-center shrink-0 shadow-inner text-[#4ADE80]">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-[#0F172A] leading-tight">Total Categories</p>
+                  <p className="text-[11px] text-[#64748B] mt-0.5">(Store Taxonomy)</p>
+                </div>
+              </div>
+              <div className="mt-3 relative z-10">
+                <p className="text-[25px] font-bold text-[#0F172A] font-mono-data tracking-tight leading-none">
+                  {categories.length}
+                </p>
+                <p className="mt-2 text-[12px] text-[#475569] font-mono-data">
+                  Primary client navigation groups
+                </p>
+              </div>
+              <div className="absolute right-0 bottom-0 pointer-events-none z-0">
+                <svg width="140" height="65" viewBox="0 0 140 65" fill="none">
+                  <path d="M0,58 C30,52 50,30 80,45 C110,60 125,25 140,32 L140,65 L0,65 Z" fill="#86EFAC" fillOpacity="0.25" />
+                  <path d="M30,62 C60,48 85,22 115,38 C128,45 136,25 140,20 L140,65 L30,65 Z" fill="#BBF7D0" fillOpacity="0.35" />
+                </svg>
+              </div>
             </div>
-            <div className="bg-white border border-[#E2E8F0] p-4 rounded shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                Total Subcategories
-              </span>
-              <p className="text-[24px] font-bold text-[#15472B] mt-1 tabular-nums">
-                {totalSubcategoriesCount}
-              </p>
+
+            <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between min-h-[144px]">
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-[#0F3520] flex items-center justify-center shrink-0 shadow-inner text-[#4ADE80]">
+                  <FolderTree className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-[#0F172A] leading-tight">Subcategories</p>
+                  <p className="text-[11px] text-[#64748B] mt-0.5">(Nested Taxonomy)</p>
+                </div>
+              </div>
+              <div className="mt-3 relative z-10">
+                <p className="text-[25px] font-bold text-[#0F172A] font-mono-data tracking-tight leading-none">
+                  {totalSubcategoriesCount}
+                </p>
+                <p className="mt-2 text-[12px] text-[#475569] font-mono-data">
+                  Fine-grained filtering tags
+                </p>
+              </div>
+              <div className="absolute right-0 bottom-0 pointer-events-none z-0">
+                <svg width="140" height="65" viewBox="0 0 140 65" fill="none">
+                  <path d="M0,60 C25,50 55,28 85,42 C115,56 128,24 140,30 L140,65 L0,65 Z" fill="#86EFAC" fillOpacity="0.22" />
+                  <path d="M25,64 C55,46 80,20 110,36 C124,44 135,26 140,22 L140,65 L25,65 Z" fill="#BBF7D0" fillOpacity="0.32" />
+                </svg>
+              </div>
             </div>
-            <div className="bg-white border border-[#E2E8F0] p-4 rounded shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                Department Structure
-              </span>
-              <p className="text-[15px] font-semibold text-[#0F172A] mt-1 truncate">
-                Pantry &amp; Botanicals
-              </p>
+
+            <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between min-h-[144px]">
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-[#0F3520] flex items-center justify-center shrink-0 shadow-inner text-[#4ADE80]">
+                  <Tag className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-[#0F172A] leading-tight">Department</p>
+                  <p className="text-[11px] text-[#64748B] mt-0.5">(Storefront Root)</p>
+                </div>
+              </div>
+              <div className="mt-3 relative z-10">
+                <p className="text-[20px] font-bold text-[#0F172A] truncate leading-tight">
+                  Pantry &amp; Botanicals
+                </p>
+                <p className="mt-2 text-[12px] text-[#475569] font-mono-data">
+                  Pak Veda &amp; Zaitoon Pakistan
+                </p>
+              </div>
+              <div className="absolute right-0 bottom-0 pointer-events-none z-0">
+                <svg width="140" height="65" viewBox="0 0 140 65" fill="none">
+                  <path d="M0,62 C35,50 65,30 95,45 C120,55 132,25 140,30 L140,65 L0,65 Z" fill="#FED7AA" fillOpacity="0.35" />
+                  <path d="M20,65 C55,48 80,22 110,38 C125,46 135,28 140,22 L140,65 L20,65 Z" fill="#FFEDD5" fillOpacity="0.45" />
+                </svg>
+              </div>
             </div>
           </div>
 
           {/* Search Bar */}
-          <div className="flex items-center gap-3 bg-white p-3 border border-[#E2E8F0] rounded">
-            <Search className="w-4 h-4 text-[#94A3B8]" />
-            <input
-              type="text"
-              value={catSearch}
-              onChange={(e) => setCatSearch(e.target.value)}
-              placeholder="Search category name, department, or subcategory..."
-              className="w-full text-[13px] bg-transparent focus:outline-none text-[#1E293B] placeholder-[#94A3B8]"
-            />
+          <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center gap-3">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={catSearch}
+                onChange={(e) => setCatSearch(e.target.value)}
+                placeholder="Search category name, department, or subcategory..."
+                className="w-full border border-[#CBD5E1] bg-white rounded-xl px-3.5 py-2 pr-9 text-[13px] focus:outline-none focus:border-[#15472B] focus:ring-1 focus:ring-[#15472B] transition-all shadow-2xs"
+              />
+              <Search className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
             {catSearch && (
               <button
                 type="button"
                 onClick={() => setCatSearch('')}
-                className="text-xs text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+                className="text-[12px] font-semibold text-[#15472B] hover:underline cursor-pointer"
               >
                 Clear
               </button>
@@ -443,27 +499,27 @@ export const CategoriesView: React.FC = () => {
 
           {/* Categories Table */}
           {loadingCats ? (
-            <div className="p-12 text-center bg-white border border-[#E2E8F0] rounded">
-              <Loader2 className="w-6 h-6 animate-spin text-[#15472B] mx-auto mb-2" />
+            <div className="p-12 text-center bg-white rounded-2xl border border-[#E5E9E4]">
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#15472B] mb-2" />
               <p className="text-[13px] text-[#64748B]">Loading categories taxonomy...</p>
             </div>
           ) : filteredCategories.length === 0 ? (
-            <div className="p-12 text-center bg-white border border-[#E2E8F0] rounded">
-              <p className="text-[14px] text-[#475569] mb-3">No categories found.</p>
+            <div className="p-14 text-center bg-white rounded-2xl border border-[#E5E9E4]">
+              <p className="text-[14px] text-[#475569] mb-3">No categories match your search.</p>
               <button
                 type="button"
                 onClick={() => openCategoryModal()}
-                className="bg-[#15472B] text-white text-[12px] font-semibold px-4 py-2 rounded cursor-pointer"
+                className="bg-[#0E291C] hover:bg-[#15472B] text-white text-[12px] font-semibold px-4 py-2 rounded-xl cursor-pointer"
               >
-                Create First Category
+                Create Category
               </button>
             </div>
           ) : (
-            <div className="bg-white border border-[#E2E8F0] rounded overflow-hidden shadow-sm">
+            <div className="bg-white rounded-2xl border border-[#E5E9E4] shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-[13px] border-collapse">
                   <thead>
-                    <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#475569] text-[11px] uppercase tracking-wider font-semibold">
+                    <tr className="bg-[#F8FAF7] border-b border-[#E5E9E4] text-[#64748B] text-[11px] uppercase tracking-wider font-semibold">
                       <th className="py-3 px-4 w-12 text-center">#</th>
                       <th className="py-3 px-4">Category Name</th>
                       <th className="py-3 px-4">Department</th>
@@ -472,11 +528,11 @@ export const CategoriesView: React.FC = () => {
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E2E8F0]">
+                  <tbody className="divide-y divide-[#F1F5F9]">
                     {filteredCategories.map((cat, idx) => {
                       const catId = cat._id || cat.id || `cat-${idx}`;
                       return (
-                        <tr key={catId} className="hover:bg-[#F8FAFC] transition-colors">
+                        <tr key={catId} className="hover:bg-[#F9FAF8] transition-colors">
                           <td className="py-3.5 px-4 text-center font-mono-data text-[#64748B]">
                             {cat.categoryNumber ?? idx + 1}
                           </td>
@@ -486,15 +542,15 @@ export const CategoriesView: React.FC = () => {
                                 <img
                                   src={cat.img}
                                   alt={cat.name}
-                                  className="w-8 h-8 rounded object-cover border border-[#E2E8F0]"
+                                  className="w-9 h-9 rounded-xl object-cover border border-[#E5E9E4]"
                                 />
                               ) : (
-                                <div className="w-8 h-8 rounded bg-[#15472B]/10 text-[#15472B] flex items-center justify-center font-bold text-xs">
+                                <div className="w-9 h-9 rounded-xl bg-[#0F3520] text-[#4ADE80] flex items-center justify-center font-bold text-xs shadow-inner">
                                   {cat.name.charAt(0)}
                                 </div>
                               )}
                               <div>
-                                <span className="font-bold text-[#0F172A]">{cat.name}</span>
+                                <span className="font-semibold text-[#0F172A] text-[13.5px]">{cat.name}</span>
                                 {cat.slug && (
                                   <span className="block text-[11px] font-mono-data text-[#94A3B8]">
                                     /{cat.slug}
@@ -503,7 +559,7 @@ export const CategoriesView: React.FC = () => {
                               </div>
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 text-[#475569]">
+                          <td className="py-3.5 px-4 text-[#475569] font-medium">
                             {cat.department || 'Pantry & Botanicals'}
                           </td>
                           <td className="py-3.5 px-4">
@@ -512,7 +568,7 @@ export const CategoriesView: React.FC = () => {
                                 {cat.subcategories.map((sub, sIdx) => (
                                   <span
                                     key={sIdx}
-                                    className="inline-block text-[11px] bg-[#F1F5F9] text-[#334155] border border-[#E2E8F0] px-2 py-0.5 rounded-sm"
+                                    className="inline-block text-[11px] bg-[#F1F5F9] text-[#334155] border border-[#E2E8F0] px-2.5 py-0.5 rounded-full font-medium"
                                   >
                                     {sub.name}
                                   </span>
@@ -524,18 +580,18 @@ export const CategoriesView: React.FC = () => {
                               </span>
                             )}
                           </td>
-                          <td className="py-3.5 px-4 text-center font-mono-data text-[#0F172A] font-semibold">
+                          <td className="py-3.5 px-4 text-center font-mono-data text-[#0F172A] font-bold">
                             {cat.count ?? 0}
                           </td>
                           <td className="py-3.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => openCategoryModal(cat)}
-                                className="p-1.5 text-[#475569] hover:text-[#15472B] hover:bg-[#F1F5F9] rounded transition-colors cursor-pointer"
+                                className="p-1.5 border border-[#E5E9E4] hover:border-[#0F172A] hover:bg-[#F8FAF7] rounded-lg text-[#334155] cursor-pointer shadow-2xs transition-colors"
                                 title="Edit Category"
                               >
-                                <Edit2 className="w-4 h-4" />
+                                <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 type="button"
@@ -546,10 +602,10 @@ export const CategoriesView: React.FC = () => {
                                     name: cat.name,
                                   })
                                 }
-                                className="p-1.5 text-[#94A3B8] hover:text-[#DC2626] hover:bg-[#FDF2F2] rounded transition-colors cursor-pointer"
+                                className="p-1.5 border border-[#FECACA] hover:bg-[#FEF2F2] rounded-lg text-[#DC2626] cursor-pointer shadow-2xs transition-colors"
                                 title="Delete Category"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -568,51 +624,105 @@ export const CategoriesView: React.FC = () => {
           TAB 2: ORIGINS & TERROIRS MANAGEMENT
           ========================================================================= */}
       {activeSubTab === 'origins' && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Summary Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white border border-[#E2E8F0] p-4 rounded shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                Registered Origins
-              </span>
-              <p className="text-[24px] font-bold text-[#0F172A] mt-1 tabular-nums">
-                {origins.length}
-              </p>
+            <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between min-h-[144px]">
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-[#0F3520] flex items-center justify-center shrink-0 shadow-inner text-[#4ADE80]">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-[#0F172A] leading-tight">Registered Origins</p>
+                  <p className="text-[11px] text-[#64748B] mt-0.5">(Pakistani Terroirs)</p>
+                </div>
+              </div>
+              <div className="mt-3 relative z-10">
+                <p className="text-[25px] font-bold text-[#0F172A] font-mono-data tracking-tight leading-none">
+                  {origins.length}
+                </p>
+                <p className="mt-2 text-[12px] text-[#475569] font-mono-data">
+                  Active geographic origins
+                </p>
+              </div>
+              <div className="absolute right-0 bottom-0 pointer-events-none z-0">
+                <svg width="140" height="65" viewBox="0 0 140 65" fill="none">
+                  <path d="M0,58 C30,52 50,30 80,45 C110,60 125,25 140,32 L140,65 L0,65 Z" fill="#86EFAC" fillOpacity="0.25" />
+                  <path d="M30,62 C60,48 85,22 115,38 C128,45 136,25 140,20 L140,65 L30,65 Z" fill="#BBF7D0" fillOpacity="0.35" />
+                </svg>
+              </div>
             </div>
-            <div className="bg-white border border-[#E2E8F0] p-4 rounded shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                Primary Belts
-              </span>
-              <p className="text-[15px] font-semibold text-[#15472B] mt-1">
-                Potohar, Swat &amp; Karakoram
-              </p>
+
+            <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between min-h-[144px]">
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-[#0F3520] flex items-center justify-center shrink-0 shadow-inner text-[#4ADE80]">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-[#0F172A] leading-tight">Primary Belts</p>
+                  <p className="text-[11px] text-[#64748B] mt-0.5">(Orchard Clusters)</p>
+                </div>
+              </div>
+              <div className="mt-3 relative z-10">
+                <p className="text-[18px] font-bold text-[#0F172A] truncate">
+                  Potohar, Swat &amp; Karakoram
+                </p>
+                <p className="mt-2 text-[12px] text-[#475569] font-mono-data">
+                  Northern and Sub-Himalayan
+                </p>
+              </div>
+              <div className="absolute right-0 bottom-0 pointer-events-none z-0">
+                <svg width="140" height="65" viewBox="0 0 140 65" fill="none">
+                  <path d="M0,60 C25,50 55,28 85,42 C115,56 128,24 140,30 L140,65 L0,65 Z" fill="#86EFAC" fillOpacity="0.22" />
+                  <path d="M25,64 C55,46 80,20 110,36 C124,44 135,26 140,22 L140,65 L25,65 Z" fill="#BBF7D0" fillOpacity="0.32" />
+                </svg>
+              </div>
             </div>
-            <div className="bg-white border border-[#E2E8F0] p-4 rounded shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                Integration Status
-              </span>
-              <p className="text-[13px] font-medium text-[#16A34A] mt-1 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse" />
-                Active in Product Dropdown &amp; Shop Filters
-              </p>
+
+            <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between min-h-[144px]">
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-[#0F3520] flex items-center justify-center shrink-0 shadow-inner text-[#4ADE80]">
+                  <Check className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-[#0F172A] leading-tight">Integration</p>
+                  <p className="text-[11px] text-[#64748B] mt-0.5">(Storefront Filter)</p>
+                </div>
+              </div>
+              <div className="mt-3 relative z-10">
+                <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#ECFDF5] text-[#047857] border border-[#A7F3D0]">
+                  Active in Shop
+                </span>
+                <p className="mt-2 text-[12px] text-[#475569] font-mono-data">
+                  Synchronized with product catalogue
+                </p>
+              </div>
+              <div className="absolute right-0 bottom-0 pointer-events-none z-0">
+                <svg width="140" height="65" viewBox="0 0 140 65" fill="none">
+                  <path d="M0,62 C35,50 65,30 95,45 C120,55 132,25 140,30 L140,65 L0,65 Z" fill="#86EFAC" fillOpacity="0.25" />
+                  <path d="M20,65 C55,48 80,22 110,38 C125,46 135,28 140,22 L140,65 L20,65 Z" fill="#BBF7D0" fillOpacity="0.35" />
+                </svg>
+              </div>
             </div>
           </div>
 
           {/* Search Bar */}
-          <div className="flex items-center gap-3 bg-white p-3 border border-[#E2E8F0] rounded">
-            <Search className="w-4 h-4 text-[#94A3B8]" />
-            <input
-              type="text"
-              value={originSearch}
-              onChange={(e) => setOriginSearch(e.target.value)}
-              placeholder="Search origin name, province or region..."
-              className="w-full text-[13px] bg-transparent focus:outline-none text-[#1E293B] placeholder-[#94A3B8]"
-            />
+          <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center gap-3">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={originSearch}
+                onChange={(e) => setOriginSearch(e.target.value)}
+                placeholder="Search origin name, province or region..."
+                className="w-full border border-[#CBD5E1] bg-white rounded-xl px-3.5 py-2 pr-9 text-[13px] focus:outline-none focus:border-[#15472B] focus:ring-1 focus:ring-[#15472B] transition-all shadow-2xs"
+              />
+              <Search className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
             {originSearch && (
               <button
                 type="button"
                 onClick={() => setOriginSearch('')}
-                className="text-xs text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+                className="text-[12px] font-semibold text-[#15472B] hover:underline cursor-pointer"
               >
                 Clear
               </button>
@@ -621,27 +731,27 @@ export const CategoriesView: React.FC = () => {
 
           {/* Origins Table */}
           {loadingOrigins ? (
-            <div className="p-12 text-center bg-white border border-[#E2E8F0] rounded">
-              <Loader2 className="w-6 h-6 animate-spin text-[#15472B] mx-auto mb-2" />
+            <div className="p-12 text-center bg-white rounded-2xl border border-[#E5E9E4]">
+              <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#15472B] mb-2" />
               <p className="text-[13px] text-[#64748B]">Loading harvest origins...</p>
             </div>
           ) : filteredOrigins.length === 0 ? (
-            <div className="p-12 text-center bg-white border border-[#E2E8F0] rounded">
-              <p className="text-[14px] text-[#475569] mb-3">No origins found.</p>
+            <div className="p-14 text-center bg-white rounded-2xl border border-[#E5E9E4]">
+              <p className="text-[14px] text-[#475569] mb-3">No origins match your search.</p>
               <button
                 type="button"
                 onClick={() => openOriginModal()}
-                className="bg-[#15472B] text-white text-[12px] font-semibold px-4 py-2 rounded cursor-pointer"
+                className="bg-[#0E291C] hover:bg-[#15472B] text-white text-[12px] font-semibold px-4 py-2 rounded-xl cursor-pointer"
               >
-                Add First Origin
+                Add Origin
               </button>
             </div>
           ) : (
-            <div className="bg-white border border-[#E2E8F0] rounded overflow-hidden shadow-sm">
+            <div className="bg-white rounded-2xl border border-[#E5E9E4] shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-[13px] border-collapse">
                   <thead>
-                    <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#475569] text-[11px] uppercase tracking-wider font-semibold">
+                    <tr className="bg-[#F8FAF7] border-b border-[#E5E9E4] text-[#64748B] text-[11px] uppercase tracking-wider font-semibold">
                       <th className="py-3 px-4">Origin / Terroir</th>
                       <th className="py-3 px-4">Province / Region</th>
                       <th className="py-3 px-4">Description</th>
@@ -649,35 +759,35 @@ export const CategoriesView: React.FC = () => {
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E2E8F0]">
+                  <tbody className="divide-y divide-[#F1F5F9]">
                     {filteredOrigins.map((orig, idx) => {
                       const originId = orig._id || orig.id || `orig-${idx}`;
                       return (
-                        <tr key={originId} className="hover:bg-[#F8FAFC] transition-colors">
-                          <td className="py-3.5 px-4 font-bold text-[#0F172A]">
+                        <tr key={originId} className="hover:bg-[#F9FAF8] transition-colors">
+                          <td className="py-3.5 px-4 font-semibold text-[#0F172A]">
                             <div className="flex items-center gap-2">
                               <MapPin className="w-4 h-4 text-[#15472B] shrink-0" />
                               <span>{orig.name}</span>
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 text-[#475569]">
+                          <td className="py-3.5 px-4 text-[#475569] font-medium">
                             {orig.region || 'Pakistan'}
                           </td>
                           <td className="py-3.5 px-4 text-[#64748B] max-w-xs truncate">
                             {orig.description || '—'}
                           </td>
-                          <td className="py-3.5 px-4 text-center font-mono-data font-semibold text-[#0F172A]">
+                          <td className="py-3.5 px-4 text-center font-mono-data font-bold text-[#0F172A]">
                             {orig.productCount ?? orig.count ?? 0}
                           </td>
                           <td className="py-3.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => openOriginModal(orig)}
-                                className="p-1.5 text-[#475569] hover:text-[#15472B] hover:bg-[#F1F5F9] rounded transition-colors cursor-pointer"
+                                className="p-1.5 border border-[#E5E9E4] hover:border-[#0F172A] hover:bg-[#F8FAF7] rounded-lg text-[#334155] cursor-pointer shadow-2xs transition-colors"
                                 title="Edit Origin"
                               >
-                                <Edit2 className="w-4 h-4" />
+                                <Edit2 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 type="button"
@@ -688,10 +798,10 @@ export const CategoriesView: React.FC = () => {
                                     name: orig.name,
                                   })
                                 }
-                                className="p-1.5 text-[#94A3B8] hover:text-[#DC2626] hover:bg-[#FDF2F2] rounded transition-colors cursor-pointer"
+                                className="p-1.5 border border-[#FECACA] hover:bg-[#FEF2F2] rounded-lg text-[#DC2626] cursor-pointer shadow-2xs transition-colors"
                                 title="Delete Origin"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -705,21 +815,25 @@ export const CategoriesView: React.FC = () => {
           )}
         </div>
       )}
-
       {/* =========================================================================
           MODAL: ADD / EDIT CATEGORY
           ========================================================================= */}
       {isCatModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto border border-[#CBD5E1]">
-            <div className="flex items-center justify-between p-5 border-b border-[#E2E8F0]">
-              <h3 className="text-[16px] font-bold text-[#0F172A]">
-                {editingCategory ? 'Edit Category' : 'Add New Category'}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E9E4] animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-5 bg-[#0E291C] text-white flex items-center justify-between border-b border-[#1C4D32]">
+              <div>
+                <h3 className="text-[17px] font-bold text-white font-mono-data">
+                  {editingCategory ? 'Edit Category Taxonomy' : 'Add New Category'}
+                </h3>
+                <p className="text-[12px] text-white/70 mt-0.5">
+                  Configure title, subcategories, and storefront department
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsCatModalOpen(false)}
-                className="p-1 text-[#64748B] hover:text-[#0F172A] rounded cursor-pointer"
+                className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -855,18 +969,18 @@ export const CategoriesView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-[#E2E8F0] flex justify-end gap-3">
+              <div className="pt-4 border-t border-[#E5E9E4] flex justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsCatModalOpen(false)}
-                  className="px-4 py-2 border border-[#CBD5E1] text-[#475569] text-[12.5px] font-semibold rounded hover:bg-[#F8FAFC] cursor-pointer"
+                  className="px-4 py-2 border border-[#E5E9E4] text-[#475569] text-[12.5px] font-semibold rounded-xl hover:bg-[#F8FAF7] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={catSubmitting}
-                  className="px-5 py-2 bg-[#15472B] hover:bg-[#0D2F1C] disabled:bg-[#888888] text-white text-[12.5px] font-semibold rounded cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2 bg-[#0E291C] hover:bg-[#15472B] disabled:bg-[#888888] text-white text-[12.5px] font-semibold rounded-xl shadow-2xs transition-colors cursor-pointer flex items-center gap-2"
                 >
                   {catSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{editingCategory ? 'Update Category' : 'Save Category'}</span>
@@ -881,25 +995,30 @@ export const CategoriesView: React.FC = () => {
           MODAL: ADD / EDIT ORIGIN
           ========================================================================= */}
       {isOriginModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg border border-[#CBD5E1]">
-            <div className="flex items-center justify-between p-5 border-b border-[#E2E8F0]">
-              <h3 className="text-[16px] font-bold text-[#0F172A]">
-                {editingOrigin ? 'Edit Origin' : 'Add New Origin'}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-[#E5E9E4] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-5 bg-[#0E291C] text-white flex items-center justify-between border-b border-[#1C4D32]">
+              <div>
+                <h3 className="text-[17px] font-bold text-white font-mono-data">
+                  {editingOrigin ? 'Edit Terroir Origin' : 'Add New Harvest Origin'}
+                </h3>
+                <p className="text-[12px] text-white/70 mt-0.5">
+                  Configure geographic belt, regional soil profile, and province
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsOriginModalOpen(false)}
-                className="p-1 text-[#64748B] hover:text-[#0F172A] rounded cursor-pointer"
+                className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveOrigin} className="p-5 space-y-4">
+            <form onSubmit={handleSaveOrigin} className="p-6 space-y-4">
               {originError && (
-                <div className="p-3 bg-[#FDF2F2] border border-[#F8B4B4] text-[#9B1C1C] text-[13px] rounded flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                <div className="p-3 bg-[#FEF2F2] border border-[#FECACA] text-[#991B1B] text-[13px] rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
                   <span>{originError}</span>
                 </div>
               )}
@@ -914,7 +1033,7 @@ export const CategoriesView: React.FC = () => {
                   value={originName}
                   onChange={(e) => setOriginName(e.target.value)}
                   placeholder="e.g. Potohar / Swat / Skardu"
-                  className="w-full border border-[#CBD5E1] px-3.5 py-2 text-[13px] rounded focus:outline-none focus:border-[#15472B]"
+                  className="w-full border border-[#CBD5E1] px-3.5 py-2 text-[13px] rounded-xl focus:outline-none focus:border-[#15472B]"
                 />
               </div>
 
@@ -927,7 +1046,7 @@ export const CategoriesView: React.FC = () => {
                   value={originRegion}
                   onChange={(e) => setOriginRegion(e.target.value)}
                   placeholder="e.g. Punjab Olive Belt, KP, Gilgit-Baltistan"
-                  className="w-full border border-[#CBD5E1] px-3.5 py-2 text-[13px] rounded focus:outline-none focus:border-[#15472B]"
+                  className="w-full border border-[#CBD5E1] px-3.5 py-2 text-[13px] rounded-xl focus:outline-none focus:border-[#15472B]"
                 />
               </div>
 
@@ -940,22 +1059,22 @@ export const CategoriesView: React.FC = () => {
                   value={originDesc}
                   onChange={(e) => setOriginDesc(e.target.value)}
                   placeholder="Details about the soil, climate, or harvest terroir..."
-                  className="w-full border border-[#CBD5E1] px-3.5 py-2 text-[13px] rounded focus:outline-none focus:border-[#15472B]"
+                  className="w-full border border-[#CBD5E1] px-3.5 py-2 text-[13px] rounded-xl focus:outline-none focus:border-[#15472B]"
                 />
               </div>
 
-              <div className="pt-4 border-t border-[#E2E8F0] flex justify-end gap-3">
+              <div className="pt-4 border-t border-[#E5E9E4] flex justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsOriginModalOpen(false)}
-                  className="px-4 py-2 border border-[#CBD5E1] text-[#475569] text-[12.5px] font-semibold rounded hover:bg-[#F8FAFC] cursor-pointer"
+                  className="px-4 py-2 border border-[#E5E9E4] text-[#475569] text-[12.5px] font-semibold rounded-xl hover:bg-[#F8FAF7] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={originSubmitting}
-                  className="px-5 py-2 bg-[#15472B] hover:bg-[#0D2F1C] disabled:bg-[#888888] text-white text-[12.5px] font-semibold rounded cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2 bg-[#0E291C] hover:bg-[#15472B] disabled:bg-[#888888] text-white text-[12.5px] font-semibold rounded-xl shadow-2xs transition-colors cursor-pointer flex items-center gap-2"
                 >
                   {originSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{editingOrigin ? 'Update Origin' : 'Save Origin'}</span>
@@ -970,22 +1089,22 @@ export const CategoriesView: React.FC = () => {
           CONFIRM DELETE MODAL
           ========================================================================= */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-5 border border-[#CBD5E1] text-center">
-            <div className="w-10 h-10 rounded-full bg-[#FDF2F2] text-[#DC2626] flex items-center justify-center mx-auto mb-3">
-              <Trash2 className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-[#E5E9E4] text-center animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-[#FEF2F2] text-[#DC2626] flex items-center justify-center mx-auto mb-3.5">
+              <Trash2 className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-[15px] text-[#0F172A]">
+            <h3 className="font-bold text-[16px] text-[#0F172A]">
               Delete {deleteTarget.type === 'category' ? 'Category' : 'Origin'}?
             </h3>
-            <p className="text-[12.5px] text-[#64748B] mt-1 mb-5">
+            <p className="text-[13px] text-[#64748B] mt-1.5 mb-6">
               Are you sure you want to delete <strong>"{deleteTarget.name}"</strong>? This action cannot be undone.
             </p>
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-2.5">
               <button
                 type="button"
                 onClick={() => setDeleteTarget(null)}
-                className="px-4 py-2 border border-[#CBD5E1] text-[#475569] text-[12px] font-semibold rounded cursor-pointer"
+                className="px-4 py-2 border border-[#E5E9E4] text-[#475569] text-[12px] font-semibold rounded-xl hover:bg-[#F8FAF7] cursor-pointer"
               >
                 Cancel
               </button>
@@ -993,10 +1112,10 @@ export const CategoriesView: React.FC = () => {
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                className="px-5 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[12px] font-semibold rounded cursor-pointer flex items-center gap-1.5"
+                className="px-5 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[12px] font-semibold rounded-xl shadow-2xs transition-colors cursor-pointer flex items-center gap-1.5"
               >
                 {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Delete</span>
+                <span>Delete Permanently</span>
               </button>
             </div>
           </div>

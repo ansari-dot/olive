@@ -1,5 +1,23 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Plus, Search, Trash2, Upload, X, Edit2, Star, Check, EyeOff, MessageSquare } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+  X,
+  Edit2,
+  Star,
+  Check,
+  EyeOff,
+  MessageSquare,
+  Package,
+  Layers,
+  AlertOctagon,
+  CheckCircle2,
+  ArrowUpRight,
+  RefreshCw,
+  Filter,
+} from 'lucide-react';
 import {
   DEFAULT_IMAGE_PLACEHOLDER,
   createAdminProduct,
@@ -363,29 +381,233 @@ export const ProductsView: React.FC = () => {
     return products.filter((p) => p.origin === originFilter);
   }, [products, originFilter]);
 
+  const kpiProducts = useMemo(() => {
+    const totalCount = products.length;
+    const totalUnits = products.reduce((acc, p) => acc + (p.stock || 0), 0);
+    const lowStockCount = products.filter((p) => (p.stock || 0) <= 5).length;
+    const activeCount = products.filter((p) => p.isActive).length;
+    return { totalCount, totalUnits, lowStockCount, activeCount };
+  }, [products]);
+
   return (
     <div className="space-y-5">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-[20px] font-semibold text-[#0F172A]">
+          <h2 className="text-[25px] font-bold text-[#0F172A] tracking-tight">
             Products &amp; Harvest Inventory
           </h2>
-          <p className="text-[13px] text-[#64748B] font-mono-data">
-            {displayedProducts.length} catalog items
+          <p className="text-[13px] text-[#64748B] mt-0.5">
+            Manage live orchard catalogue, botanical blends, and stock replenishment.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="bg-[#15472B] hover:bg-[#0F3620] text-white px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.07em] inline-flex items-center gap-2 cursor-pointer whitespace-nowrap self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Product</span>
-        </button>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => void loadProducts()}
+            disabled={loading}
+            title="Refresh Products"
+            className="border border-[#E5E9E4] bg-white hover:border-[#0F172A] p-2 rounded-xl text-[#334155] cursor-pointer shadow-2xs transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#15472B]' : ''}`} />
+          </button>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="bg-[#0E291C] hover:bg-[#15472B] text-white px-4 py-2 rounded-xl text-[12.5px] font-semibold tracking-wide inline-flex items-center gap-2 cursor-pointer whitespace-nowrap shadow-2xs transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Product</span>
+          </button>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white border border-[#E2E8F0] p-4 flex flex-wrap items-center justify-between gap-3">
+      {/* Row 1: Top 4 KPI Metric Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total SKUs */}
+        <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between min-h-[144px]">
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-[#0F3520] flex items-center justify-center shrink-0 shadow-inner text-[#4ADE80]">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-[#0F172A] leading-tight">Total Catalog</p>
+              <p className="text-[11px] text-[#64748B] mt-0.5">(Active SKUs)</p>
+            </div>
+          </div>
+
+          <div className="mt-3 relative z-10">
+            <p className="text-[25px] font-bold text-[#0F172A] font-mono-data tracking-tight leading-none">
+              {kpiProducts.totalCount}
+            </p>
+            <p className="mt-2 text-[12px] text-[#475569] font-mono-data flex items-center gap-1.5">
+              <span className="text-[#16A34A] font-bold">↑</span>
+              <span>{displayedProducts.length} displayed items</span>
+            </p>
+          </div>
+
+          <div className="absolute right-0 bottom-0 pointer-events-none z-0">
+            <svg width="140" height="65" viewBox="0 0 140 65" fill="none">
+              <path
+                d="M0,58 C30,52 50,30 80,45 C110,60 125,25 140,32 L140,65 L0,65 Z"
+                fill="url(#waveProd1)"
+              />
+              <path
+                d="M30,62 C60,48 85,22 115,38 C128,45 136,25 140,20 L140,65 L30,65 Z"
+                fill="url(#waveProd1b)"
+              />
+              <defs>
+                <linearGradient id="waveProd1" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#86EFAC" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#22C55E" stopOpacity="0.05" />
+                </linearGradient>
+                <linearGradient id="waveProd1b" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#BBF7D0" stopOpacity="0.45" />
+                  <stop offset="100%" stopColor="#4ADE80" stopOpacity="0.08" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 2: Warehoused Inventory */}
+        <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between min-h-[144px]">
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-[#0F3520] flex items-center justify-center shrink-0 shadow-inner text-[#4ADE80]">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-[#0F172A] leading-tight">Total Units</p>
+              <p className="text-[11px] text-[#64748B] mt-0.5">(In Stock)</p>
+            </div>
+          </div>
+
+          <div className="mt-3 relative z-10">
+            <p className="text-[25px] font-bold text-[#0F172A] font-mono-data tracking-tight leading-none">
+              {kpiProducts.totalUnits.toLocaleString('en-PK')}
+            </p>
+            <p className="mt-2 text-[12px] text-[#475569] font-mono-data">
+              Total units across warehouses
+            </p>
+          </div>
+
+          <div className="absolute right-0 bottom-0 pointer-events-none z-0">
+            <svg width="140" height="65" viewBox="0 0 140 65" fill="none">
+              <path
+                d="M0,60 C25,50 55,28 85,42 C115,56 128,24 140,30 L140,65 L0,65 Z"
+                fill="url(#waveProd2)"
+              />
+              <path
+                d="M25,64 C55,46 80,20 110,36 C124,44 135,26 140,22 L140,65 L25,65 Z"
+                fill="url(#waveProd2b)"
+              />
+              <defs>
+                <linearGradient id="waveProd2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#86EFAC" stopOpacity="0.32" />
+                  <stop offset="100%" stopColor="#22C55E" stopOpacity="0.04" />
+                </linearGradient>
+                <linearGradient id="waveProd2b" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#BBF7D0" stopOpacity="0.42" />
+                  <stop offset="100%" stopColor="#4ADE80" stopOpacity="0.07" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 3: Low Stock Alerts */}
+        <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between min-h-[144px]">
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-[#0F3520] flex items-center justify-center shrink-0 shadow-inner text-[#4ADE80]">
+              <AlertOctagon className="w-5 h-5 text-[#F59E0B]" />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-[#0F172A] leading-tight">Low Stock Alerts</p>
+              <p className="text-[11px] text-[#64748B] mt-0.5">(Stock &le; 5 units)</p>
+            </div>
+          </div>
+
+          <div className="mt-3 relative z-10">
+            <p className="text-[25px] font-bold text-[#0F172A] font-mono-data tracking-tight leading-none">
+              {kpiProducts.lowStockCount}
+            </p>
+            <p className="mt-2 text-[12px] text-[#475569] font-mono-data">
+              {kpiProducts.lowStockCount > 0 ? 'Requires replenishment' : 'All items well-stocked'}
+            </p>
+          </div>
+
+          <div className="absolute right-0 bottom-0 pointer-events-none z-0">
+            <svg width="140" height="65" viewBox="0 0 140 65" fill="none">
+              <path
+                d="M0,62 C35,50 65,30 95,45 C120,55 132,25 140,30 L140,65 L0,65 Z"
+                fill="url(#waveProd3)"
+              />
+              <path
+                d="M20,65 C55,48 80,22 110,38 C125,46 135,28 140,22 L140,65 L20,65 Z"
+                fill="url(#waveProd3b)"
+              />
+              <defs>
+                <linearGradient id="waveProd3" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FED7AA" stopOpacity="0.45" />
+                  <stop offset="100%" stopColor="#F97316" stopOpacity="0.06" />
+                </linearGradient>
+                <linearGradient id="waveProd3b" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FFEDD5" stopOpacity="0.55" />
+                  <stop offset="100%" stopColor="#FDBA74" stopOpacity="0.10" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        {/* Card 4: Storefront Active */}
+        <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative overflow-hidden flex flex-col justify-between min-h-[144px]">
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-[#0F3520] flex items-center justify-center shrink-0 shadow-inner text-[#4ADE80]">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-[#0F172A] leading-tight">Live on Store</p>
+              <p className="text-[11px] text-[#64748B] mt-0.5">(Published online)</p>
+            </div>
+          </div>
+
+          <div className="mt-3 relative z-10">
+            <p className="text-[25px] font-bold text-[#0F172A] font-mono-data tracking-tight leading-none">
+              {kpiProducts.activeCount}
+            </p>
+            <p className="mt-2 text-[12px] text-[#475569] font-mono-data">
+              Directly purchaseable by clients
+            </p>
+          </div>
+
+          <div className="absolute right-0 bottom-0 pointer-events-none z-0">
+            <svg width="140" height="65" viewBox="0 0 140 65" fill="none">
+              <path
+                d="M0,56 C30,48 60,32 90,44 C115,54 130,22 140,28 L140,65 L0,65 Z"
+                fill="url(#waveProd4)"
+              />
+              <path
+                d="M20,62 C50,44 75,18 105,34 C120,42 132,24 140,18 L140,65 L20,65 Z"
+                fill="url(#waveProd4b)"
+              />
+              <defs>
+                <linearGradient id="waveProd4" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#86EFAC" stopOpacity="0.30" />
+                  <stop offset="100%" stopColor="#22C55E" stopOpacity="0.04" />
+                </linearGradient>
+                <linearGradient id="waveProd4b" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#BBF7D0" stopOpacity="0.40" />
+                  <stop offset="100%" stopColor="#4ADE80" stopOpacity="0.06" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: Advanced Filter Controls Bar */}
+      <div className="bg-white rounded-2xl border border-[#E5E9E4] p-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-wrap items-center gap-3">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -399,13 +621,13 @@ export const ProductsView: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search name, SKU, category..."
-              className="w-[230px] border border-[#CBD5E1] px-3 py-1.5 pr-8 text-[13px] focus:outline-none focus:border-[#15472B]"
+              className="w-[220px] sm:w-[260px] border border-[#CBD5E1] bg-white rounded-xl px-3.5 py-2 pr-9 text-[13px] focus:outline-none focus:border-[#15472B] focus:ring-1 focus:ring-[#15472B] transition-all shadow-2xs"
             />
-            <Search className="w-3.5 h-3.5 text-[#64748B] absolute right-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
           <button
             type="submit"
-            className="border border-[#0F172A] px-3 py-1.5 text-[12px] font-medium cursor-pointer"
+            className="bg-[#0E291C] hover:bg-[#15472B] text-white px-3.5 py-2 rounded-xl text-[12px] font-semibold tracking-wide cursor-pointer transition-colors shadow-2xs"
           >
             Find
           </button>
@@ -418,7 +640,7 @@ export const ProductsView: React.FC = () => {
               setCategoryFilter(e.target.value);
               setSubcategoryFilter('All');
             }}
-            className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px] max-w-[200px]"
+            className="border border-[#E5E9E4] bg-[#F8FAF7] hover:bg-white px-3 py-2 rounded-xl text-[12.5px] text-[#0F172A] focus:outline-none focus:border-[#15472B] transition-colors cursor-pointer max-w-[210px]"
           >
             <option value="All">All Categories (28)</option>
             {categoriesList.map((c) => (
@@ -432,7 +654,7 @@ export const ProductsView: React.FC = () => {
             <select
               value={subcategoryFilter}
               onChange={(e) => setSubcategoryFilter(e.target.value)}
-              className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px] max-w-[200px]"
+              className="border border-[#E5E9E4] bg-[#F8FAF7] hover:bg-white px-3 py-2 rounded-xl text-[12.5px] text-[#0F172A] focus:outline-none focus:border-[#15472B] transition-colors cursor-pointer max-w-[200px]"
             >
               <option value="All">All Subcategories</option>
               {categoriesList
@@ -448,7 +670,7 @@ export const ProductsView: React.FC = () => {
           <select
             value={brandFilter}
             onChange={(e) => setBrandFilter(e.target.value)}
-            className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px]"
+            className="border border-[#E5E9E4] bg-[#F8FAF7] hover:bg-white px-3 py-2 rounded-xl text-[12.5px] text-[#0F172A] focus:outline-none focus:border-[#15472B] transition-colors cursor-pointer"
           >
             <option value="All">All Brands</option>
             {BRAND_OPTIONS.map((b) => (
@@ -461,7 +683,7 @@ export const ProductsView: React.FC = () => {
           <select
             value={sectionFilter}
             onChange={(e) => setSectionFilter(e.target.value)}
-            className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px]"
+            className="border border-[#E5E9E4] bg-[#F8FAF7] hover:bg-white px-3 py-2 rounded-xl text-[12.5px] text-[#0F172A] focus:outline-none focus:border-[#15472B] transition-colors cursor-pointer"
           >
             <option value="All">All Storefront Sections</option>
             <option value="featured-grid">Featured Grid</option>
@@ -473,7 +695,7 @@ export const ProductsView: React.FC = () => {
           <select
             value={originFilter}
             onChange={(e) => setOriginFilter(e.target.value)}
-            className="border border-[#CBD5E1] bg-white px-3 py-1.5 text-[12.5px]"
+            className="border border-[#E5E9E4] bg-[#F8FAF7] hover:bg-white px-3 py-2 rounded-xl text-[12.5px] text-[#0F172A] focus:outline-none focus:border-[#15472B] transition-colors cursor-pointer"
           >
             <option value="All">All Origins</option>
             {originsList.map((o) => (
@@ -486,197 +708,203 @@ export const ProductsView: React.FC = () => {
       </div>
 
       {error && (
-        <div className="border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-[13px] text-[#B91C1C]">
-          {error}
+        <div className="border border-[#FECACA] bg-[#FEF2F2] rounded-2xl px-4 py-3 text-[13px] text-[#B91C1C] flex items-center gap-2">
+          <AlertOctagon className="w-4 h-4 shrink-0 text-[#DC2626]" />
+          <span>{error}</span>
         </div>
       )}
 
-      {/* Table */}
-      <div className="bg-white border border-[#E2E8F0] overflow-x-auto">
+      {/* Row 3: Product Master Table */}
+      <div className="bg-white rounded-2xl border border-[#E5E9E4] shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
         {loading && products.length === 0 ? (
-          <div className="p-8 text-center text-[13.5px] text-[#64748B]">Loading products...</div>
+          <div className="p-12 text-center text-[13.5px] text-[#64748B]">
+            <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#15472B] mb-2" />
+            <span>Loading products catalogue...</span>
+          </div>
         ) : products.length === 0 ? (
-          <div className="p-12 text-center text-[14px] text-[#64748B]">
-            No products found.
+          <div className="p-14 text-center text-[14px] text-[#64748B]">
+            No products match the selected filters.
           </div>
         ) : (
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-[0.06em] text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0]">
-                <th className="py-3 px-4 text-left font-semibold">Product</th>
-                <th className="py-3 px-4 text-left font-semibold">Brand &amp; Category</th>
-                <th className="py-3 px-4 text-left font-semibold">Sections</th>
-                <th className="py-3 px-4 text-left font-semibold">Reviews</th>
-                <th className="py-3 px-4 text-right font-semibold">Price (PKR)</th>
-                <th className="py-3 px-4 text-right font-semibold">Stock</th>
-                <th className="py-3 px-4 text-right font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F1F5F9]">
-              {displayedProducts.map((prod) => (
-                <tr key={prod._id} className="hover:bg-[#F8FAFC]">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={resolveAssetUrl(prod.image)}
-                        alt={prod.name}
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          if (target.src !== DEFAULT_IMAGE_PLACEHOLDER) {
-                            target.onerror = null;
-                            target.src = DEFAULT_IMAGE_PLACEHOLDER;
-                          }
-                        }}
-                        className="w-10 h-12 object-cover bg-[#FAF3F0] shrink-0 border border-[#E2E8F0]"
-                      />
-                      <div className="min-w-0">
-                        <p className="font-medium text-[#0F172A] truncate max-w-[220px]">
-                          {prod.name}
-                        </p>
-                        <p className="text-[11px] text-[#64748B] font-mono-data">
-                          {prod.sku} · {prod.size}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    <p className="text-[#0F172A] font-medium">{prod.brand}</p>
-                    <p className="text-[11.5px] text-[#64748B]">
-                      {prod.category}
-                      {prod.origin ? ` · ${prod.origin}` : ''}
-                    </p>
-                    {prod.subcategory && (
-                      <span className="inline-block mt-1 text-[10.5px] px-1.5 py-0.5 bg-[#F1F5F9] text-[#1E293B] rounded border border-[#E2E8F0] font-mono-data max-w-[200px] truncate" title={prod.subcategory}>
-                        {prod.subcategory}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-[12px] text-[#475569]">
-                    <div className="flex flex-wrap gap-1 max-w-[180px]">
-                      {(prod.sections ?? []).map((sec) => {
-                        let color = 'bg-[#F1F5F9] text-[#475569]';
-                        let label = sec;
-                        if (sec === 'featured-grid') {
-                          color = 'bg-[#DCFCE7] text-[#166534] border border-[#86EFAC]';
-                          label = 'Grid';
-                        } else if (sec === 'best-sellers') {
-                          color = 'bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]';
-                          label = 'Best Seller';
-                        } else if (sec === 'unique') {
-                          color = 'bg-[#E0E7FF] text-[#3730A3] border border-[#C7D2FE]';
-                          label = 'Unique';
-                        } else if (sec === 'shop') {
-                          color = 'bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0]';
-                          label = 'Shop';
-                        }
-                        return (
-                          <span
-                            key={sec}
-                            className={`px-1.5 py-0.5 text-[10px] font-semibold rounded-xs tracking-tight ${color}`}
-                          >
-                            {label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                    {!prod.isActive && (
-                      <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] bg-[#FEE2E2] text-[#DC2626] font-semibold uppercase">
-                        Inactive
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={() => void openProductReviewsModal(prod)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F8FAFC] hover:bg-[#FEF3C7] border border-[#CBD5E1] hover:border-[#F59E0B] text-[#0F172A] text-[12px] font-medium transition-colors cursor-pointer rounded-xs"
-                      title="Inspect & Moderate Customer Reviews"
-                    >
-                      <Star className="w-3.5 h-3.5 text-[#D97706] fill-[#D97706]" />
-                      <span className="font-semibold">{prod.rating ? Number(prod.rating).toFixed(1) : '5.0'}</span>
-                      <span className="text-[#64748B] text-[11px]">({prod.reviewsCount || 0})</span>
-                    </button>
-                  </td>
-                  <td className="py-3 px-4 text-right font-mono-data">
-                    <span className="font-semibold text-[#0F172A]">{formatPKR(prod.price)}</span>
-                    {prod.originalPrice && (
-                      <span className="block text-[11px] text-[#64748B] line-through">
-                        {formatPKR(prod.originalPrice)}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <div className="inline-flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        min={0}
-                        value={stockDrafts[prod._id] ?? String(prod.stock)}
-                        onChange={(e) =>
-                          setStockDrafts((prev) => ({ ...prev, [prod._id]: e.target.value }))
-                        }
-                        aria-label={`Stock for ${prod.name}`}
-                        className={`w-16 border px-2 py-1 text-right font-mono-data text-[12.5px] ${
-                          prod.stock <= 5
-                            ? 'border-[#FCA5A5] text-[#DC2626]'
-                            : 'border-[#CBD5E1] text-[#0F172A]'
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        disabled={savingStockId === prod._id}
-                        onClick={() => void handleSaveStock(prod._id)}
-                        className="border border-[#CBD5E1] hover:border-[#15472B] px-2 py-1 text-[11px] font-medium cursor-pointer"
-                      >
-                        {savingStockId === prod._id ? '...' : 'Set'}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <div className="inline-flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(prod)}
-                        aria-label={`Edit ${prod.name}`}
-                        className="p-1.5 border border-[#CBD5E1] hover:border-[#0F172A] text-[#334155] cursor-pointer"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(prod)}
-                        aria-label={`Delete ${prod.name}`}
-                        className="p-1.5 border border-[#FECACA] hover:bg-[#FEF2F2] text-[#DC2626] cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wider text-[#64748B] bg-[#F8FAF7] border-b border-[#E5E9E4]">
+                  <th className="py-3 px-4 text-left font-semibold">Product</th>
+                  <th className="py-3 px-4 text-left font-semibold">Brand &amp; Category</th>
+                  <th className="py-3 px-4 text-left font-semibold">Sections</th>
+                  <th className="py-3 px-4 text-left font-semibold">Reviews</th>
+                  <th className="py-3 px-4 text-right font-semibold">Price (PKR)</th>
+                  <th className="py-3 px-4 text-right font-semibold">Stock</th>
+                  <th className="py-3 px-4 text-right font-semibold">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#F1F5F9]">
+                {displayedProducts.map((prod) => (
+                  <tr key={prod._id} className="hover:bg-[#F9FAF8] transition-colors">
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={resolveAssetUrl(prod.image)}
+                          alt={prod.name}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (target.src !== DEFAULT_IMAGE_PLACEHOLDER) {
+                              target.onerror = null;
+                              target.src = DEFAULT_IMAGE_PLACEHOLDER;
+                            }
+                          }}
+                          className="w-11 h-12 object-cover rounded-xl bg-[#FAF3F0] shrink-0 border border-[#E5E9E4]"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[#0F172A] truncate max-w-[240px]">
+                            {prod.name}
+                          </p>
+                          <p className="text-[11.5px] text-[#64748B] font-mono-data mt-0.5">
+                            {prod.sku} · {prod.size}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <p className="text-[#0F172A] font-semibold">{prod.brand}</p>
+                      <p className="text-[11.5px] text-[#64748B] mt-0.5">
+                        {prod.category}
+                        {prod.origin ? ` · ${prod.origin}` : ''}
+                      </p>
+                      {prod.subcategory && (
+                        <span className="inline-block mt-1 text-[10.5px] px-2 py-0.5 bg-[#F1F5F9] text-[#1E293B] rounded-full border border-[#E2E8F0] font-mono-data max-w-[200px] truncate" title={prod.subcategory}>
+                          {prod.subcategory}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-[12px] text-[#475569]">
+                      <div className="flex flex-wrap gap-1 max-w-[190px]">
+                        {(prod.sections ?? []).map((sec) => {
+                          let color = 'bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0]';
+                          let label = sec;
+                          if (sec === 'featured-grid') {
+                            color = 'bg-[#DCFCE7] text-[#166534] border border-[#86EFAC]';
+                            label = 'Grid';
+                          } else if (sec === 'best-sellers') {
+                            color = 'bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]';
+                            label = 'Best Seller';
+                          } else if (sec === 'unique') {
+                            color = 'bg-[#E0E7FF] text-[#3730A3] border border-[#C7D2FE]';
+                            label = 'Unique';
+                          } else if (sec === 'shop') {
+                            color = 'bg-[#F1F5F9] text-[#475569] border border-[#E2E8F0]';
+                            label = 'Shop';
+                          }
+                          return (
+                            <span
+                              key={sec}
+                              className={`px-2 py-0.5 text-[10px] font-semibold rounded-full tracking-tight ${color}`}
+                            >
+                              {label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      {!prod.isActive && (
+                        <span className="inline-block mt-1 px-2 py-0.5 text-[10px] bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA] font-semibold uppercase rounded-full">
+                          Inactive
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => void openProductReviewsModal(prod)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F8FAFC] hover:bg-[#FEF3C7] border border-[#CBD5E1] hover:border-[#F59E0B] text-[#0F172A] text-[12px] font-medium transition-colors cursor-pointer rounded-lg shadow-2xs"
+                        title="Inspect & Moderate Customer Reviews"
+                      >
+                        <Star className="w-3.5 h-3.5 text-[#D97706] fill-[#D97706]" />
+                        <span className="font-semibold">{prod.rating ? Number(prod.rating).toFixed(1) : '5.0'}</span>
+                        <span className="text-[#64748B] text-[11px]">({prod.reviewsCount || 0})</span>
+                      </button>
+                    </td>
+                    <td className="py-3.5 px-4 text-right font-mono-data">
+                      <span className="font-bold text-[#0F172A] text-[13.5px]">{formatPKR(prod.price)}</span>
+                      {prod.originalPrice && (
+                        <span className="block text-[11px] text-[#64748B] line-through">
+                          {formatPKR(prod.originalPrice)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="inline-flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min={0}
+                          value={stockDrafts[prod._id] ?? String(prod.stock)}
+                          onChange={(e) =>
+                            setStockDrafts((prev) => ({ ...prev, [prod._id]: e.target.value }))
+                          }
+                          aria-label={`Stock for ${prod.name}`}
+                          className={`w-16 border rounded-lg px-2 py-1 text-right font-mono-data text-[12.5px] focus:outline-none focus:border-[#15472B] ${
+                            prod.stock <= 5
+                              ? 'border-[#FCA5A5] text-[#DC2626] bg-[#FEF2F2]'
+                              : 'border-[#CBD5E1] text-[#0F172A] bg-white'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          disabled={savingStockId === prod._id}
+                          onClick={() => void handleSaveStock(prod._id)}
+                          className="border border-[#CBD5E1] hover:border-[#15472B] bg-white rounded-lg px-2.5 py-1 text-[11px] font-semibold text-[#0F172A] cursor-pointer shadow-2xs transition-colors"
+                        >
+                          {savingStockId === prod._id ? '...' : 'Set'}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(prod)}
+                          aria-label={`Edit ${prod.name}`}
+                          className="p-1.5 border border-[#E5E9E4] hover:border-[#0F172A] hover:bg-[#F8FAF7] rounded-lg text-[#334155] cursor-pointer shadow-2xs transition-colors"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(prod)}
+                          aria-label={`Delete ${prod.name}`}
+                          className="p-1.5 border border-[#FECACA] hover:bg-[#FEF2F2] rounded-lg text-[#DC2626] cursor-pointer shadow-2xs transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {/* Create / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-[820px] max-h-[92vh] bg-white border border-[#E2E8F0] shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-[840px] max-h-[92vh] bg-white rounded-2xl border border-[#E5E9E4] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-[#E2E8F0] flex items-center justify-between bg-[#F8FAFC]">
+            <div className="px-6 py-5 bg-[#0E291C] text-white flex items-center justify-between border-b border-[#1C4D32]">
               <div>
-                <h3 className="text-[17px] font-semibold text-[#0F172A]">
-                  {editingId ? 'Edit Product' : 'Add New Product'}
+                <h3 className="text-[18px] font-bold text-white font-mono-data">
+                  {editingId ? 'Edit Product Specifications' : 'Add New Harvest Product'}
                 </h3>
-                <p className="text-[12px] text-[#64748B]">
+                <p className="text-[12px] text-white/70 mt-0.5">
                   Manage product specifications, pricing, inventory, and storefront merchandising
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="p-1.5 text-[#64748B] hover:text-[#0F172A] hover:bg-[#E2E8F0] transition-colors cursor-pointer rounded"
+                className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1275,26 +1503,26 @@ export const ProductsView: React.FC = () => {
 
       {/* Product Reviews Inspection & Moderation Modal */}
       {reviewsModalOpen && selectedProductForReviews && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <div className="w-full max-w-[700px] max-h-[88vh] bg-white border border-[#E2E8F0] shadow-xl flex flex-col">
-            <div className="px-6 py-4 border-b border-[#E2E8F0] flex items-center justify-between">
-              <div className="flex items-center gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-[720px] max-h-[88vh] bg-white rounded-2xl border border-[#E5E9E4] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-5 bg-[#0E291C] text-white flex items-center justify-between border-b border-[#1C4D32]">
+              <div className="flex items-center gap-3.5">
                 <img
                   src={resolveAssetUrl(selectedProductForReviews.image)}
                   alt={selectedProductForReviews.name}
-                  className="w-10 h-12 object-cover border border-[#E2E8F0] bg-[#FAF3F0]"
+                  className="w-11 h-12 object-cover rounded-xl border border-white/20 bg-white"
                 />
                 <div>
-                  <h3 className="text-[16px] font-semibold text-[#0F172A] line-clamp-1">
+                  <h3 className="text-[17px] font-bold text-white line-clamp-1 font-mono-data">
                     {selectedProductForReviews.name}
                   </h3>
-                  <div className="flex items-center gap-2 text-[12px] text-[#64748B]">
-                    <span className="inline-flex items-center gap-1 font-semibold text-[#D97706]">
-                      <Star className="w-3.5 h-3.5 fill-[#D97706]" />
+                  <div className="flex items-center gap-2 text-[12px] text-white/70 mt-0.5">
+                    <span className="inline-flex items-center gap-1 font-bold text-[#FBBF24]">
+                      <Star className="w-3.5 h-3.5 fill-[#FBBF24]" />
                       <span>{selectedProductForReviews.rating ? Number(selectedProductForReviews.rating).toFixed(1) : '5.0'}</span>
                     </span>
                     <span>·</span>
-                    <span>{productReviews.length} total customer reviews</span>
+                    <span>{productReviews.length} customer reviews</span>
                   </div>
                 </div>
               </div>
@@ -1302,7 +1530,7 @@ export const ProductsView: React.FC = () => {
                 type="button"
                 onClick={() => setReviewsModalOpen(false)}
                 aria-label="Close modal"
-                className="p-1.5 text-[#64748B] hover:text-[#0F172A] cursor-pointer"
+                className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>

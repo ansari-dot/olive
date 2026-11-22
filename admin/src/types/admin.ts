@@ -318,6 +318,23 @@ export interface AdminSectionsResponse {
   products: AdminProduct[];
 }
 
+export interface HeroBannerDoc {
+  _id?: string;
+  label?: string;
+  titleLine1?: string;
+  titleLine2?: string;
+  text?: string;
+  highlights?: string;
+  primaryBtnText?: string;
+  primaryBtnLink?: string;
+  secondaryBtnText?: string;
+  secondaryBtnLink?: string;
+  offerChip?: string;
+  heroImages?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export type DealStatus = 'active' | 'scheduled' | 'expired' | 'disabled' | 'sold_out';
 
 export interface AdminDeal {
