@@ -130,7 +130,7 @@ export const App: React.FC = () => {
         <div className="text-center space-y-3">
           <div className="w-8 h-8 border-2 border-[#15472B] border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-[12px] uppercase tracking-[0.16em] text-[#64748B] font-medium">
-            Verifying Orchard Session...
+            Verifying admin session...
           </p>
         </div>
       </div>
@@ -155,10 +155,10 @@ export const App: React.FC = () => {
         </div>
         <div className="min-w-0">
           <h1 className="font-serif-brand text-[20px] text-white font-medium leading-tight tracking-tight">
-            Zaitoon Pakistan
+            PAK VEDA
           </h1>
           <p className="text-[9.5px] uppercase tracking-[0.22em] text-[#8DA896] font-semibold mt-0.5">
-            Operations Console
+            Store administration
           </p>
         </div>
       </div>
@@ -193,14 +193,14 @@ export const App: React.FC = () => {
       <div className="p-4 border-t border-white/10 bg-[#0A2216]/70 relative z-10 space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-white text-[#0E291C] font-bold text-[13px] flex items-center justify-center shrink-0 shadow-xs">
-            ZA
+            PV
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-semibold text-white truncate leading-snug">
-              {admin.name || 'Zaitoon Administrator'}
+              {admin.name || 'PAK VEDA Administrator'}
             </p>
             <p className="text-[11px] font-mono-data text-[#8DA896] truncate">
-              {admin.email || 'admin@zaitoonpakistan.pk'}
+              {admin.email || 'Administrator'}
             </p>
             <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.14em] text-[#4ADE80] bg-[#163D27] border border-[#235839]">
               {admin.role === 'super_admin' ? 'Super Admin' : 'Hub Manager'}
@@ -271,7 +271,7 @@ export const App: React.FC = () => {
             </button>
             <div className="flex items-center gap-2 text-[13px]">
               <Home className="w-4 h-4 text-[#15472B]" />
-              <span className="text-[#475569] font-medium">Zaitoon Pakistan</span>
+              <span className="text-[#475569] font-medium">PAK VEDA</span>
               <span className="text-[#CBD5E1]">/</span>
               <span className="font-semibold text-[#0F172A]">{activeNav.label}</span>
             </div>
@@ -285,9 +285,9 @@ export const App: React.FC = () => {
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                 </svg>
               </div>
-              <span>Nationwide COD &amp; IBFT</span>
+              <span>Store operations</span>
               <span className="text-[#94A3B8]">·</span>
-              <span>Islamabad Hub</span>
+                <span>PAK VEDA</span>
             </div>
 
             {/* Notification Bell */}
@@ -302,7 +302,7 @@ export const App: React.FC = () => {
 
             {/* Header User Badge */}
             <div className="w-8 h-8 rounded-full bg-[#0E291C] text-white text-[11px] font-bold flex items-center justify-center shadow-xs">
-              ZA
+              PV
             </div>
           </div>
         </header>

@@ -1,18 +1,42 @@
+@import url("https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700&family=DM+Serif+Display&display=swap");
 @import "tailwindcss";
+
+:root {
+  --pv-green: #174d35;
+  --pv-gold: #d6b878;
+  --pv-cream: #f3ebdd;
+  --pv-brown: #75513a;
+}
 
 @layer base {
   body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: #F8FAFC;
-    color: #0F172A;
+    font-family: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: #f7f5ef;
+    color: #23362b;
   }
 
   .font-serif-brand {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'DM Serif Display', Georgia, serif;
   }
 
   .font-mono-data {
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
     font-variant-numeric: tabular-nums;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #d6b878;
+    outline-offset: 2px;
   }
 }

@@ -80,7 +80,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = React.memo(
               </h2>
 
               <p className="mt-1.5 text-[13px] text-[#6E6A66] font-normal">
-                Explore pure cold-pressed extra virgins, stone-ground masalas, and wild Himalayan harvests.
+                Discover natural foods, spices, botanicals, oils and pantry essentials.
               </p>
             </div>
 

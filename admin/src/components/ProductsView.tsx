@@ -33,7 +33,7 @@ import {
   updateProductStock,
   uploadAdminImage,
 } from '../services/adminApi';
-import type { AdminProduct, AdminReview, BrandName } from '../types/admin';
+import type { AdminProduct, AdminReview, BrandName, ProductVariant } from '../types/admin';
 import { formatPKR } from '../utils/formatters';
 
 const BRAND_OPTIONS: BrandName[] = [
@@ -70,6 +70,7 @@ const EMPTY_FORM: Partial<AdminProduct> = {
   originalPrice: undefined,
   stock: 36,
   size: '500 ml Dark Glass',
+  variants: [],
   description: '',
   detailedDescription: '',
   ingredients: '',
@@ -324,6 +325,17 @@ export const ProductsView: React.FC = () => {
         isActive: form.isActive !== undefined ? Boolean(form.isActive) : true,
         isSale: Boolean(form.isSale),
         isNew: Boolean(form.isNew),
+        variants: (form.variants ?? [])
+          .map((variant) => ({
+            ...variant,
+            label: variant.label.trim(),
+            sku: variant.sku?.trim().toUpperCase() || undefined,
+            price: Number(variant.price || 0),
+            originalPrice: variant.originalPrice ? Number(variant.originalPrice) : undefined,
+            stock: Number(variant.stock ?? 0),
+            isActive: variant.isActive !== false,
+          }))
+          .filter((variant) => variant.label && variant.price > 0),
       };
 
       if (editingId) {
@@ -352,6 +364,32 @@ export const ProductsView: React.FC = () => {
     } finally {
       setSavingStockId(null);
     }
+  };
+
+  const addVariant = () => {
+    setForm((prev) => ({
+      ...prev,
+      variants: [
+        ...(prev.variants ?? []),
+        { label: '', price: 0, originalPrice: undefined, stock: 0, sku: '', isActive: true },
+      ],
+    }));
+  };
+
+  const updateVariant = (index: number, patch: Partial<ProductVariant>) => {
+    setForm((prev) => ({
+      ...prev,
+      variants: (prev.variants ?? []).map((variant, variantIndex) =>
+        variantIndex === index ? { ...variant, ...patch } : variant
+      ),
+    }));
+  };
+
+  const removeVariant = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      variants: (prev.variants ?? []).filter((_, variantIndex) => variantIndex !== index),
+    }));
   };
 
   const handleDelete = async (prod: AdminProduct) => {
@@ -1079,6 +1117,63 @@ export const ProductsView: React.FC = () => {
                       )}
                     </select>
                   </div>
+                </div>
+                <div className="rounded-xl border border-[#E6E0D3] bg-[#FAF8F3] p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h5 className="text-sm font-semibold text-[#174D35]">Size and price variants</h5>
+                      <p className="mt-1 text-xs text-[#66736A]">Optional product sizes with their own price and stock.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addVariant}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#174D35] px-3 py-2 text-xs font-semibold text-[#174D35] hover:bg-[#174D35] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#174D35]"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add size
+                    </button>
+                  </div>
+                  {(form.variants ?? []).map((variant, index) => (
+                    <div key={`${variant.sku || 'variant'}-${index}`} className="grid grid-cols-1 gap-3 rounded-lg border border-[#E6E0D3] bg-white p-3 sm:grid-cols-[1.2fr_1fr_1fr_auto] sm:items-end">
+                      <label className="space-y-1 text-xs font-medium text-[#526056]">
+                        Size
+                        <input
+                          value={variant.label}
+                          onChange={(event) => updateVariant(index, { label: event.target.value })}
+                          className="w-full rounded-md border border-[#D8DED8] px-3 py-2 text-sm text-[#23362B] focus:border-[#174D35] focus:outline-none focus:ring-2 focus:ring-[#174D35]/15"
+                          placeholder="e.g. 250 ml"
+                        />
+                      </label>
+                      <label className="space-y-1 text-xs font-medium text-[#526056]">
+                        Price (PKR)
+                        <input
+                          type="number"
+                          min="1"
+                          value={variant.price || ''}
+                          onChange={(event) => updateVariant(index, { price: Number(event.target.value) })}
+                          className="w-full rounded-md border border-[#D8DED8] px-3 py-2 text-sm text-[#23362B] focus:border-[#174D35] focus:outline-none focus:ring-2 focus:ring-[#174D35]/15"
+                        />
+                      </label>
+                      <label className="space-y-1 text-xs font-medium text-[#526056]">
+                        Stock
+                        <input
+                          type="number"
+                          min="0"
+                          value={variant.stock}
+                          onChange={(event) => updateVariant(index, { stock: Number(event.target.value) })}
+                          className="w-full rounded-md border border-[#D8DED8] px-3 py-2 text-sm text-[#23362B] focus:border-[#174D35] focus:outline-none focus:ring-2 focus:ring-[#174D35]/15"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(index)}
+                        aria-label={`Remove ${variant.label || 'size'} variant`}
+                        className="inline-flex h-10 items-center justify-center rounded-md border border-[#E6C7C1] px-3 text-[#9A3D2D] hover:bg-[#FCF1EF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9A3D2D]"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
 

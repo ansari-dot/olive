@@ -1,14 +1,7 @@
 import mongoose from "mongoose";
 import { env } from "./env.js";
 
-/**
- * Connection settings tuned for an e-commerce workload:
- * - Larger pool so concurrent requests don't queue behind a single connection.
- * - `maxIdleTimeMS` reaps idle sockets so we don't hold them open forever.
- * - `waitQueueTimeoutMS` fails fast if the pool is exhausted instead of
- *    silently hanging the request.
- * - `zlib` compression keeps wire traffic small (BSON is verbose).
- */
+
 const CLIENT_OPTIONS = {
   maxPoolSize: 100,
   minPoolSize: 10,

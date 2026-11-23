@@ -23,7 +23,7 @@
   <!-- Brand Typography -->
   <g transform="translate(82, 0)">
     <!-- Main Wordmark -->
-    <text x="0" y="37" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="27" font-weight="900" letter-spacing="-0.03em">
+    <text x="0" y="37" font-family="'DM Serif Display', Georgia, serif" font-size="27" font-weight="700" letter-spacing="-0.03em">
       <tspan fill="#0F172A">PAK </tspan>
       <tspan fill="#15472B">VEDA</tspan>
     </text>
@@ -32,8 +32,8 @@
     <circle cx="152" cy="33.5" r="3.8" fill="#C46B3B"/>
 
     <!-- Refined Subtitle Line -->
-    <text x="0.5" y="49.5" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-size="7.5" font-weight="700" fill="#64748B" letter-spacing="0.24em">
-      ARTISANAL PANTRY &amp; BOTANICALS
+    <text x="0.5" y="49.5" font-family="'Assistant', sans-serif" font-size="7.5" font-weight="700" fill="#75513A" letter-spacing="0.24em">
+      ROOTED IN NATURE. CRAFTED FOR LIFE.
     </text>
   </g>
 </svg>

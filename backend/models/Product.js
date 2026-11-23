@@ -97,6 +97,43 @@ const productSchema = new mongoose.Schema(
       required: [true, "Product size is required"],
       trim: true,
     },
+    variants: {
+      type: [
+        {
+          label: {
+            type: String,
+            required: [true, "Variant size is required"],
+            trim: true,
+          },
+          price: {
+            type: Number,
+            required: [true, "Variant price is required"],
+            min: [0, "Variant price must be positive"],
+          },
+          originalPrice: {
+            type: Number,
+            default: null,
+            min: [0, "Original variant price must be positive"],
+          },
+          stock: {
+            type: Number,
+            default: 0,
+            min: [0, "Variant stock cannot be negative"],
+          },
+          sku: {
+            type: String,
+            default: null,
+            uppercase: true,
+            trim: true,
+          },
+          isActive: {
+            type: Boolean,
+            default: true,
+          },
+        },
+      ],
+      default: [],
+    },
     description: {
       type: String,
       required: [true, "Product description is required"],

@@ -114,7 +114,10 @@ export async function createOrder(payload, idempotencyKey = null) {
 
   for (const item of items) {
     const productId = item.productId || item.product || item.id || item._id;
-    const qty = Math.max(1, parseInt(item.quantity || item.qty || 1, 10));
+    const qty = Number(item.quantity ?? item.qty ?? 1);
+    if (!Number.isSafeInteger(qty) || qty < 1) {
+      throw ApiError.badRequest("Product quantity must be a positive whole number");
+    }
 
     let dbProduct = null;
     if (mongoose.Types.ObjectId.isValid(productId)) {
@@ -135,10 +138,43 @@ export async function createOrder(payload, idempotencyKey = null) {
       throw ApiError.badRequest(`Product "${dbProduct.name}" is currently unavailable`);
     }
 
-    // Server-side authoritative deal resolver
-    const activeDeal = await getActiveDealForProduct(dbProduct._id);
-    const effectivePrice = activeDeal ? activeDeal.dealPrice : dbProduct.price;
+    const requestedSize = typeof item.size === "string" ? item.size.trim() : "";
+    const variants = dbProduct.variants || [];
+    let variant = null;
+    if (variants.length > 0) {
+      if (!requestedSize) {
+        throw ApiError.badRequest(`Please select a size for "${dbProduct.name}"`);
+      }
+      variant = variants.find(
+          (entry) =>
+            entry.isActive !== false &&
+            String(entry.label).trim().toLowerCase() === requestedSize.toLowerCase()
+        ) || null;
+      if (!variant) {
+        throw ApiError.badRequest(`Selected size is unavailable for "${dbProduct.name}"`);
+      }
+    } else if (
+      requestedSize &&
+      requestedSize.toLowerCase() !== String(dbProduct.size || "").trim().toLowerCase()
+    ) {
+      throw ApiError.badRequest(`Selected size is unavailable for "${dbProduct.name}"`);
+    }
 
+    const regularPrice = variant ? variant.price : dbProduct.price;
+    const resolvedSize = variant ? variant.label : dbProduct.size;
+    if ((variant ? variant.stock : dbProduct.stock) < qty) {
+      throw ApiError.badRequest(
+        `Insufficient stock for "${dbProduct.name}" (${resolvedSize}). Available: ${variant ? variant.stock : dbProduct.stock}, requested: ${qty}`
+      );
+    }
+
+    // Keep deal pricing server-authoritative while preserving the selected variant price.
+    const activeDeal = await getActiveDealForProduct(dbProduct._id);
+    const effectivePrice = activeDeal
+      ? variant
+        ? Math.round(regularPrice * (1 - activeDeal.discountPercent / 100))
+        : activeDeal.dealPrice
+      : regularPrice;
     const lineTotal = effectivePrice * qty;
     subtotal += lineTotal;
 
@@ -147,10 +183,11 @@ export async function createOrder(payload, idempotencyKey = null) {
       product: dbProduct._id,
       slug: dbProduct.slug,
       name: dbProduct.name,
-      size: dbProduct.size,
+      size: resolvedSize,
+      variantId: variant?._id,
       image: dbProduct.image,
       price: effectivePrice,
-      originalPrice: dbProduct.price,
+      originalPrice: regularPrice,
       isDeal: Boolean(activeDeal),
       dealId: activeDeal ? activeDeal._id : undefined,
       discountPercent: activeDeal ? activeDeal.discountPercent : 0,

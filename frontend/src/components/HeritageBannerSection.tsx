@@ -7,7 +7,7 @@ interface HeritageBannerSectionProps {
 
 export const HeritageBannerSection: React.FC<HeritageBannerSectionProps> = React.memo(({
   onShopNow,
-  title = 'ORGANIC & COLD-PRESSED HARVESTS',
+  title = 'NATURE, QUALITY & EVERYDAY LIVING',
 }) => {
   return (
     <section
@@ -34,8 +34,8 @@ export const HeritageBannerSection: React.FC<HeritageBannerSectionProps> = React
               ========================================================================= */}
           <div className="relative flex items-center shrink-0 z-10 w-[140px] sm:w-[220px] lg:w-[280px] h-[190px] sm:h-[220px] lg:h-[250px] -ml-2 sm:-ml-4">
             <img
-              src="/assets/images/nobg/card_oil_decanter_3_1794769257286_nobg.png"
-              alt="Potohar Estate Cold-Pressed Oil"
+              src="/assets/images/card_oil_decanter_3_1794769257286.jpg"
+              alt="Olive oil product"
               loading="lazy"
               decoding="async"
               className="absolute -left-2 sm:left-2 bottom-0 w-[110px] sm:w-[160px] lg:w-[190px] h-auto max-h-[92%] object-contain -rotate-[12deg] drop-shadow-[0_16px_22px_rgba(0,0,0,0.45)] pointer-events-none transition-transform duration-500 hover:rotate-[-8deg]"
@@ -68,8 +68,8 @@ export const HeritageBannerSection: React.FC<HeritageBannerSectionProps> = React
           <div className="relative hidden md:flex items-end justify-end shrink-0 z-10 w-[140px] sm:w-[180px] lg:w-[240px] h-[190px] sm:h-[220px] lg:h-[250px] -mr-2 sm:-mr-4">
             {/* Primary Tall Estate Cruet */}
             <img
-              src="/assets/images/nobg/featured_card_estate_cruet_1794769569072_nobg.png"
-              alt="Pak Veda Estate Cruet"
+              src="/assets/images/featured_card_estate_cruet_1794769569072.jpg"
+              alt="Olive oil product"
               loading="lazy"
               decoding="async"
               className="absolute right-12 lg:right-16 bottom-0 w-[95px] sm:w-[125px] lg:w-[145px] h-auto max-h-[96%] object-contain drop-shadow-[0_16px_22px_rgba(0,0,0,0.45)] pointer-events-none transition-transform duration-500 hover:scale-105"
@@ -77,8 +77,8 @@ export const HeritageBannerSection: React.FC<HeritageBannerSectionProps> = React
 
             {/* Secondary Himalayan Sidr Honeycomb Jar */}
             <img
-              src="/assets/images/nobg/unique_sidr_honeycomb_jar_1794820496427_nobg.png"
-              alt="Raw Himalayan Sidr Honey"
+              src="/assets/images/unique_sidr_honeycomb_jar_1794820496427.jpg"
+              alt="Honey product"
               loading="lazy"
               decoding="async"
               className="absolute right-0 bottom-0 w-[70px] sm:w-[90px] lg:w-[105px] h-auto max-h-[80%] object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.4)] pointer-events-none transition-transform duration-500 hover:scale-105"

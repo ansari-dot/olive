@@ -98,7 +98,7 @@ export const HomePage: React.FC = () => {
       <HeroSection
         slides={HERO_SLIDES}
         onSlideAction={(slide) => {
-          handleNavigateShopCategory('All', slide.brandFilter);
+          handleNavigateShopCategory(slide.ctaCategory || 'All');
         }}
       />
 
@@ -115,7 +115,7 @@ export const HomePage: React.FC = () => {
       {/* 4. Featured Grid — Hand-Harvested Pantry Products (Light Sand) */}
       <FeaturedProductsSection
         title="Featured Pantry Selections"
-        subtitle="Cold-pressed single varietal extra virgins, raw forest honeys, whole aromatic spices and wild-harvested botanicals."
+        subtitle="Explore olive products, specialty oils, spices, herbs, teas, pantry staples, snacks and functional foods."
         products={featuredGrid}
         onSelectProduct={handleOpenProductDetail}
         onAddToCart={addToCart}
@@ -126,7 +126,7 @@ export const HomePage: React.FC = () => {
 
       {/* 5. Artisanal Heritage Banner */}
       <HeritageBannerSection
-        title="ORGANIC & COLD-PRESSED HARVESTS"
+        title="NATURE, QUALITY & EVERYDAY LIVING"
         onShopNow={() => handleNavigateShopCategory('All')}
       />
 
@@ -142,15 +142,15 @@ export const HomePage: React.FC = () => {
 
       {/* 7. Promotional Harvest Banner */}
       <PromoBannerSection
-        title="LATEST & SPECIAL BRANDS"
-        subtitle="Cold-Pressed Potohar Extra Virgin Olive Oils & Wild Karakoram Botanicals"
+        title="A NATURAL WORLD OF CHOICE"
+        subtitle="Explore natural foods, botanicals, pantry essentials and wellness products."
         onShopNow={() => handleNavigateShopCategory('All')}
       />
 
-      {/* 8. Best Sellers — Orchard Favorites (White) */}
+      {/* 8. Best sellers */}
       <FeaturedProductsSection
-        title="Orchard & Pantry Best Sellers"
-        subtitle="Our most loved cold-pressed oils, wild sidr honeys, and handcrafted seasonal infusions."
+        title="Best Sellers"
+        subtitle="Discover customer favourites from across the PAK VEDA collection."
         products={bestSellers}
         onSelectProduct={handleOpenProductDetail}
         onAddToCart={addToCart}
@@ -162,20 +162,20 @@ export const HomePage: React.FC = () => {
       {/* 9. Customer Testimonials (Warm Sand) */}
       <TestimonialsSection />
 
-      {/* 10. From Our Blog — Orchard Journal (White) */}
+      {/* 10. From our blog */}
       <FromOurBlogSection
         posts={blogs}
         onSelectPost={handleOpenBlogDetail}
         onViewAllBlogs={() => navigate('/blogs')}
       />
 
-      {/* 11. Partner Brands & Certified Estates Logo Strip */}
+      {/* 11. Product families */}
       <PartnerLogosStrip
-        onSelectBrand={(brand) => handleNavigateShopCategory('All', brand)}
+        onSelectCategory={handleNavigateShopCategory}
         className="py-10 sm:py-14"
       />
 
-      {/* 12. Newsletter — Stay in the Grove (Dark Forest Green) */}
+      {/* 12. Newsletter */}
       <NewsletterSection />
     </div>
   );

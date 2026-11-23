@@ -84,7 +84,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
               />
             </div>
             <p className="text-[13.5px] leading-[1.75] text-[#C6D2C5] max-w-[36ch]">
-              Single-origin cold-pressed extra virgin olive oils, wild Himalayan Sidr honey, and sun-dried olive leaf botanicals harvested across Pakistan’s Potohar and Swat valleys.
+              Rooted in nature and crafted for everyday life. Explore PAK VEDA’s natural foods, spices, botanicals, oils and wellness range.
             </p>
             <div className="flex items-center gap-4 pt-1 text-[12px] uppercase tracking-[0.1em] text-[#A8DC72]">
               <button
@@ -92,7 +92,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
                 onClick={handleAbout}
                 className="hover:text-white transition-colors cursor-pointer"
               >
-                Orchards
+                Our Story
               </button>
               <span className="text-[#3C644A]" aria-hidden="true">·</span>
               <button
@@ -100,7 +100,7 @@ export const Footer: React.FC<FooterProps> = React.memo(({
                 onClick={() => handleScrollToSection('testimonials')}
                 className="hover:text-white transition-colors cursor-pointer"
               >
-                Reviews
+                Values
               </button>
               <span className="text-[#3C644A]" aria-hidden="true">·</span>
               <button
@@ -226,22 +226,23 @@ export const Footer: React.FC<FooterProps> = React.memo(({
           {/* Contact & Dispatch Column */}
           <div className="lg:col-span-3">
             <h3 className="text-[12px] uppercase tracking-[0.14em] font-semibold text-[#A8DC72] mb-4">
-              Orchard Hub &amp; Care
+              Customer Care
             </h3>
             <div className="space-y-2.5 text-[13.5px] text-[#DCE4DA] leading-relaxed">
-              <p>Potohar Olive Belt · Chakwal Road, Islamabad</p>
-              <p>
-                <a
-                  href="mailto:care@zaitoonpakistan.pk"
-                  className="hover:text-white underline underline-offset-4"
-                >
-                  care@zaitoonpakistan.pk
-                </a>
-              </p>
-              <p className="tabular-nums">+92 300 000 0000 · Mon–Sat</p>
-              <p className="pt-2 text-[12.5px] text-[#A8DC72]">
-                Free Nationwide Delivery on orders over Rs. 1,200 · Cash on Delivery
-              </p>
+              <button
+                type="button"
+                onClick={handleContact}
+                className="hover:text-white underline underline-offset-4"
+              >
+                Contact us for assistance
+              </button>
+              <button
+                type="button"
+                onClick={handleShipping}
+                className="block hover:text-white underline underline-offset-4"
+              >
+                View shipping information
+              </button>
             </div>
           </div>
         </div>
@@ -250,10 +251,8 @@ export const Footer: React.FC<FooterProps> = React.memo(({
       {/* Bottom Legal & Purity Bar */}
       <div className="border-t border-[#254A33]">
         <div className="max-w-[1280px] mx-auto px-6 sm:px-10 lg:px-14 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-[#B4C4B3]">
-          <p>&copy; {new Date().getFullYear()} Zaitoon Pakistan. Pure Potohar Harvests.</p>
-          <p className="tracking-[0.04em]">
-            Cold-Pressed Below 27&deg;C &middot; Acidity &lt; 0.3% &middot; Nationwide COD
-          </p>
+          <p>&copy; {new Date().getFullYear()} PAK VEDA. Nature&apos;s goodness, delivered.</p>
+          <p className="tracking-[0.04em]">Natural products for everyday life.</p>
         </div>
       </div>
     </footer>

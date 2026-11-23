@@ -1,19 +1,17 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AboutUsPage } from '../components/AboutUsPage';
-import { BRANDS } from '../data/storeData';
 
 export const AboutRoutePage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
     <AboutUsPage
-      brands={BRANDS}
       onNavigateHome={() => navigate('/')}
-      onNavigateShop={(brandName) =>
+      onNavigateShop={(categoryName) =>
         navigate(
-          brandName && brandName !== 'All Brands'
-            ? `/shop?brand=${encodeURIComponent(brandName)}`
+          categoryName && categoryName !== 'All'
+            ? `/shop?category=${encodeURIComponent(categoryName)}`
             : '/shop'
         )
       }

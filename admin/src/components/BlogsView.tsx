@@ -1046,14 +1046,14 @@ export const BlogsView: React.FC = () => {
                             <span className="font-semibold text-[13px] text-[#0F172A]">
                               {comment.author}
                             </span>
-                            {comment.email && (
-                              <span className="text-[11.5px] text-[#2563EB] font-mono-data">
-                                ({comment.email})
+                            {comment.city && (
+                              <span className="text-[11.5px] text-[#64748B]">
+                                · {comment.city}
                               </span>
                             )}
                           </div>
                           <p className="text-[12.5px] text-[#334155] leading-relaxed whitespace-pre-wrap bg-white p-3 rounded-lg border border-[#E2E8F0]">
-                            {comment.content}
+                            {comment.comment}
                           </p>
                         </div>
 

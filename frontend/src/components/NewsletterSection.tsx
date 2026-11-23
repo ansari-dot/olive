@@ -40,18 +40,18 @@ export const NewsletterSection: React.FC = React.memo(() => {
         </div>
 
         <p className="text-[11.5px] uppercase tracking-[0.16em] text-[#C46B3B] font-semibold mb-2">
-          The Orchard Dispatch
+          PAK VEDA updates
         </p>
 
         <h2
           id="newsletter-heading"
           className="text-[30px] sm:text-[36px] lg:text-[40px] font-normal tracking-[-0.01em] text-[#111111] leading-tight"
         >
-          Join Our Harvest Letter
+          Join our newsletter
         </h2>
 
         <p className="mt-3 text-[14.5px] sm:text-[15px] text-[#6E6A66] leading-relaxed max-w-[52ch] mx-auto">
-          Receive early harvest press dates, seasonal Potohar olive oil releases, and wholesome pantry recipes straight to your inbox.
+          Get occasional updates from PAK VEDA. You can unsubscribe at any time.
         </p>
 
         {errorMsg && (
@@ -65,7 +65,7 @@ export const NewsletterSection: React.FC = React.memo(() => {
             <div className="flex items-center gap-3 text-[#15472B]">
               <Check className="w-4 h-4 shrink-0" />
               <p className="text-[13.5px]">
-                Thank you! <strong>{subscribedEmail}</strong> is subscribed to Zaitoon Pakistan’s Harvest Letter.
+                Thank you! <strong>{subscribedEmail}</strong> is subscribed to PAK VEDA updates.
               </p>
             </div>
             <button

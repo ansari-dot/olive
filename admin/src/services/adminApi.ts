@@ -23,7 +23,11 @@ const TOKEN_STORAGE_KEY = 'zaitoon_admin_token';
 
 export const getApiBaseUrl = (): string => {
   const configured = import.meta.env.VITE_API_BASE_URL as string | undefined;
-  return (configured || 'http://localhost:5000/api').replace(/\/+$/, '');
+  if (configured) return configured.replace(/\/+$/, '');
+
+  const apiHost =
+    typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  return `http://${apiHost}:5000/api`;
 };
 
 export const getMediaBaseUrl = (): string => {

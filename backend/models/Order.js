@@ -26,6 +26,10 @@ const orderItemSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
+    variantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
     slug: { type: String, default: "" },
     name: { type: String, required: true },
     size: { type: String, default: "" },

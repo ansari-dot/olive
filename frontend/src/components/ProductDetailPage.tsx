@@ -119,10 +119,41 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const [activeThumbIndex, setActiveThumbIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariantLabels, setSelectedVariantLabels] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'description' | 'additional' | 'reviews'>('description');
   const [copiedNotice, setCopiedNotice] = useState<string | null>(null);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
   const countdown = useCountdown(product.dealEndsAt);
+  const activeVariants = useMemo(
+    () => (product.variants || []).filter((variant) => variant.isActive),
+    [product.variants]
+  );
+  const selectedVariants = activeVariants.filter((variant) =>
+    selectedVariantLabels.includes(variant.label)
+  );
+  const displayProduct = useMemo<Product>(() => {
+    const variant = selectedVariants[0];
+    if (!variant) return product;
+    return {
+      ...product,
+      variantKey: `${product.mongoId || product.id}::${variant.label}`,
+      size: variant.label,
+      price: variant.price,
+      originalPrice: variant.originalPrice,
+      stock: variant.stock,
+    };
+  }, [product, selectedVariants]);
+  const selectedVariantProducts = useMemo<Product[]>(
+    () => selectedVariants.map((variant) => ({
+          ...product,
+          variantKey: `${product.mongoId || product.id}::${variant.label}`,
+          size: variant.label,
+          price: variant.price,
+          originalPrice: variant.originalPrice,
+          stock: variant.stock,
+        })),
+    [product, selectedVariants]
+  );
 
   // Review Form state
   const [reviewAuthor, setReviewAuthor] = useState('');
@@ -136,6 +167,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   // Keep internal state reactive to incoming initialProduct prop changes
   useEffect(() => {
     setProduct(initialProduct);
+    setSelectedVariantLabels([]);
   }, [initialProduct]);
 
   // Fetch live product details and reviews from backend
@@ -149,6 +181,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       .then((data: ProductDetailResponse) => {
         if (!isMounted) return;
         setProduct(data.product);
+        const firstVariant = data.product.variants?.find((variant) => variant.isActive);
+        setSelectedVariantLabels(firstVariant?.label ? [firstVariant.label] : []);
         if (data.relatedProducts && data.relatedProducts.length > 0) {
           setRelatedList(data.relatedProducts);
         }
@@ -203,7 +237,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const mainImage = thumbnails[activeThumbIndex] || (product.image ? resolveImageUrl(product.image) : '');
 
   const handleCopyShare = (platform: string) => {
-    const shareText = `${product.name} — Zaitoon Pakistan (${formatPKR(product.price)})`;
+    const shareText = `${product.name} — Zaitoon Pakistan (${formatPKR(displayProduct.price)})`;
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(shareText).catch(() => {});
     }
@@ -373,27 +407,63 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               </button>
             </div>
 
+            {activeVariants.length > 0 && (
+              <fieldset className="mt-5">
+                <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#526056]">
+                  Choose a size
+                </legend>
+                <div className="flex flex-wrap gap-2">
+                  {activeVariants.map((variant) => {
+                    const selected = selectedVariantLabels.includes(variant.label);
+                    return (
+                      <button
+                        key={variant.label}
+                        type="button"
+                        aria-pressed={selected}
+                        disabled={variant.stock <= 0}
+                        onClick={() =>
+                          setSelectedVariantLabels((current) =>
+                            selected
+                              ? current.filter((label) => label !== variant.label)
+                              : [...current, variant.label]
+                          )
+                        }
+                        className={`min-w-24 rounded-md border px-3 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#174D35] disabled:cursor-not-allowed disabled:opacity-45 ${
+                          selected
+                            ? 'border-[#174D35] bg-[#174D35] text-white'
+                            : 'border-[#D8DED3] bg-white text-[#23362B] hover:border-[#174D35]'
+                        }`}
+                      >
+                        <span className="block text-xs font-semibold">{variant.label}</span>
+                        <span className="mt-0.5 block text-[11px] opacity-80">{formatPKR(variant.price)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
+
             {/* Price Row */}
             <div className="mt-4 flex flex-wrap items-baseline gap-3 text-[24px] font-medium tabular-nums">
-              {product.isDeal && product.originalPrice && product.originalPrice > product.price ? (
+              {product.isDeal && displayProduct.originalPrice && displayProduct.originalPrice > displayProduct.price ? (
                 <>
                   <span className="text-[#888888] line-through text-[18px]">
-                    {formatPKR(product.originalPrice)}
+                    {formatPKR(displayProduct.originalPrice)}
                   </span>
-                  <span className="text-[#D03B3B] font-bold">{formatPKR(product.price)}</span>
+                  <span className="text-[#D03B3B] font-bold">{formatPKR(displayProduct.price)}</span>
                   <span className="text-[12px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                    Save {formatPKR(product.originalPrice - product.price)} (
-                    {product.discountPercent ||
+                    Save {formatPKR(displayProduct.originalPrice - displayProduct.price)} (
+                    {displayProduct.discountPercent ||
                       Math.round(
-                        ((product.originalPrice - product.price) /
-                          product.originalPrice) *
+                        ((displayProduct.originalPrice - displayProduct.price) /
+                          displayProduct.originalPrice) *
                           100
                       )}
                     % off)
                   </span>
                 </>
               ) : (
-                <span className="text-[#181818] font-bold">{formatPKR(product.price)}</span>
+                <span className="text-[#181818] font-bold">{formatPKR(displayProduct.price)}</span>
               )}
               <span className="text-[12px] font-normal uppercase tracking-[0.06em] text-[#7E8F5B]">
                 Tax Included · Nationwide COD
@@ -543,8 +613,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
               <button
                 type="button"
-                onClick={() => onAddToCart(product, quantity)}
-                className="flex-1 h-[48px] bg-[#181818] hover:bg-[#15472B] text-white text-[12px] font-semibold uppercase tracking-[0.09em] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                onClick={() => {
+                  const productsToAdd =
+                    activeVariants.length > 0 ? selectedVariantProducts : [displayProduct];
+                  productsToAdd
+                    .filter((item) => item.stock > 0)
+                    .forEach((item) => onAddToCart(item, quantity));
+                }}
+                disabled={
+                  (activeVariants.length > 0
+                    ? selectedVariantProducts.length === 0
+                    : displayProduct.stock <= 0)
+                }
+                className="flex-1 h-[48px] bg-[#181818] hover:bg-[#15472B] text-white text-[12px] font-semibold uppercase tracking-[0.09em] flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span>Add to Bag</span>
@@ -553,8 +634,25 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               {onBuyNow && (
                 <button
                   type="button"
-                  onClick={() => onBuyNow(product, quantity)}
-                  className="flex-1 h-[48px] bg-[#C46B3B] hover:bg-[#a6572e] text-white text-[12px] font-semibold uppercase tracking-[0.09em] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  onClick={() => {
+                    const productsToBuy =
+                      activeVariants.length > 0 ? selectedVariantProducts : [displayProduct];
+                    productsToBuy
+                      .filter((item) => item.stock > 0)
+                      .forEach((item, index, availableItems) => {
+                        if (index === availableItems.length - 1) {
+                          onBuyNow(item, quantity);
+                        } else {
+                          onAddToCart(item, quantity);
+                        }
+                      });
+                  }}
+                  disabled={
+                    (activeVariants.length > 0
+                      ? selectedVariantProducts.length === 0
+                      : displayProduct.stock <= 0)
+                  }
+                  className="flex-1 h-[48px] bg-[#C46B3B] hover:bg-[#a6572e] text-white text-[12px] font-semibold uppercase tracking-[0.09em] flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <span>Buy Now (COD)</span>
                 </button>

@@ -41,16 +41,16 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = React
           }`}
         >
           <p className="text-[11.5px] uppercase tracking-[0.16em] text-[#788B23] font-semibold mb-2">
-            Small-Batch Orchard Editions
+            Featured selections
           </p>
           <h2
             id="unique-products-heading"
             className="text-[32px] sm:text-[38px] lg:text-[42px] font-normal tracking-[-0.01em] text-[#111111] leading-tight"
           >
-            Unique &amp; Rare Creations
+            Explore the collection
           </h2>
           <p className="mt-2.5 text-[14.5px] sm:text-[15px] text-[#6E6A66] font-normal leading-relaxed">
-            Artisanal botanical infusions, raw Sidr honeycomb preserves, and cold-cured olive apothecary staples crafted in micro-lots.
+            Browse selected products from across the PAK VEDA range.
           </p>
         </div>
 
@@ -192,7 +192,7 @@ export const UniqueProductsSection: React.FC<UniqueProductsSectionProps> = React
       ) : (
         <div className="w-full py-16 text-center border border-dashed border-[#D1D5DB] bg-[#FAF8F5] rounded-xs">
           <p className="text-[15px] font-bold text-[#1F2937]">No products yet added</p>
-          <p className="text-[12.5px] text-[#6B7280] mt-1">Special small-batch editions and rare creations will be announced soon.</p>
+          <p className="text-[12.5px] text-[#6B7280] mt-1">Featured products will appear here when available.</p>
         </div>
       )}
       </div>
