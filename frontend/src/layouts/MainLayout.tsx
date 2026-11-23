@@ -8,7 +8,7 @@ import { ScrollToTop } from '../components/ScrollToTop';
 
 export const MainLayout: React.FC = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8F9FA] text-[#1E293B]">
+    <div className="min-h-screen flex flex-col bg-[#F3EBDD] text-[#23362B]">
       <ScrollToTop />
       <Navbar />
       <SearchOverlay />

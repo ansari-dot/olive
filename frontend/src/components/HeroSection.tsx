@@ -44,7 +44,7 @@ export const HeroSection: React.FC<HeroSectionProps> = React.memo(({ slides, onS
       aria-label="Featured collections"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="relative w-full h-[400px] sm:h-[470px] lg:h-[540px] xl:h-[580px] overflow-hidden bg-[#2F3B1F] select-none"
+      className="relative w-full h-[390px] sm:h-[470px] lg:h-[540px] xl:h-[580px] overflow-hidden bg-[#174D35] select-none"
     >
       {/* Slides Layer */}
       {slides.map((slide, idx) => {
@@ -81,11 +81,10 @@ export const HeroSection: React.FC<HeroSectionProps> = React.memo(({ slides, onS
             />
 
             {/* Right-of-Center Editorial Overlay matching reference layout */}
-            <div className="relative z-10 w-full h-full max-w-[1440px] mx-auto px-14 sm:px-16 lg:px-20 flex items-center">
+            <div className="relative z-10 w-full h-full max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-20 flex items-center">
               <div className="w-full md:ml-[42%] lg:ml-[43%] max-w-[540px]">
                 <h1
-                  className="text-white text-[30px] sm:text-[40px] lg:text-[46px] font-bold leading-[1.12] tracking-[-0.01em] [text-wrap:balance] drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]"
-                  style={{ fontFamily: "Georgia, 'Playfair Display', 'Times New Roman', serif" }}
+                  className="font-serif-brand text-white text-[30px] sm:text-[40px] lg:text-[46px] font-normal leading-[1.12] tracking-[-0.01em] [text-wrap:balance] drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]"
                 >
                   {slide.title}
                 </h1>
@@ -95,7 +94,7 @@ export const HeroSection: React.FC<HeroSectionProps> = React.memo(({ slides, onS
                 <button
                   type="button"
                   onClick={() => onSlideAction?.(slide)}
-                  className="mt-6 inline-flex items-center justify-center bg-[#7D9225] hover:bg-[#6A7D1D] text-white text-[12px] sm:text-[12.5px] font-semibold uppercase tracking-[0.09em] px-8 py-3.5 transition-colors duration-150 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.25)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  className="mt-6 inline-flex min-h-11 items-center justify-center rounded-sm bg-[#174D35] hover:bg-[#103B29] text-white text-[12px] sm:text-[12.5px] font-semibold uppercase tracking-[0.09em] px-8 py-3.5 transition-colors duration-150 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.25)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   {slide.ctaLabel}
                 </button>

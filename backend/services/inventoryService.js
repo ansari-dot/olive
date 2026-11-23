@@ -4,6 +4,34 @@ import Coupon from "../models/Coupon.js";
 import { invalidateCache } from "../middlewares/cache.js";
 import { ApiError } from "../utils/ApiError.js";
 
+async function adjustProductInventory(item, stockDelta, soldDelta, { reserve = false } = {}) {
+  const variantFilter = item.variantId
+    ? { _id: item.variantId }
+    : item.variantLabel
+      ? { label: item.variantLabel }
+      : null;
+  const filter = { _id: item.product };
+  const increment = { soldCount: soldDelta };
+  const stockPath = variantFilter ? "variants.$.stock" : "stock";
+
+  if (reserve) {
+    filter.isActive = true;
+  }
+  if (variantFilter) {
+    filter.variants = {
+      $elemMatch: {
+        ...variantFilter,
+        ...(reserve ? { isActive: true, stock: { $gte: item.quantity } } : {}),
+      },
+    };
+  } else if (reserve) {
+    filter.stock = { $gte: item.quantity };
+  }
+  increment[stockPath] = stockDelta;
+
+  return Product.findOneAndUpdate(filter, { $inc: increment }, { new: true });
+}
+
 /**
  * Atomically reserve inventory and deal stock for an order's items.
  * If any item lacks sufficient stock or exceeds deal limits, all
@@ -58,19 +86,11 @@ export async function reserveOrderInventory(items) {
     }
 
     // 2. Conditionally reserve product stock directly from MongoDB
-    const updatedProduct = await Product.findOneAndUpdate(
-      {
-        _id: item.product,
-        stock: { $gte: qty },
-        isActive: true,
-      },
-      {
-        $inc: {
-          stock: -qty,
-          soldCount: qty,
-        },
-      },
-      { new: true }
+    const updatedProduct = await adjustProductInventory(
+      item,
+      -qty,
+      qty,
+      { reserve: true }
     );
 
     if (!updatedProduct) {
@@ -86,9 +106,16 @@ export async function reserveOrderInventory(items) {
 
       // Check current live stock to give a descriptive error
       const currentProd = await Product.findById(item.product).lean();
-      const currentStock = currentProd ? currentProd.stock : 0;
+      const currentVariant = item.variantId
+        ? currentProd?.variants?.find((variant) => String(variant._id) === String(item.variantId))
+        : item.variantLabel
+          ? currentProd?.variants?.find((variant) => variant.label === item.variantLabel)
+          : null;
+      const currentStock = item.variantId || item.variantLabel
+        ? currentVariant?.stock ?? 0
+        : currentProd?.stock ?? 0;
       throw ApiError.badRequest(
-        `Insufficient stock for "${item.name}". Available: ${currentStock}, requested: ${qty}`
+        `Insufficient stock for "${item.name}"${item.size ? ` (${item.size})` : ""}. Available: ${currentStock}, requested: ${qty}`
       );
     }
 
@@ -96,6 +123,9 @@ export async function reserveOrderInventory(items) {
       product: item.product,
       quantity: qty,
       name: item.name,
+      size: item.size,
+      variantId: item.variantId || null,
+      variantLabel: item.variantLabel || null,
       dealId: item.dealId || null,
       dealReserved,
     });
@@ -120,12 +150,14 @@ export async function rollbackInventory(reservedItems) {
 
   for (const item of reservedItems) {
     try {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: {
-          stock: item.quantity,
-          soldCount: -item.quantity,
-        },
-      });
+      const restoredProduct = await adjustProductInventory(
+        item,
+        item.quantity,
+        -item.quantity
+      );
+      if (!restoredProduct) {
+        throw new Error("Product or selected variant no longer exists");
+      }
 
       if (item.dealId && item.dealReserved !== false) {
         await Deal.findByIdAndUpdate(item.dealId, {
@@ -163,12 +195,14 @@ export async function restoreOrderInventory(order, reason = "", updatedBy = "Sys
 
   for (const item of order.items) {
     try {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: {
-          stock: item.quantity,
-          soldCount: -item.quantity,
-        },
-      });
+      const restoredProduct = await adjustProductInventory(
+        item,
+        item.quantity,
+        -item.quantity
+      );
+      if (!restoredProduct) {
+        throw new Error("Product or selected variant no longer exists");
+      }
 
       if (item.dealId) {
         await Deal.findByIdAndUpdate(item.dealId, {
@@ -229,22 +263,26 @@ export async function restockReturnedUnits(order, restockQuantity, note, adminUs
   // Distribute restock proportional or direct for single item
   if (order.items.length === 1) {
     const item = order.items[0];
-    await Product.findByIdAndUpdate(item.product, {
-      $inc: {
-        stock: unitsToRestock,
-        soldCount: -unitsToRestock,
-      },
-    });
+    const updated = await adjustProductInventory(
+      item,
+      unitsToRestock,
+      -unitsToRestock
+    );
+    if (!updated) {
+      throw ApiError.badRequest("The product or selected variant no longer exists");
+    }
   } else {
     // If multi-item and full return restock
     if (unitsToRestock === totalOrderUnits) {
       for (const item of order.items) {
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: {
-            stock: item.quantity,
-            soldCount: -item.quantity,
-          },
-        });
+        const updated = await adjustProductInventory(
+          item,
+          item.quantity,
+          -item.quantity
+        );
+        if (!updated) {
+          throw ApiError.badRequest("A product or selected variant no longer exists");
+        }
       }
     } else {
       // Partial restock: restore first item up to restock count
@@ -252,12 +290,10 @@ export async function restockReturnedUnits(order, restockQuantity, note, adminUs
       for (const item of order.items) {
         if (remaining <= 0) break;
         const add = Math.min(remaining, item.quantity);
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: {
-            stock: add,
-            soldCount: -add,
-          },
-        });
+        const updated = await adjustProductInventory(item, add, -add);
+        if (!updated) {
+          throw ApiError.badRequest("A product or selected variant no longer exists");
+        }
         remaining -= add;
       }
     }

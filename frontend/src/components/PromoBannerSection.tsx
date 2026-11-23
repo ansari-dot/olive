@@ -13,13 +13,9 @@ interface PromoBannerSectionProps {
 
 export const PromoBannerSection: React.FC<PromoBannerSectionProps> = React.memo(({
   onShopNow,
-  title = 'LATEST & SPECIAL BRANDS',
-  subtitle = 'Cold-Pressed Potohar Extra Virgin Olive Oils & Wild Karakoram Botanicals',
-  discountBadge = {
-    line1: 'Best',
-    line2: 'Discount',
-    percent: '-20%',
-  },
+  title = 'A NATURAL WORLD OF CHOICE',
+  subtitle = 'Explore natural foods, botanicals, pantry essentials and wellness products.',
+  discountBadge,
 }) => {
   return (
     <section
@@ -47,15 +43,15 @@ export const PromoBannerSection: React.FC<PromoBannerSectionProps> = React.memo(
           <div className="relative flex items-center shrink-0 z-10 w-[140px] sm:w-[220px] lg:w-[280px] h-[190px] sm:h-[220px] lg:h-[250px] -ml-2 sm:-ml-4">
             {/* Tilted Olive Oil Bottle (Bleeding slightly off left/bottom) */}
             <img
-              src="/assets/images/nobg/featured_card_teardrop_oil_1794769568371_nobg.png"
-              alt="Potohar Extra Virgin Olive Oil"
+              src="/assets/images/featured_card_teardrop_oil_1794769568371.jpg"
+              alt="Olive oil product"
               loading="lazy"
               decoding="async"
               className="absolute -left-2 sm:left-2 bottom-0 w-[110px] sm:w-[160px] lg:w-[190px] h-auto max-h-[92%] object-contain -rotate-[14deg] drop-shadow-[0_16px_22px_rgba(0,0,0,0.4)] pointer-events-none transition-transform duration-500 hover:rotate-[-10deg]"
             />
 
             {/* Bright Yellow Circular Discount Sticker Badge (Exact match to reference) */}
-            <div className="absolute left-[70px] sm:left-[115px] lg:left-[135px] top-[15px] sm:top-[22px] lg:top-[28px] w-[74px] h-[74px] sm:w-[86px] sm:h-[86px] lg:w-[94px] lg:h-[94px] rounded-full bg-[#FFD100] shadow-[0_6px_16px_rgba(0,0,0,0.25)] flex flex-col items-center justify-center select-none shrink-0 border-2 border-white/30 z-20 transition-transform duration-300 hover:scale-105">
+            {discountBadge && <div className="absolute left-[70px] sm:left-[115px] lg:left-[135px] top-[15px] sm:top-[22px] lg:top-[28px] w-[74px] h-[74px] sm:w-[86px] sm:h-[86px] lg:w-[94px] lg:h-[94px] rounded-full bg-[#D6B878] shadow-[0_6px_16px_rgba(0,0,0,0.18)] flex flex-col items-center justify-center select-none shrink-0 border-2 border-white/30 z-20 transition-transform duration-300 hover:scale-105">
               <span className="text-[11.5px] sm:text-[13px] font-extrabold text-[#111111] leading-none tracking-tight">
                 {discountBadge.line1}
               </span>
@@ -65,7 +61,7 @@ export const PromoBannerSection: React.FC<PromoBannerSectionProps> = React.memo(
               <span className="text-[14px] sm:text-[16px] lg:text-[17px] font-black text-[#A4491E] leading-none tracking-tight mt-1">
                 {discountBadge.percent}
               </span>
-            </div>
+            </div>}
           </div>
 
           {/* =========================================================================
@@ -99,8 +95,8 @@ export const PromoBannerSection: React.FC<PromoBannerSectionProps> = React.memo(
           <div className="relative hidden md:flex items-end justify-end shrink-0 z-10 w-[140px] sm:w-[180px] lg:w-[240px] h-[190px] sm:h-[220px] lg:h-[250px] -mr-2 sm:-mr-4">
             {/* Primary Tall Decanter/Cruet */}
             <img
-              src="/assets/images/nobg/card_oil_cruet_1_1794769256413_nobg.png"
-              alt="Artisanal Cruet Extra Virgin Olive Oil"
+              src="/assets/images/card_oil_cruet_1_1794769256413.jpg"
+              alt="Olive oil product"
               loading="lazy"
               decoding="async"
               className="absolute right-12 lg:right-16 bottom-0 w-[95px] sm:w-[125px] lg:w-[145px] h-auto max-h-[96%] object-contain drop-shadow-[0_16px_22px_rgba(0,0,0,0.4)] pointer-events-none transition-transform duration-500 hover:scale-105"
@@ -108,8 +104,8 @@ export const PromoBannerSection: React.FC<PromoBannerSectionProps> = React.memo(
 
             {/* Secondary Amber Botanical Dropper Bottle */}
             <img
-              src="/assets/images/nobg/shop_card_amber_bottle_1794770042120_nobg.png"
-              alt="Himalayan Sidr Botanical Infusion"
+              src="/assets/images/shop_card_amber_bottle_1794770042120.jpg"
+              alt="Botanical oil product"
               loading="lazy"
               decoding="async"
               className="absolute right-0 bottom-0 w-[70px] sm:w-[90px] lg:w-[105px] h-auto max-h-[80%] object-contain drop-shadow-[0_12px_18px_rgba(0,0,0,0.35)] pointer-events-none transition-transform duration-500 hover:scale-105"

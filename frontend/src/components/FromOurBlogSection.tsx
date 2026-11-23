@@ -40,7 +40,7 @@ export const FromOurBlogSection: React.FC<FromOurBlogSectionProps> = React.memo(
             From Our Blog
           </h2>
           <p className="mt-2.5 text-[14.5px] sm:text-[15px] text-[#6E6A66] font-normal leading-relaxed">
-            Harvest journals, nutrition notes, and cold-press quality standards from our groves.
+            Product stories and updates from PAK VEDA.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export const FromOurBlogSection: React.FC<FromOurBlogSectionProps> = React.memo(
       ) : (
         <div className="w-full py-12 text-center border border-dashed border-[#E5E7EB] bg-[#FAF8F5] rounded-xs">
           <p className="text-[14px] font-semibold text-[#4B5563]">No stories yet published</p>
-          <p className="text-[12px] text-[#9CA3AF] mt-1">Journal stories from our groves will be posted soon.</p>
+          <p className="text-[12px] text-[#9CA3AF] mt-1">Blog posts will appear here when available.</p>
         </div>
       )}
 

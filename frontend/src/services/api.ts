@@ -380,6 +380,7 @@ export interface TrackingTimelineStep {
 export interface TrackOrderResponse {
   orderReference: string;
   courierName: string;
+  trackingUrl?: string;
   courierTrackingCode: string;
   customerName: string;
   city: string;

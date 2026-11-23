@@ -33,11 +33,7 @@ import {
   updateProductStock,
   uploadAdminImage,
 } from '../services/adminApi';
-<<<<<<< HEAD
-import type { AdminProduct, AdminReview, BrandName } from '../types/admin';
-=======
-import type { AdminProduct, BrandName, ProductVariant } from '../types/admin';
->>>>>>> 21a32c4 (create the branding)
+import type { AdminProduct, AdminReview, BrandName, ProductVariant } from '../types/admin';
 import { formatPKR } from '../utils/formatters';
 
 const BRAND_OPTIONS: BrandName[] = [
@@ -221,12 +217,8 @@ export const ProductsView: React.FC = () => {
   const openCreateModal = () => {
     refreshTaxonomies();
     setEditingId(null);
-<<<<<<< HEAD
     setForm(EMPTY_FORM);
     setNewGalleryUrl('');
-=======
-    setForm({ ...EMPTY_FORM, variants: [] });
->>>>>>> 21a32c4 (create the branding)
     setModalOpen(true);
   };
 
@@ -235,7 +227,6 @@ export const ProductsView: React.FC = () => {
     setEditingId(prod._id);
     setForm({
       ...prod,
-<<<<<<< HEAD
       sections: prod.sections?.length ? prod.sections : ['shop', 'featured-grid'],
       galleryImages: prod.galleryImages?.length ? prod.galleryImages : [],
       extractionMethod: prod.extractionMethod || 'First Cold-Press (< 27°C), Unfiltered',
@@ -245,10 +236,6 @@ export const ProductsView: React.FC = () => {
       harvestDate: prod.harvestDate || '',
       storageInstructions: prod.storageInstructions || '',
       isOrganic: Boolean(prod.isOrganic),
-=======
-      sections: prod.sections?.length ? prod.sections : ['shop'],
-      variants: prod.variants?.length ? prod.variants : [],
->>>>>>> 21a32c4 (create the branding)
     });
     setNewGalleryUrl('');
     setModalOpen(true);
@@ -328,7 +315,6 @@ export const ProductsView: React.FC = () => {
         price: Number(form.price || 0),
         originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
         stock: Number(form.stock ?? 0),
-<<<<<<< HEAD
         extractionMethod: form.extractionMethod?.trim() || 'First Cold-Press (< 27°C), Unfiltered',
         acidityLevel: form.acidityLevel?.trim() || '< 0.3% Free Fatty Acidity',
         flavour: form.flavour?.trim() || undefined,
@@ -339,7 +325,6 @@ export const ProductsView: React.FC = () => {
         isActive: form.isActive !== undefined ? Boolean(form.isActive) : true,
         isSale: Boolean(form.isSale),
         isNew: Boolean(form.isNew),
-=======
         variants: (form.variants ?? [])
           .map((variant) => ({
             ...variant,
@@ -351,7 +336,6 @@ export const ProductsView: React.FC = () => {
             isActive: variant.isActive !== false,
           }))
           .filter((variant) => variant.label && variant.price > 0),
->>>>>>> 21a32c4 (create the branding)
       };
 
       if (editingId) {
@@ -990,7 +974,6 @@ export const ProductsView: React.FC = () => {
                 </div>
               )}
 
-<<<<<<< HEAD
               {/* Section 1: Basic Information */}
               <div className="space-y-4">
                 <h4 className="text-[12px] font-bold uppercase tracking-wider text-[#15472B] border-b border-[#E2E8F0] pb-1.5">
@@ -1001,205 +984,6 @@ export const ProductsView: React.FC = () => {
                     <label className="block text-[12px] font-semibold text-[#334155]">
                       Product Name <span className="text-red-500">*</span>
                     </label>
-=======
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Price (PKR)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={1}
-                    value={form.price ?? 0}
-                    onChange={(e) => setForm((p) => ({ ...p, price: Number(e.target.value) }))}
-                    className="w-full border border-[#CBD5E1] px-3 py-2 font-mono-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Original Price
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.originalPrice ?? ''}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        originalPrice: e.target.value ? Number(e.target.value) : undefined,
-                      }))
-                    }
-                    className="w-full border border-[#CBD5E1] px-3 py-2 font-mono-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Stock
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={form.stock ?? 0}
-                    onChange={(e) => setForm((p) => ({ ...p, stock: Number(e.target.value) }))}
-                    className="w-full border border-[#CBD5E1] px-3 py-2 font-mono-data"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Origin
-                  </label>
-                  <input
-                    type="text"
-                    value={form.origin ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, origin: e.target.value }))}
-                    placeholder="Potohar / Swat"
-                    className="w-full border border-[#CBD5E1] px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              <div className="border border-[#E2E8F0] bg-[#F8FAFC] p-3.5 space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] uppercase font-semibold text-[#475569]">
-                      Size &amp; Price Variants
-                    </p>
-                    <p className="text-[11px] text-[#64748B] mt-0.5">
-                      Add options such as S, XL or 250 ml. Leave empty to use the default price above.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addVariant}
-                    className="inline-flex items-center gap-1 border border-[#15472B] text-[#15472B] px-3 py-1.5 text-[11px] font-semibold cursor-pointer whitespace-nowrap"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add Size
-                  </button>
-                </div>
-
-                {(form.variants ?? []).map((variant, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-2 items-end bg-white border border-[#E2E8F0] p-2.5"
-                  >
-                    <div>
-                      <label className="block text-[10px] uppercase font-semibold text-[#64748B] mb-1">
-                        Size
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={variant.label}
-                        onChange={(e) => updateVariant(index, { label: e.target.value })}
-                        placeholder="XL"
-                        className="w-full border border-[#CBD5E1] px-2 py-1.5"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-semibold text-[#64748B] mb-1">
-                        Price
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min={1}
-                        value={variant.price || ''}
-                        onChange={(e) => updateVariant(index, { price: Number(e.target.value) })}
-                        className="w-full border border-[#CBD5E1] px-2 py-1.5 font-mono-data"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-semibold text-[#64748B] mb-1">
-                        Original
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={variant.originalPrice ?? ''}
-                        onChange={(e) =>
-                          updateVariant(index, {
-                            originalPrice: e.target.value ? Number(e.target.value) : undefined,
-                          })
-                        }
-                        className="w-full border border-[#CBD5E1] px-2 py-1.5 font-mono-data"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-semibold text-[#64748B] mb-1">
-                        Stock
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min={0}
-                        value={variant.stock ?? 0}
-                        onChange={(e) => updateVariant(index, { stock: Number(e.target.value) })}
-                        className="w-full border border-[#CBD5E1] px-2 py-1.5 font-mono-data"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-semibold text-[#64748B] mb-1">
-                        Variant SKU
-                      </label>
-                      <input
-                        type="text"
-                        value={variant.sku ?? ''}
-                        onChange={(e) => updateVariant(index, { sku: e.target.value })}
-                        placeholder="ZP-XL"
-                        className="w-full border border-[#CBD5E1] px-2 py-1.5 font-mono-data"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeVariant(index)}
-                      aria-label={`Remove size variant ${variant.label || index + 1}`}
-                      className="p-2 border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Flavour (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={form.flavour ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, flavour: e.target.value }))}
-                    placeholder="Basil, Pepper, Cardamom, Ginger"
-                    className="w-full border border-[#CBD5E1] px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] uppercase font-semibold text-[#475569] mb-1">
-                    Acidity Level
-                  </label>
-                  <input
-                    type="text"
-                    value={form.acidityLevel ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, acidityLevel: e.target.value }))}
-                    className="w-full border border-[#CBD5E1] px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              {/* Image Upload + URL */}
-              <div className="border border-[#E2E8F0] p-3.5 bg-[#F8FAFC] space-y-2.5">
-                <label className="block text-[11px] uppercase font-semibold text-[#475569]">
-                  Product Studio Image (Upload or URL)
-                </label>
-                <div className="flex flex-wrap items-center gap-3">
-                  <label className="inline-flex items-center gap-2 border border-[#0F172A] bg-white px-3.5 py-2 text-[12px] font-medium cursor-pointer">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
->>>>>>> 21a32c4 (create the branding)
                     <input
                       type="text"
                       required
@@ -1333,6 +1117,63 @@ export const ProductsView: React.FC = () => {
                       )}
                     </select>
                   </div>
+                </div>
+                <div className="rounded-xl border border-[#E6E0D3] bg-[#FAF8F3] p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h5 className="text-sm font-semibold text-[#174D35]">Size and price variants</h5>
+                      <p className="mt-1 text-xs text-[#66736A]">Optional product sizes with their own price and stock.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addVariant}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#174D35] px-3 py-2 text-xs font-semibold text-[#174D35] hover:bg-[#174D35] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#174D35]"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add size
+                    </button>
+                  </div>
+                  {(form.variants ?? []).map((variant, index) => (
+                    <div key={`${variant.sku || 'variant'}-${index}`} className="grid grid-cols-1 gap-3 rounded-lg border border-[#E6E0D3] bg-white p-3 sm:grid-cols-[1.2fr_1fr_1fr_auto] sm:items-end">
+                      <label className="space-y-1 text-xs font-medium text-[#526056]">
+                        Size
+                        <input
+                          value={variant.label}
+                          onChange={(event) => updateVariant(index, { label: event.target.value })}
+                          className="w-full rounded-md border border-[#D8DED8] px-3 py-2 text-sm text-[#23362B] focus:border-[#174D35] focus:outline-none focus:ring-2 focus:ring-[#174D35]/15"
+                          placeholder="e.g. 250 ml"
+                        />
+                      </label>
+                      <label className="space-y-1 text-xs font-medium text-[#526056]">
+                        Price (PKR)
+                        <input
+                          type="number"
+                          min="1"
+                          value={variant.price || ''}
+                          onChange={(event) => updateVariant(index, { price: Number(event.target.value) })}
+                          className="w-full rounded-md border border-[#D8DED8] px-3 py-2 text-sm text-[#23362B] focus:border-[#174D35] focus:outline-none focus:ring-2 focus:ring-[#174D35]/15"
+                        />
+                      </label>
+                      <label className="space-y-1 text-xs font-medium text-[#526056]">
+                        Stock
+                        <input
+                          type="number"
+                          min="0"
+                          value={variant.stock}
+                          onChange={(event) => updateVariant(index, { stock: Number(event.target.value) })}
+                          className="w-full rounded-md border border-[#D8DED8] px-3 py-2 text-sm text-[#23362B] focus:border-[#174D35] focus:outline-none focus:ring-2 focus:ring-[#174D35]/15"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(index)}
+                        aria-label={`Remove ${variant.label || 'size'} variant`}
+                        className="inline-flex h-10 items-center justify-center rounded-md border border-[#E6C7C1] px-3 text-[#9A3D2D] hover:bg-[#FCF1EF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9A3D2D]"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
 

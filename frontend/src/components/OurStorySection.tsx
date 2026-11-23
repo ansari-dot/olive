@@ -53,53 +53,51 @@ export const OurStorySection: React.FC = React.memo(() => {
           <div className="lg:col-span-7">
             <div className="space-y-5 text-[14.5px] sm:text-[15px] leading-[1.72] text-[#666666]">
               <p>
-                Founded with a commitment to pure, unrefined nourishment, Pak Veda brings
-                together master small-batch spice millers, cold-pressed olive growers, mountain apiaries,
-                and high-altitude botanical foragers across Pakistan. From the sun-drenched limestone slopes
-                of Chakwal and the Potohar olive belt to the pristine glaciers of Skardu and the spice bazaars
-                of Lahore, every harvest is sourced at peak potency.
+                PAK VEDA brings together natural foods, spices, herbs, botanicals, oils, teas, coffee, snacks,
+                and functional nutrition in one easy-to-explore collection. Our portfolio spans 28 product
+                categories, from ground spices and olive products to beverages and nutritional supplements.
               </p>
               <p>
-                Spanning 28 master product categories—from cold-milled ground spices and single-cultivar
-                extra virgin olive oils to wild Himalayan Shilajit, Lion's Mane mushroom concentrates, and raw
-                Sidr honey—every batch remains 100% unadulterated, unrefined, and lab-tested for absolute purity.
+                Our purpose is to make a diverse range of natural ingredients and specialty products part of
+                everyday life. We aim to present product information clearly and share specifications as they
+                are verified.
               </p>
             </div>
 
-            {/* Expanded Harvest Standards (toggled by READ MORE) */}
+            {/* Brand values (toggled by READ MORE) */}
             {expanded && (
               <div className="mt-6 pt-6 border-t border-[#EAEAEA] grid grid-cols-1 sm:grid-cols-3 gap-6 tabular-nums">
                 <div>
-                  <p className="text-[11.5px] uppercase tracking-[0.08em] text-[#7D9225] font-semibold">
-                    Extraction
+                  <p className="text-[11.5px] uppercase tracking-[0.08em] text-[#75513A] font-semibold">
+                    Quality
                   </p>
                   <p className="text-[15px] font-semibold text-[#15472B] mt-0.5">
-                    Cold-Pressed &lt; 27°C
+                    Thoughtful selection
                   </p>
                   <p className="text-[13px] text-[#666666] mt-1">
-                    First mechanical press within 6 hours of harvest.
+                    Product details are presented with care and clarity.
                   </p>
                 </div>
                 <div>
-                  <p className="text-[11.5px] uppercase tracking-[0.08em] text-[#7D9225] font-semibold">
-                    Purity Metric
+                  <p className="text-[11.5px] uppercase tracking-[0.08em] text-[#75513A] font-semibold">
+                    Authenticity
                   </p>
                   <p className="text-[15px] font-semibold text-[#15472B] mt-0.5">
-                    Acidity &lt; 0.3%
+                    Respect for ingredients
                   </p>
                   <p className="text-[13px] text-[#666666] mt-1">
-                    Verified extra virgin grade with rich polyphenols.
+                    Traditional ingredients meet contemporary routines.
                   </p>
                 </div>
                 <div>
-                  <p className="text-[11.5px] uppercase tracking-[0.08em] text-[#7D9225] font-semibold">
-                    Traceability
+                  <p className="text-[11.5px] uppercase tracking-[0.08em] text-[#75513A] font-semibold">
+                    Transparency
                   </p>
                   <p className="text-[15px] font-semibold text-[#15472B] mt-0.5">
-                    100% Single-Origin
+                    Information you can use
                   </p>
                   <p className="text-[13px] text-[#666666] mt-1">
-                    Sourced directly from Potohar, Swat, and Karak estates.
+                    Ingredients and specifications are shared when verified.
                   </p>
                 </div>
               </div>

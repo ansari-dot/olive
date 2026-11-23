@@ -231,13 +231,8 @@ export const CartPage: React.FC<CartPageProps> = ({
                 <div className="divide-y divide-[#EEEEEE]">
                   {items.map(({ product, quantity }) => (
                     <div
-<<<<<<< HEAD
-                      key={product.id}
-                      className="py-5 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center"
-=======
                       key={product.variantKey || product.id}
-                      className="py-6 grid grid-cols-1 md:grid-cols-12 gap-4 md:items-center"
->>>>>>> 21a32c4 (create the branding)
+                      className="py-5 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center"
                     >
                       {/* Product Thumbnail & Title */}
                       <div className="sm:col-span-6 flex items-center gap-4">

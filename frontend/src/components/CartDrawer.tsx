@@ -52,6 +52,7 @@ export const CartDrawer: React.FC = () => {
         },
         items: cart.map((it) => ({
           productId: it.product.mongoId || it.product.id,
+          size: it.product.size,
           quantity: it.quantity,
         })),
         paymentMethod: 'Cash on Delivery' as const,

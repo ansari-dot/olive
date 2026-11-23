@@ -527,18 +527,11 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
           ========================================================================= */}
       <div className="w-full bg-[#F5F5F5] border-b border-[#EAEAEA] text-[#666666] text-[12px] py-2.5 sm:py-3 select-none">
         <div className="max-w-[1400px] xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-          {/* Left: Email & Announcement */}
+          {/* Brand message */}
           <div className="flex items-center gap-2.5 truncate text-[11.5px] sm:text-[12px]">
-            <a
-              href="mailto:care@pakveda.pk"
-              className="hover:text-[#111111] transition-colors font-medium truncate"
-            >
-              Email:care@pakveda.pk
-            </a>
+            <span className="text-[#174D35] font-semibold">PAK VEDA</span>
             <span className="text-[#D1D5DB] font-light">|</span>
-            <span className="text-[#666666] truncate font-normal">
-              Today&apos;s Deal: Sale Off 50%
-            </span>
+            <span className="text-[#666666] truncate font-normal">Rooted in nature. Crafted for life.</span>
           </div>
 
           {/* Right: Order Tracking | Currency Dropdown | Language */}
@@ -635,7 +628,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
           The white background extends down to the exact centerline of Tier 3!
           ========================================================================= */}
       <div className="w-full bg-white pt-5 sm:pt-6 pb-0">
-        <div className="max-w-[1400px] xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-5 sm:gap-8 lg:gap-12">
+        <div className="max-w-[1400px] xl:max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-8 lg:gap-12">
           {/* Mobile Menu Hamburger (Visible < lg) */}
           <button
             type="button"
@@ -657,7 +650,7 @@ export const Navbar: React.FC<NavbarProps> = React.memo(({
             <img
               src="/assets/images/pak_veda_logo.svg"
               alt="Pak Veda"
-              className="h-12 sm:h-14 lg:h-[62px] w-auto object-contain transition-transform group-hover:scale-102"
+              className="h-9 w-auto max-w-[145px] object-contain transition-transform group-hover:scale-102 sm:h-14 sm:max-w-none lg:h-[62px]"
             />
           </div>
 
